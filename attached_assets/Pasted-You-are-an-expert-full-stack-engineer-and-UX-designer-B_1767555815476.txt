@@ -1,0 +1,110 @@
+You are an expert full-stack engineer and UX designer. Build (or upgrade) a production-ready web app called “L2LP Evidence Tracker” for an Irish SEN teacher to replace Google Drive + spreadsheets for Level 2 Learning Programmes (L2LP).
+
+NON-NEGOTIABLE L2LP ALIGNMENT (from the NCCA L2LP Guidelines):
+1) Portfolio approach: Over the three years of junior cycle, students assemble evidence of learning in a portfolio which can be hard copy and/or electronic. Evidence examples include written work, project/art work, photos, video recordings of participation/achievement, and recordings of musical work. (Implement as a digital portfolio per student.)  [oai_citation:0‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+2) Observation/Assessment Sheet workflow: Evidence entries must support an “observation sheet” style write-up including: learning outcomes in focus, where student was working (Classroom/Community), assessment activity, success criteria, observations (“There is evidence of…”), next steps/feedback, and evidence collected (photo/video).  [oai_citation:1‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+3) JCPA readiness rule: For achievement in each PLU to be recorded on the JCPA, students must present evidence of learning in a majority of the learning outcomes for all elements of that PLU. The app must calculate and display this coverage.  [oai_citation:2‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+4) The app must include the five Priority Learning Units (PLUs): Communicating and literacy, Numeracy, Personal care, Living in a community, Preparing for work.  [oai_citation:3‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+
+TECH STACK (keep it stable and simple):
+- Next.js (App Router) + TypeScript
+- Supabase: Auth + Postgres + Storage
+- Mobile-first UI (works fast on phone + Chromebook)
+- Minimal dependencies
+
+CORE ENTITIES / DATABASE:
+A) users
+- use Supabase Auth; single teacher account is fine for v1.
+
+B) students
+- id (uuid), first_name, last_name, class_group, year_group, notes, created_at, user_id (FK)
+
+C) learning_outcomes
+- id, programme (“L2LP”), plu_name, plu_number, element_name, outcome_code (e.g., “2.1”), outcome_text
+- NOTE: outcomes MUST be organised as PLU → element → learning outcome code/text.  [oai_citation:4‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+
+D) evidence
+- id, student_id (FK), user_id (FK), created_at
+- date_of_activity (date)
+- setting (enum: CLASSROOM | COMMUNITY)  [oai_citation:5‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+- assessment_activity (text)  [oai_citation:6‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+- success_criteria (text area; stored as markdown or newline bullets)  [oai_citation:7‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+- observations (text area)  [oai_citation:8‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+- next_steps (text area)  [oai_citation:9‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+- evidence_type (enum: PHOTO | VIDEO | AUDIO | WORK_SAMPLE | OTHER) and allow multiple files if easy
+- file_url, file_name, file_type, file_size (Supabase Storage)
+- staff_initials (short text)
+- independence_level (enum: INDEPENDENT | PROMPTED | PARTIAL | REFUSED) (teacher’s own field)
+
+E) evidence_outcomes (join table)
+- evidence_id, learning_outcome_id
+
+SECURITY:
+- Implement Supabase Row Level Security so each user can only see their own students/evidence/outcomes.
+- Validate uploads (limit size; allow only common safe types for images/video/audio/pdf/doc).
+
+FEATURES / PAGES:
+1) Auth
+- Sign in / sign out. (No public access.)
+
+2) Outcomes Library
+- Browse/search/filter by PLU, element, code, keyword
+- Show hierarchy: PLU → element → outcomes
+
+3) Students
+- Student list + add/edit
+- Student profile page with:
+  - Evidence timeline (most recent first)
+  - Outcome coverage dashboard (see #5)
+  - Quick “Upload Evidence” button
+
+4) Upload Evidence (FAST FLOW)
+- Flow must be: Select student → upload file (or take photo on mobile) → select one or more outcomes (by code) → fill short fields → save.
+- Evidence form fields must match the observation/assessment sheet items listed above.  [oai_citation:10‡L2LPS-Guidelines-Jan-2019-version.pdf](sediment://file_000000002e5c71f4ba843e3f4dd9fb97)
+
+5) PLU Coverage Dashboard (the killer feature)
+For each student:
+- For each PLU:
+  - show each element: (outcomes evidenced / total outcomes) + percentage
+  - show PLU status: “On track for JCPA evidence” if, for EVERY element, the student has evidence for a majority of outcomes in that element (implement as >50%).
+- Also show:
+  - “Missing outcomes” list (no evidence yet)
+  - “Weak outcomes” (only 1 evidence item)
+
+6) Evidence Library (Search)
+- Filter by: student, PLU, element, outcome code, date range, setting, evidence type, independence level
+- Evidence detail view shows the file + write-up fields
+
+7) Reporting / Export
+- Generate a printable PDF (or HTML print view) per student (or per PLU) that includes:
+  - coverage summary + evidence list with outcome codes and dates
+  - observation sheet write-up per evidence entry
+- Keep export simple and reliable (server-side render or client print).
+
+SEEDING / IMPORT:
+- Provide a simple admin-only screen to import learning outcomes from JSON.
+- Provide example JSON format:
+[
+  {"programme":"L2LP","plu_number":2,"plu_name":"Numeracy","element_name":"Managing money","outcome_code":"2.1","outcome_text":"..."}
+]
+- Include a seed script/README steps.
+
+UX REQUIREMENTS:
+- Must be fast to use in a classroom.
+- Large tap targets, minimal typing.
+- Provide “templates” (optional but recommended):
+  - Morning work evidence
+  - Task box evidence
+  - Community trip evidence
+Templates pre-fill: setting, common success-criteria headings, staff initials.
+
+DELIVERABLES:
+- Full Next.js code
+- SQL for tables + enums + RLS policies
+- Supabase Storage bucket setup instructions
+- README with step-by-step setup in Replit
+- Include sensible error handling and loading states
+
+Build this iteratively:
+Phase 1 (MVP): Auth, Students, Outcomes, Upload Evidence, Student dashboard coverage, Evidence search.
+Phase 2: Export/print views + templates + multi-file evidence.
