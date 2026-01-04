@@ -1,16 +1,272 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
+import { z } from "zod";
+
+// L2LP Learning Outcomes seed data
+const L2LP_OUTCOMES = [
+  { code: "1.1", strand: "Managing money", description: "Recognise and identify coins and notes" },
+  { code: "1.2", strand: "Managing money", description: "Use coins and notes in everyday situations" },
+  { code: "1.3", strand: "Managing money", description: "Understand the concept of value and exchange" },
+  { code: "1.4", strand: "Managing money", description: "Make simple purchases independently" },
+  { code: "2.1", strand: "Using public facilities", description: "Identify and access local public facilities" },
+  { code: "2.2", strand: "Using public facilities", description: "Use public transport with appropriate support" },
+  { code: "2.3", strand: "Using public facilities", description: "Navigate familiar community environments" },
+  { code: "2.4", strand: "Using public facilities", description: "Follow social conventions in public spaces" },
+  { code: "3.1", strand: "Personal care and hygiene", description: "Maintain personal hygiene routines independently" },
+  { code: "3.2", strand: "Personal care and hygiene", description: "Select appropriate clothing for different situations" },
+  { code: "3.3", strand: "Personal care and hygiene", description: "Manage personal belongings responsibly" },
+  { code: "3.4", strand: "Personal care and hygiene", description: "Understand the importance of health and wellbeing" },
+  { code: "4.1", strand: "Food preparation", description: "Prepare simple snacks and drinks safely" },
+  { code: "4.2", strand: "Food preparation", description: "Follow basic recipes with visual supports" },
+  { code: "4.3", strand: "Food preparation", description: "Use kitchen equipment safely and appropriately" },
+  { code: "4.4", strand: "Food preparation", description: "Clean up after food preparation activities" },
+  { code: "5.1", strand: "Communication", description: "Express needs, wants and preferences clearly" },
+  { code: "5.2", strand: "Communication", description: "Engage in two-way conversations appropriately" },
+  { code: "5.3", strand: "Communication", description: "Use technology for communication purposes" },
+  { code: "5.4", strand: "Communication", description: "Understand and respond to verbal and non-verbal cues" },
+  { code: "6.1", strand: "Social skills", description: "Interact appropriately with peers and adults" },
+  { code: "6.2", strand: "Social skills", description: "Work cooperatively as part of a group" },
+  { code: "6.3", strand: "Social skills", description: "Demonstrate awareness of personal boundaries" },
+  { code: "6.4", strand: "Social skills", description: "Manage emotions in social situations" },
+  { code: "7.1", strand: "Leisure and recreation", description: "Participate in chosen leisure activities" },
+  { code: "7.2", strand: "Leisure and recreation", description: "Make choices about recreational activities" },
+  { code: "7.3", strand: "Leisure and recreation", description: "Engage in physical activities for wellbeing" },
+  { code: "7.4", strand: "Leisure and recreation", description: "Use leisure time productively" },
+  { code: "8.1", strand: "Home management", description: "Contribute to household tasks appropriately" },
+  { code: "8.2", strand: "Home management", description: "Maintain a tidy personal space" },
+  { code: "8.3", strand: "Home management", description: "Understand basic home safety rules" },
+  { code: "8.4", strand: "Home management", description: "Care for personal possessions" },
+  { code: "9.1", strand: "Work skills", description: "Follow instructions and complete tasks" },
+  { code: "9.2", strand: "Work skills", description: "Demonstrate punctuality and attendance" },
+  { code: "9.3", strand: "Work skills", description: "Work safely and responsibly" },
+  { code: "9.4", strand: "Work skills", description: "Accept feedback and make improvements" },
+  { code: "10.1", strand: "Self-advocacy", description: "Express personal opinions and preferences" },
+  { code: "10.2", strand: "Self-advocacy", description: "Ask for help when needed" },
+  { code: "10.3", strand: "Self-advocacy", description: "Make informed choices about daily life" },
+  { code: "10.4", strand: "Self-advocacy", description: "Understand personal rights and responsibilities" },
+];
+
+async function seedOutcomesIfNeeded() {
+  try {
+    const existing = await storage.getOutcomes();
+    if (existing.length === 0) {
+      console.log("Seeding L2LP learning outcomes...");
+      await storage.createOutcomesBatch(L2LP_OUTCOMES);
+      console.log(`Seeded ${L2LP_OUTCOMES.length} learning outcomes`);
+    }
+  } catch (error) {
+    console.error("Error seeding outcomes:", error);
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // Setup authentication
+  await setupAuth(app);
+  registerAuthRoutes(app);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Setup object storage routes
+  registerObjectStorageRoutes(app);
+
+  // Seed learning outcomes on startup
+  await seedOutcomesIfNeeded();
+
+  // ==================== Students API ====================
+  app.get("/api/students", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const students = await storage.getStudents(userId);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.get("/api/students/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const student = await storage.getStudent(req.params.id, userId);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.json(student);
+    } catch (error) {
+      console.error("Error fetching student:", error);
+      res.status(500).json({ message: "Failed to fetch student" });
+    }
+  });
+
+  app.post("/api/students", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const data = insertStudentSchema.parse({ ...req.body, userId });
+      const student = await storage.createStudent(data);
+      res.status(201).json(student);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating student:", error);
+      res.status(500).json({ message: "Failed to create student" });
+    }
+  });
+
+  app.patch("/api/students/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const student = await storage.updateStudent(req.params.id, userId, req.body);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.json(student);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      res.status(500).json({ message: "Failed to update student" });
+    }
+  });
+
+  app.delete("/api/students/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const deleted = await storage.deleteStudent(req.params.id, userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
+    }
+  });
+
+  // ==================== Student Evidence & Coverage ====================
+  app.get("/api/students/:id/evidence", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const evidence = await storage.getStudentEvidence(req.params.id, userId);
+      res.json(evidence);
+    } catch (error) {
+      console.error("Error fetching student evidence:", error);
+      res.status(500).json({ message: "Failed to fetch evidence" });
+    }
+  });
+
+  app.get("/api/students/:id/coverage", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const coverage = await storage.getStudentCoverage(req.params.id, userId);
+      res.json(coverage);
+    } catch (error) {
+      console.error("Error fetching coverage:", error);
+      res.status(500).json({ message: "Failed to fetch coverage" });
+    }
+  });
+
+  // ==================== Learning Outcomes API ====================
+  app.get("/api/outcomes", isAuthenticated, async (req, res) => {
+    try {
+      const outcomes = await storage.getOutcomes();
+      res.json(outcomes);
+    } catch (error) {
+      console.error("Error fetching outcomes:", error);
+      res.status(500).json({ message: "Failed to fetch outcomes" });
+    }
+  });
+
+  app.post("/api/outcomes/seed", isAuthenticated, async (req, res) => {
+    try {
+      const { outcomes } = req.body;
+      if (!Array.isArray(outcomes)) {
+        return res.status(400).json({ message: "outcomes must be an array" });
+      }
+      const created = await storage.createOutcomesBatch(outcomes);
+      res.status(201).json({ message: `Created ${created.length} outcomes`, outcomes: created });
+    } catch (error) {
+      console.error("Error seeding outcomes:", error);
+      res.status(500).json({ message: "Failed to seed outcomes" });
+    }
+  });
+
+  // ==================== Evidence API ====================
+  app.get("/api/evidence", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const evidence = await storage.getAllEvidence(userId);
+      res.json(evidence);
+    } catch (error) {
+      console.error("Error fetching evidence:", error);
+      res.status(500).json({ message: "Failed to fetch evidence" });
+    }
+  });
+
+  app.get("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const evidence = await storage.getEvidence(req.params.id, userId);
+      if (!evidence) {
+        return res.status(404).json({ message: "Evidence not found" });
+      }
+      res.json(evidence);
+    } catch (error) {
+      console.error("Error fetching evidence:", error);
+      res.status(500).json({ message: "Failed to fetch evidence" });
+    }
+  });
+
+  const createEvidenceSchema = z.object({
+    studentId: z.string(),
+    dateOfActivity: z.string().transform((s) => new Date(s)),
+    evidenceType: z.string(),
+    contextSource: z.string(),
+    staffInitials: z.string().nullable().optional(),
+    notes: z.string().nullable().optional(),
+    independenceLevel: z.string(),
+    fileUrl: z.string().nullable().optional(),
+    fileName: z.string().nullable().optional(),
+    fileType: z.string().nullable().optional(),
+    fileSize: z.number().nullable().optional(),
+    outcomeIds: z.array(z.string()),
+  });
+
+  app.post("/api/evidence", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { outcomeIds, ...data } = createEvidenceSchema.parse(req.body);
+
+      const evidence = await storage.createEvidence(
+        { ...data, userId },
+        outcomeIds
+      );
+      res.status(201).json(evidence);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating evidence:", error);
+      res.status(500).json({ message: "Failed to create evidence" });
+    }
+  });
+
+  app.delete("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const deleted = await storage.deleteEvidence(req.params.id, userId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Evidence not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting evidence:", error);
+      res.status(500).json({ message: "Failed to delete evidence" });
+    }
+  });
 
   return httpServer;
 }
