@@ -1,0 +1,58 @@
+Build a production-ready web app called “L2LP Evidence Tracker” for an Irish SEN teacher.
+
+Core goal:
+Replace Google Drive + spreadsheets by allowing evidence uploads (photo/video/file), tagging, and tracking coverage of Level 2 Learning Programme (L2LP) learning outcomes.
+
+Tech requirements:
+- Use Next.js (App Router) + TypeScript
+- Use Supabase for authentication, database (Postgres), and file storage
+- Mobile-first UI (works great on phone + Chromebook)
+- Clean, simple UI with fast workflows
+
+Data models:
+1) Student
+- id, first_name, last_name, class_group, year, notes, created_at
+
+2) LearningOutcome
+- id, code (e.g., “2.1”), strand/plu (e.g., “Managing money”), description, programme (“L2LP”)
+
+3) Evidence
+- id, student_id (FK), created_at, date_of_activity, evidence_type (photo/video/work_sample/observation/audio/other)
+- context_source (morning_work/task_box/community_trip/lesson/other)
+- staff_initials
+- notes
+- independence_level (independent/partial/prompted/refused)
+- file_url (Supabase Storage)
+- file_name, file_type, file_size
+- many-to-many relation to LearningOutcome via EvidenceOutcome join table
+
+Pages / features:
+- Auth pages (sign in/out)
+- Students list + add/edit student
+- Learning outcomes searchable list (filter by strand/plu, code)
+- Upload evidence page:
+  - choose student
+  - upload/take a file
+  - select one or multiple learning outcomes
+  - fill quick tags: date, type, context, staff initials, notes, independence level
+- Student dashboard:
+  - evidence timeline
+  - outcome coverage table showing: outcome code, description, evidence count, most recent evidence date
+  - “Missing outcomes” section: outcomes with zero evidence
+- Evidence library page:
+  - filter by student, date range, outcome code, evidence type, context
+  - open evidence details view and download file
+
+Admin / seed:
+- Include a seed script or admin page to import L2LP outcomes from a JSON file.
+- Provide an example JSON format for outcomes.
+
+Security:
+- Supabase row-level security policies so users can only access their own data.
+- Validate file types and limit file sizes.
+
+Deliverables:
+- Full code with clear folder structure
+- SQL for Supabase tables + RLS policies
+- Setup instructions inside a README
+- Use minimal dependencies and keep it stable.
