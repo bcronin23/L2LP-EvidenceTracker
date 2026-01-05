@@ -9,8 +9,9 @@ The application is built as a mobile-first utility tool optimized for teachers w
 ## Recent Changes
 
 - **Jan 2026**: Initial production release with full CRUD for students, evidence upload wizard, coverage tracking, and learning outcomes catalog
+- **Jan 2026**: Added multi-tenant organisation model with admin/staff roles, invite code system for staff onboarding
 - **Features**: Landing page, authentication via Replit Auth, mobile-first responsive UI with bottom navigation (mobile) and sidebar (desktop), dark/light theme toggle
-- **Data**: 40 L2LP learning outcomes auto-seeded on first startup across 10 strands (Managing money, Using public facilities, Personal care and hygiene, Food preparation, Communication, Social skills, Leisure and recreation, Home management, Work skills, Self-advocacy)
+- **Data**: 52 L2LP learning outcomes auto-seeded on first startup across 5 PLUs (Communicating and literacy, Numeracy, Personal care, Living in a community, Preparing for work)
 
 ## Key Pages
 
@@ -45,10 +46,13 @@ Preferred communication style: Simple, everyday language.
 ### Data Layer
 - **Database**: PostgreSQL with Drizzle ORM
 - **Schema Location**: `shared/schema.ts` contains all table definitions
+- **Multi-Tenant Model**: All student/evidence data is scoped by organisation
 - **Key Entities**:
-  - Students (belongs to user)
-  - Learning Outcomes (L2LP curriculum items)
-  - Evidence (files linked to students)
+  - Organisations (school/institution)
+  - Organisation Members (users with admin/staff roles, invite code system)
+  - Students (belongs to organisation)
+  - Learning Outcomes (L2LP curriculum items - 5 PLUs)
+  - Evidence (files linked to students and organisation)
   - Evidence-Outcomes (many-to-many join table)
 
 ### File Structure

@@ -7,11 +7,69 @@ import { z } from "zod";
 export * from "./models/auth";
 
 // ============================================
+// ORGANISATIONS TABLE
+// ============================================
+export const organisations = pgTable("organisations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 200 }).notNull(),
+  allowedDomains: text("allowed_domains").array(),
+  inviteCode: varchar("invite_code", { length: 20 }).unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_organisations_invite_code").on(table.inviteCode),
+]);
+
+export const organisationsRelations = relations(organisations, ({ many }) => ({
+  members: many(organisationMembers),
+  students: many(students),
+}));
+
+export const insertOrganisationSchema = createInsertSchema(organisations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOrganisation = z.infer<typeof insertOrganisationSchema>;
+export type Organisation = typeof organisations.$inferSelect;
+
+// ============================================
+// ORGANISATION MEMBERS TABLE
+// ============================================
+export const memberRoleEnum = ["admin", "staff"] as const;
+
+export const organisationMembers = pgTable("organisation_members", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organisationId: varchar("organisation_id").notNull().references(() => organisations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("staff"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_org_members_org_id").on(table.organisationId),
+  index("idx_org_members_user_id").on(table.userId),
+]);
+
+export const organisationMembersRelations = relations(organisationMembers, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [organisationMembers.organisationId],
+    references: [organisations.id],
+  }),
+}));
+
+export const insertOrganisationMemberSchema = createInsertSchema(organisationMembers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertOrganisationMember = z.infer<typeof insertOrganisationMemberSchema>;
+export type OrganisationMember = typeof organisationMembers.$inferSelect;
+
+// ============================================
 // STUDENTS TABLE
 // ============================================
 export const students = pgTable("students", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
+  organisationId: varchar("organisation_id").references(() => organisations.id, { onDelete: "cascade" }),
   firstName: varchar("first_name", { length: 100 }).notNull(),
   lastName: varchar("last_name", { length: 100 }).notNull(),
   classGroup: varchar("class_group", { length: 50 }),
@@ -20,15 +78,22 @@ export const students = pgTable("students", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_students_user_id").on(table.userId),
+  index("idx_students_organisation_id").on(table.organisationId),
 ]);
 
-export const studentsRelations = relations(students, ({ many }) => ({
+export const studentsRelations = relations(students, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [students.organisationId],
+    references: [organisations.id],
+  }),
   evidence: many(evidence),
 }));
 
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
+}).extend({
+  organisationId: z.string().min(1, "Organisation ID is required"),
 });
 
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
@@ -72,6 +137,7 @@ export const independenceLevelEnum = ["independent", "prompted", "partial", "ref
 export const evidence = pgTable("evidence", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
+  organisationId: varchar("organisation_id").references(() => organisations.id, { onDelete: "cascade" }),
   studentId: varchar("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
   dateOfActivity: date("date_of_activity").notNull(),
   setting: varchar("setting", { length: 20 }).notNull(),
@@ -89,12 +155,17 @@ export const evidence = pgTable("evidence", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_evidence_user_id").on(table.userId),
+  index("idx_evidence_organisation_id").on(table.organisationId),
   index("idx_evidence_student_id").on(table.studentId),
   index("idx_evidence_date").on(table.dateOfActivity),
   index("idx_evidence_setting").on(table.setting),
 ]);
 
 export const evidenceRelations = relations(evidence, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [evidence.organisationId],
+    references: [organisations.id],
+  }),
   student: one(students, {
     fields: [evidence.studentId],
     references: [students.id],
@@ -105,6 +176,8 @@ export const evidenceRelations = relations(evidence, ({ one, many }) => ({
 export const insertEvidenceSchema = createInsertSchema(evidence).omit({
   id: true,
   createdAt: true,
+}).extend({
+  organisationId: z.string().min(1, "Organisation ID is required"),
 });
 
 export type InsertEvidence = z.infer<typeof insertEvidenceSchema>;
@@ -184,4 +257,22 @@ export type StudentPLUCoverage = {
   missingOutcomes: LearningOutcome[];
   weakOutcomes: { outcome: LearningOutcome; count: number }[];
   overallPercentage: number;
+};
+
+// Organisation types
+export type OrganisationWithMembers = Organisation & {
+  members: OrganisationMember[];
+  memberCount: number;
+  studentCount: number;
+};
+
+export type UserMembership = {
+  organisation: Organisation;
+  role: "admin" | "staff";
+  memberId: string;
+};
+
+export type MemberWithUser = OrganisationMember & {
+  userName?: string;
+  email?: string;
 };

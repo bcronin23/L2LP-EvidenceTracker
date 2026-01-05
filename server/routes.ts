@@ -103,11 +103,165 @@ export async function registerRoutes(
   // Seed learning outcomes on startup
   await seedOutcomesIfNeeded();
 
+  // ==================== Organisation API ====================
+  app.get("/api/organisation", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      if (!membership) {
+        return res.status(404).json({ message: "No organisation found", needsSetup: true });
+      }
+      res.json(membership);
+    } catch (error) {
+      console.error("Error fetching organisation:", error);
+      res.status(500).json({ message: "Failed to fetch organisation" });
+    }
+  });
+
+  app.post("/api/organisation", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { name, allowedDomains } = req.body;
+
+      const existing = await storage.getUserMembership(userId);
+      if (existing) {
+        return res.status(400).json({ message: "You already belong to an organisation" });
+      }
+
+      const org = await storage.createOrganisation({ name, allowedDomains: allowedDomains || [] });
+      await storage.addMember({ organisationId: org.id, userId, role: "admin" });
+
+      const membership = await storage.getUserMembership(userId);
+      res.status(201).json(membership);
+    } catch (error) {
+      console.error("Error creating organisation:", error);
+      res.status(500).json({ message: "Failed to create organisation" });
+    }
+  });
+
+  app.post("/api/organisation/join", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { inviteCode } = req.body;
+
+      if (!inviteCode) {
+        return res.status(400).json({ message: "Invite code is required" });
+      }
+
+      const existing = await storage.getUserMembership(userId);
+      if (existing) {
+        return res.status(400).json({ message: "You already belong to an organisation" });
+      }
+
+      const member = await storage.joinOrganisationByCode(userId, inviteCode.toUpperCase());
+      if (!member) {
+        return res.status(404).json({ message: "Invalid invite code" });
+      }
+
+      const membership = await storage.getUserMembership(userId);
+      res.status(201).json(membership);
+    } catch (error) {
+      console.error("Error joining organisation:", error);
+      res.status(500).json({ message: "Failed to join organisation" });
+    }
+  });
+
+  app.post("/api/organisation/regenerate-code", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const newCode = await storage.generateInviteCode(membership.organisation.id);
+      res.json({ inviteCode: newCode });
+    } catch (error) {
+      console.error("Error regenerating invite code:", error);
+      res.status(500).json({ message: "Failed to regenerate invite code" });
+    }
+  });
+
+  app.get("/api/organisation/members", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const members = await storage.getOrganisationMembers(membership.organisation.id);
+      res.json(members);
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      res.status(500).json({ message: "Failed to fetch members" });
+    }
+  });
+
+  app.patch("/api/organisation/members/:memberId/role", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { role } = req.body;
+      if (!["admin", "staff"].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      const updated = await storage.updateMemberRole(req.params.memberId, role);
+      if (!updated) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating member role:", error);
+      res.status(500).json({ message: "Failed to update member role" });
+    }
+  });
+
+  app.delete("/api/organisation/members/:memberId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (membership.memberId === req.params.memberId) {
+        return res.status(400).json({ message: "Cannot remove yourself" });
+      }
+
+      const deleted = await storage.removeMember(req.params.memberId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing member:", error);
+      res.status(500).json({ message: "Failed to remove member" });
+    }
+  });
+
   // ==================== Students API ====================
   app.get("/api/students", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const students = await storage.getStudents(userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const students = await storage.getStudentsByOrganisation(membership.organisation.id);
       res.json(students);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -118,7 +272,13 @@ export async function registerRoutes(
   app.get("/api/students/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const student = await storage.getStudent(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.getStudentByOrganisation(req.params.id, membership.organisation.id);
       if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
@@ -132,7 +292,17 @@ export async function registerRoutes(
   app.post("/api/students", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const data = insertStudentSchema.parse({ ...req.body, userId });
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = insertStudentSchema.parse({ 
+        ...req.body, 
+        userId,
+        organisationId: membership.organisation.id
+      });
       const student = await storage.createStudent(data);
       res.status(201).json(student);
     } catch (error) {
@@ -147,7 +317,13 @@ export async function registerRoutes(
   app.patch("/api/students/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const student = await storage.updateStudent(req.params.id, userId, req.body);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.updateStudentByOrganisation(req.params.id, membership.organisation.id, req.body);
       if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
@@ -161,7 +337,17 @@ export async function registerRoutes(
   app.delete("/api/students/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const deleted = await storage.deleteStudent(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      if (membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required to delete students" });
+      }
+      
+      const deleted = await storage.deleteStudentByOrganisation(req.params.id, membership.organisation.id);
       if (!deleted) {
         return res.status(404).json({ message: "Student not found" });
       }
@@ -176,7 +362,13 @@ export async function registerRoutes(
   app.get("/api/students/:id/evidence", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const evidence = await storage.getStudentEvidence(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const evidence = await storage.getStudentEvidenceByOrganisation(req.params.id, membership.organisation.id);
       res.json(evidence);
     } catch (error) {
       console.error("Error fetching student evidence:", error);
@@ -187,7 +379,13 @@ export async function registerRoutes(
   app.get("/api/students/:id/coverage", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const coverage = await storage.getStudentCoverage(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const coverage = await storage.getStudentCoverageByOrganisation(req.params.id, membership.organisation.id);
       res.json(coverage);
     } catch (error) {
       console.error("Error fetching coverage:", error);
@@ -198,7 +396,13 @@ export async function registerRoutes(
   app.get("/api/students/:id/plu-coverage", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const coverage = await storage.getStudentPLUCoverage(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const coverage = await storage.getStudentPLUCoverageByOrganisation(req.params.id, membership.organisation.id);
       res.json(coverage);
     } catch (error) {
       console.error("Error fetching PLU coverage:", error);
@@ -235,7 +439,13 @@ export async function registerRoutes(
   app.get("/api/evidence", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const evidence = await storage.getAllEvidence(userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const evidence = await storage.getEvidenceByOrganisation(membership.organisation.id);
       res.json(evidence);
     } catch (error) {
       console.error("Error fetching evidence:", error);
@@ -246,7 +456,13 @@ export async function registerRoutes(
   app.get("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const evidence = await storage.getEvidence(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const evidence = await storage.getEvidenceByOrgAndId(req.params.id, membership.organisation.id);
       if (!evidence) {
         return res.status(404).json({ message: "Evidence not found" });
       }
@@ -278,10 +494,16 @@ export async function registerRoutes(
   app.post("/api/evidence", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
       const { outcomeIds, ...data } = createEvidenceSchema.parse(req.body);
 
       const evidence = await storage.createEvidence(
-        { ...data, userId },
+        { ...data, userId, organisationId: membership.organisation.id },
         outcomeIds
       );
       res.status(201).json(evidence);
@@ -297,7 +519,13 @@ export async function registerRoutes(
   app.delete("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const deleted = await storage.deleteEvidence(req.params.id, userId);
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const deleted = await storage.deleteEvidenceByOrganisation(req.params.id, membership.organisation.id);
       if (!deleted) {
         return res.status(404).json({ message: "Evidence not found" });
       }
