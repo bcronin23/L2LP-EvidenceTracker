@@ -1,10 +1,19 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
+
+// Load official L2LP outcomes from JSON file
+function loadOfficialOutcomes() {
+  const filePath = join(process.cwd(), "data", "l2lp_outcomes.json");
+  const data = readFileSync(filePath, "utf-8");
+  return JSON.parse(data);
+}
 
 // L2LP Learning Outcomes based on NCCA L2LP Guidelines (curriculumonline.ie)
 // Complete dataset with all outcomes organized by PLU → Element → Outcomes
@@ -598,6 +607,65 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error seeding outcomes:", error);
       res.status(500).json({ message: "Failed to seed outcomes" });
+    }
+  });
+
+  // Admin endpoint to reset and import official L2LP outcomes
+  app.post("/api/admin/reset-outcomes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Delete all existing L2LP outcomes
+      const deleted = await storage.deleteOutcomesByProgramme("L2LP");
+      console.log(`Deleted ${deleted} existing L2LP outcomes`);
+
+      // Load and import official outcomes from JSON file
+      const officialOutcomes = loadOfficialOutcomes();
+      
+      // Transform JSON format to database format (snake_case to camelCase)
+      const outcomesToInsert = officialOutcomes.map((o: any) => ({
+        programme: o.programme,
+        pluNumber: o.plu_number,
+        pluName: o.plu_name,
+        elementName: o.element_name,
+        outcomeCode: o.outcome_code,
+        outcomeText: o.outcome_text,
+      }));
+
+      const created = await storage.createOutcomesBatch(outcomesToInsert);
+      
+      // Calculate totals per PLU
+      const pluTotals: Record<number, number> = {};
+      created.forEach((o) => {
+        pluTotals[o.pluNumber] = (pluTotals[o.pluNumber] || 0) + 1;
+      });
+
+      // Log totals for verification
+      console.log("L2LP Outcomes imported successfully:");
+      console.log(`  PLU1=${pluTotals[1] || 0}, PLU2=${pluTotals[2] || 0}, PLU3=${pluTotals[3] || 0}, PLU4=${pluTotals[4] || 0}, PLU5=${pluTotals[5] || 0}`);
+      console.log(`  Total: ${created.length} outcomes`);
+
+      // Spot-check verification
+      const spotChecks = ["1.1", "2.1", "3.1", "4.1", "5.1"];
+      const verified = spotChecks.filter(code => 
+        created.some(o => o.outcomeCode === code)
+      );
+
+      res.json({
+        message: "Official L2LP outcomes imported successfully",
+        deleted,
+        imported: created.length,
+        pluTotals,
+        spotChecksVerified: verified.length === spotChecks.length,
+      });
+    } catch (error) {
+      console.error("Error resetting outcomes:", error);
+      res.status(500).json({ message: "Failed to reset outcomes" });
     }
   });
 

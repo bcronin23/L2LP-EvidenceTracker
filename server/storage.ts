@@ -55,6 +55,7 @@ export interface IStorage {
   getOutcome(id: string): Promise<LearningOutcome | undefined>;
   createOutcome(data: InsertLearningOutcome): Promise<LearningOutcome>;
   createOutcomesBatch(data: InsertLearningOutcome[]): Promise<LearningOutcome[]>;
+  deleteOutcomesByProgramme(programme: string): Promise<number>;
 
   // Evidence (scoped by organisation - all CRUD requires organisationId)
   getEvidenceByOrganisation(organisationId: string): Promise<EvidenceWithOutcomes[]>;
@@ -290,6 +291,11 @@ export class DatabaseStorage implements IStorage {
     if (data.length === 0) return [];
     const outcomes = await db.insert(learningOutcomes).values(data).returning();
     return outcomes;
+  }
+
+  async deleteOutcomesByProgramme(programme: string): Promise<number> {
+    const result = await db.delete(learningOutcomes).where(eq(learningOutcomes.programme, programme));
+    return result.rowCount ?? 0;
   }
 
   // ==================== Evidence ====================
