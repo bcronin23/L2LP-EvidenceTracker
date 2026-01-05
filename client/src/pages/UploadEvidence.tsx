@@ -179,9 +179,41 @@ export default function UploadEvidence() {
     },
   });
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  const ALLOWED_TYPES = [
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif",
+    "video/mp4", "video/quicktime", "video/webm", "video/x-msvideo",
+    "audio/mpeg", "audio/wav", "audio/ogg", "audio/webm",
+    "application/pdf",
+    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ];
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast({ title: "File too large", description: "Maximum file size is 50MB", variant: "destructive" });
+      return;
+    }
+
+    if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
+      toast({ title: "Unsupported file type", description: "Please upload an image, video, audio, or document file", variant: "destructive" });
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setPreviewUrl(null);
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -192,6 +224,27 @@ export default function UploadEvidence() {
     }));
 
     await uploadFile(file);
+  };
+
+  const clearFile = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    setFormData((prev) => ({
+      ...prev,
+      file: null,
+      fileUrl: "",
+      fileName: "",
+      fileType: "",
+      fileSize: 0,
+    }));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const toggleOutcome = (outcomeId: string) => {
@@ -216,10 +269,11 @@ export default function UploadEvidence() {
   };
 
   // Group outcomes by PLU and Element
-  const groupedOutcomes = useMemo(() => {
-    if (!outcomes) return new Map();
+  type PLUGroup = { pluName: string; elements: Map<string, LearningOutcome[]> };
+  const groupedOutcomes = useMemo((): Map<number, PLUGroup> => {
+    if (!outcomes) return new Map<number, PLUGroup>();
     
-    const groups = new Map<number, { pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    const groups = new Map<number, PLUGroup>();
     
     outcomes
       .filter((o) => {
@@ -377,20 +431,40 @@ export default function UploadEvidence() {
                 {formData.file ? (
                   <Card>
                     <CardContent className="p-4">
+                      {previewUrl && formData.fileType?.startsWith("image/") && (
+                        <div className="mb-4">
+                          <img
+                            src={previewUrl}
+                            alt="Preview"
+                            className="w-full max-h-48 object-contain rounded-md bg-muted"
+                          />
+                        </div>
+                      )}
+                      {previewUrl && formData.fileType?.startsWith("video/") && (
+                        <div className="mb-4">
+                          <video
+                            src={previewUrl}
+                            className="w-full max-h-48 rounded-md bg-muted"
+                            controls
+                          />
+                        </div>
+                      )}
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
                           {formData.fileType?.startsWith("image/") ? (
                             <Camera className="h-6 w-6 text-accent-foreground" />
                           ) : formData.fileType?.startsWith("video/") ? (
                             <Video className="h-6 w-6 text-accent-foreground" />
+                          ) : formData.fileType?.startsWith("audio/") ? (
+                            <Mic className="h-6 w-6 text-accent-foreground" />
                           ) : (
-                            <File className="h-6 w-6 text-accent-foreground" />
+                            <FileText className="h-6 w-6 text-accent-foreground" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{formData.fileName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {Math.round(formData.fileSize / 1024)} KB
+                            {formatFileSize(formData.fileSize)}
                           </p>
                         </div>
                         {isUploading ? (
@@ -403,16 +477,8 @@ export default function UploadEvidence() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              file: null,
-                              fileUrl: "",
-                              fileName: "",
-                              fileType: "",
-                              fileSize: 0,
-                            }))
-                          }
+                          onClick={clearFile}
+                          data-testid="button-clear-file"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -420,26 +486,50 @@ export default function UploadEvidence() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <label className="block">
-                    <Card className="cursor-pointer hover-elevate transition-colors">
-                      <CardContent className="p-8 text-center">
-                        <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <p className="font-medium mb-1">Tap to upload or take a photo</p>
-                        <p className="text-sm text-muted-foreground">
-                          Photo, video, or document up to 10MB
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-                      capture="environment"
-                      onChange={handleFileSelect}
-                      data-testid="input-file-upload"
-                    />
-                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <Card className="cursor-pointer hover-elevate transition-colors h-full">
+                        <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
+                          <Camera className="h-10 w-10 text-muted-foreground mb-3" />
+                          <p className="font-medium text-sm">Take Photo</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Use camera
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        data-testid="input-camera-capture"
+                      />
+                    </label>
+                    <label className="block">
+                      <Card className="cursor-pointer hover-elevate transition-colors h-full">
+                        <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
+                          <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                          <p className="font-medium text-sm">Choose File</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Photo, video, doc
+                          </p>
+                        </CardContent>
+                      </Card>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                        onChange={handleFileSelect}
+                        data-testid="input-file-upload"
+                      />
+                    </label>
+                  </div>
                 )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  Supported: images, videos, audio, PDF, Word, PowerPoint, Excel (max 50MB)
+                </p>
               </div>
             )}
 
