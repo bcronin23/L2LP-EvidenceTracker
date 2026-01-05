@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch, Link } from "wouter";
 import { format } from "date-fns";
@@ -12,10 +12,13 @@ import {
   Tag,
   Camera,
   Video,
-  Eye,
   Mic,
   File,
   X,
+  Building,
+  MapPin,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,23 +50,19 @@ const evidenceTypes = [
   { value: "photo", label: "Photo", icon: Camera },
   { value: "video", label: "Video", icon: Video },
   { value: "work_sample", label: "Work Sample", icon: FileText },
-  { value: "observation", label: "Observation", icon: Eye },
   { value: "audio", label: "Audio", icon: Mic },
   { value: "other", label: "Other", icon: File },
 ];
 
-const contextSources = [
-  { value: "morning_work", label: "Morning Work" },
-  { value: "task_box", label: "Task Box" },
-  { value: "community_trip", label: "Community Trip" },
-  { value: "lesson", label: "Lesson" },
-  { value: "other", label: "Other" },
+const settingOptions = [
+  { value: "classroom", label: "Classroom", icon: Building },
+  { value: "community", label: "Community", icon: MapPin },
 ];
 
 const independenceLevels = [
   { value: "independent", label: "Independent" },
-  { value: "partial", label: "Partial" },
   { value: "prompted", label: "Prompted" },
+  { value: "partial", label: "Partial" },
   { value: "refused", label: "Refused" },
 ];
 
@@ -87,9 +86,12 @@ interface FormData {
   outcomeIds: string[];
   dateOfActivity: string;
   evidenceType: string;
-  contextSource: string;
+  setting: string;
+  assessmentActivity: string;
+  successCriteria: string;
+  observations: string;
+  nextSteps: string;
   staffInitials: string;
-  notes: string;
   independenceLevel: string;
 }
 
@@ -103,6 +105,7 @@ export default function UploadEvidence() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<Step>("student");
   const [outcomeSearch, setOutcomeSearch] = useState("");
+  const [expandedPLUs, setExpandedPLUs] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
 
   const [formData, setFormData] = useState<FormData>({
     studentId: preSelectedStudent,
@@ -114,9 +117,12 @@ export default function UploadEvidence() {
     outcomeIds: preSelectedOutcome ? [preSelectedOutcome] : [],
     dateOfActivity: format(new Date(), "yyyy-MM-dd"),
     evidenceType: "photo",
-    contextSource: "lesson",
+    setting: "classroom",
+    assessmentActivity: "",
+    successCriteria: "",
+    observations: "",
+    nextSteps: "",
     staffInitials: "",
-    notes: "",
     independenceLevel: "independent",
   });
 
@@ -144,11 +150,14 @@ export default function UploadEvidence() {
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/evidence", {
         studentId: formData.studentId,
-        dateOfActivity: new Date(formData.dateOfActivity).toISOString(),
+        dateOfActivity: formData.dateOfActivity,
         evidenceType: formData.evidenceType,
-        contextSource: formData.contextSource,
+        setting: formData.setting,
+        assessmentActivity: formData.assessmentActivity || null,
+        successCriteria: formData.successCriteria || null,
+        observations: formData.observations || null,
+        nextSteps: formData.nextSteps || null,
         staffInitials: formData.staffInitials || null,
-        notes: formData.notes || null,
         independenceLevel: formData.independenceLevel,
         fileUrl: formData.fileUrl || null,
         fileName: formData.fileName || null,
@@ -194,13 +203,48 @@ export default function UploadEvidence() {
     }));
   };
 
-  const filteredOutcomes = outcomes?.filter(
-    (outcome) =>
-      outcomeSearch === "" ||
-      outcome.code.toLowerCase().includes(outcomeSearch.toLowerCase()) ||
-      outcome.description.toLowerCase().includes(outcomeSearch.toLowerCase()) ||
-      outcome.strand.toLowerCase().includes(outcomeSearch.toLowerCase())
-  );
+  const togglePLU = (pluNumber: number) => {
+    setExpandedPLUs((prev) => {
+      const next = new Set(prev);
+      if (next.has(pluNumber)) {
+        next.delete(pluNumber);
+      } else {
+        next.add(pluNumber);
+      }
+      return next;
+    });
+  };
+
+  // Group outcomes by PLU and Element
+  const groupedOutcomes = useMemo(() => {
+    if (!outcomes) return new Map();
+    
+    const groups = new Map<number, { pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    
+    outcomes
+      .filter((o) => {
+        if (!outcomeSearch) return true;
+        const search = outcomeSearch.toLowerCase();
+        return (
+          o.outcomeCode.toLowerCase().includes(search) ||
+          o.outcomeText.toLowerCase().includes(search) ||
+          o.pluName.toLowerCase().includes(search) ||
+          o.elementName.toLowerCase().includes(search)
+        );
+      })
+      .forEach((outcome) => {
+        if (!groups.has(outcome.pluNumber)) {
+          groups.set(outcome.pluNumber, { pluName: outcome.pluName, elements: new Map() });
+        }
+        const plu = groups.get(outcome.pluNumber)!;
+        if (!plu.elements.has(outcome.elementName)) {
+          plu.elements.set(outcome.elementName, []);
+        }
+        plu.elements.get(outcome.elementName)!.push(outcome);
+      });
+    
+    return groups;
+  }, [outcomes, outcomeSearch]);
 
   const selectedStudent = students?.find((s) => s.id === formData.studentId);
   const selectedOutcomes = outcomes?.filter((o) => formData.outcomeIds.includes(o.id)) || [];
@@ -214,7 +258,7 @@ export default function UploadEvidence() {
       case "outcomes":
         return formData.outcomeIds.length > 0;
       case "details":
-        return !!formData.dateOfActivity && !!formData.evidenceType;
+        return !!formData.dateOfActivity && !!formData.evidenceType && !!formData.setting;
       case "review":
         return true;
       default:
@@ -415,7 +459,7 @@ export default function UploadEvidence() {
                         className="cursor-pointer"
                         onClick={() => toggleOutcome(outcome.id)}
                       >
-                        {outcome.code}
+                        {outcome.outcomeCode}
                         <X className="h-3 w-3 ml-1" />
                       </Badge>
                     ))}
@@ -433,33 +477,61 @@ export default function UploadEvidence() {
                 {outcomesLoading ? (
                   <LoadingSpinner />
                 ) : (
-                  <ScrollArea className="h-64 border rounded-md">
-                    <div className="p-2 space-y-1">
-                      {filteredOutcomes?.map((outcome) => (
-                        <div
-                          key={outcome.id}
-                          className={cn(
-                            "flex items-start gap-3 p-3 rounded-md cursor-pointer transition-colors hover-elevate",
-                            formData.outcomeIds.includes(outcome.id) && "bg-accent"
-                          )}
-                          onClick={() => toggleOutcome(outcome.id)}
-                          data-testid={`checkbox-outcome-${outcome.code}`}
-                        >
-                          <Checkbox
-                            checked={formData.outcomeIds.includes(outcome.id)}
-                            className="mt-0.5"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Badge variant="outline" className="font-mono">
-                                {outcome.code}
-                              </Badge>
-                              <span className="text-xs text-muted-foreground">{outcome.strand}</span>
+                  <ScrollArea className="h-80 border rounded-md">
+                    <div className="p-2">
+                      {Array.from(groupedOutcomes.entries()).map(([pluNumber, plu]) => (
+                        <div key={pluNumber} className="mb-4">
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 w-full text-left p-2 hover-elevate rounded-md"
+                            onClick={() => togglePLU(pluNumber)}
+                          >
+                            {expandedPLUs.has(pluNumber) ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <Badge variant="outline" className="font-mono">PLU {pluNumber}</Badge>
+                            <span className="font-medium text-sm">{plu.pluName}</span>
+                          </button>
+                          
+                          {expandedPLUs.has(pluNumber) && (
+                            <div className="ml-6 space-y-2 mt-2">
+                              {Array.from(plu.elements.entries()).map(([elementName, elementOutcomes]) => (
+                                <div key={elementName}>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1 px-2">
+                                    {elementName}
+                                  </p>
+                                  {elementOutcomes.map((outcome) => (
+                                    <div
+                                      key={outcome.id}
+                                      className={cn(
+                                        "flex items-start gap-3 p-2 rounded-md cursor-pointer transition-colors hover-elevate",
+                                        formData.outcomeIds.includes(outcome.id) && "bg-accent"
+                                      )}
+                                      onClick={() => toggleOutcome(outcome.id)}
+                                      data-testid={`checkbox-outcome-${outcome.outcomeCode}`}
+                                    >
+                                      <Checkbox
+                                        checked={formData.outcomeIds.includes(outcome.id)}
+                                        className="mt-0.5"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                          <Badge variant="outline" className="font-mono text-xs">
+                                            {outcome.outcomeCode}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground line-clamp-2">
+                                          {outcome.outcomeText}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
                             </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {outcome.description}
-                            </p>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -470,7 +542,7 @@ export default function UploadEvidence() {
 
             {currentStep === "details" && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold">Evidence Details</h2>
+                <h2 className="text-lg font-semibold">Observation Sheet Details</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -499,8 +571,35 @@ export default function UploadEvidence() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label>Setting (Where was the student working?)</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {settingOptions.map((option) => (
+                      <Card
+                        key={option.value}
+                        className={cn(
+                          "cursor-pointer transition-colors hover-elevate",
+                          formData.setting === option.value && "ring-2 ring-primary"
+                        )}
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, setting: option.value }))
+                        }
+                        data-testid={`card-setting-${option.value}`}
+                      >
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <option.icon className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-medium">{option.label}</span>
+                          {formData.setting === option.value && (
+                            <Check className="h-4 w-4 text-primary ml-auto" />
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label>Evidence Type</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {evidenceTypes.map((type) => (
                       <Card
                         key={type.value}
@@ -522,58 +621,78 @@ export default function UploadEvidence() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Context</Label>
-                    <Select
-                      value={formData.contextSource}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, contextSource: value }))
-                      }
-                    >
-                      <SelectTrigger data-testid="select-context">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {contextSources.map((source) => (
-                          <SelectItem key={source.value} value={source.value}>
-                            {source.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Independence Level</Label>
-                    <Select
-                      value={formData.independenceLevel}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, independenceLevel: value }))
-                      }
-                    >
-                      <SelectTrigger data-testid="select-independence">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {independenceLevels.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
-                            {level.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label>Independence Level</Label>
+                  <Select
+                    value={formData.independenceLevel}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, independenceLevel: value }))
+                    }
+                  >
+                    <SelectTrigger data-testid="select-independence">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {independenceLevels.map((level) => (
+                        <SelectItem key={level.value} value={level.value}>
+                          {level.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Notes</Label>
+                  <Label>Assessment Activity</Label>
+                  <Input
+                    placeholder="What activity was the student doing?"
+                    value={formData.assessmentActivity}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, assessmentActivity: e.target.value }))
+                    }
+                    data-testid="input-assessment-activity"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Success Criteria</Label>
                   <Textarea
-                    placeholder="Add any observations or notes about this evidence..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                    placeholder="What were the success criteria for this activity? (one per line)"
+                    value={formData.successCriteria}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, successCriteria: e.target.value }))
+                    }
                     rows={3}
                     className="resize-none"
-                    data-testid="textarea-evidence-notes"
+                    data-testid="textarea-success-criteria"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Observations</Label>
+                  <Textarea
+                    placeholder="There is evidence of... (describe what you observed)"
+                    value={formData.observations}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, observations: e.target.value }))
+                    }
+                    rows={3}
+                    className="resize-none"
+                    data-testid="textarea-observations"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Next Steps / Feedback</Label>
+                  <Textarea
+                    placeholder="What are the next steps for this student?"
+                    value={formData.nextSteps}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, nextSteps: e.target.value }))
+                    }
+                    rows={3}
+                    className="resize-none"
+                    data-testid="textarea-next-steps"
                   />
                 </div>
               </div>
@@ -614,7 +733,7 @@ export default function UploadEvidence() {
                       <div className="flex flex-wrap gap-2">
                         {selectedOutcomes.map((outcome) => (
                           <Badge key={outcome.id} variant="secondary">
-                            {outcome.code}
+                            {outcome.outcomeCode}
                           </Badge>
                         ))}
                       </div>
@@ -628,15 +747,13 @@ export default function UploadEvidence() {
                         </p>
                       </div>
                       <div>
+                        <p className="text-sm text-muted-foreground">Setting</p>
+                        <p className="font-medium capitalize">{formData.setting}</p>
+                      </div>
+                      <div>
                         <p className="text-sm text-muted-foreground">Type</p>
                         <p className="font-medium capitalize">
                           {formData.evidenceType.replace("_", " ")}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Context</p>
-                        <p className="font-medium capitalize">
-                          {formData.contextSource.replace("_", " ")}
                         </p>
                       </div>
                       <div>
@@ -645,10 +762,24 @@ export default function UploadEvidence() {
                       </div>
                     </div>
 
-                    {formData.notes && (
+                    {formData.assessmentActivity && (
                       <div>
-                        <p className="text-sm text-muted-foreground">Notes</p>
-                        <p className="text-sm">{formData.notes}</p>
+                        <p className="text-sm text-muted-foreground">Assessment Activity</p>
+                        <p className="text-sm">{formData.assessmentActivity}</p>
+                      </div>
+                    )}
+
+                    {formData.observations && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Observations</p>
+                        <p className="text-sm">{formData.observations}</p>
+                      </div>
+                    )}
+
+                    {formData.nextSteps && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Next Steps</p>
+                        <p className="text-sm">{formData.nextSteps}</p>
                       </div>
                     )}
                   </CardContent>

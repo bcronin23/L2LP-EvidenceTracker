@@ -13,28 +13,32 @@ import {
   Camera,
   Video,
   File,
-  Eye,
   Mic,
+  Award,
+  ChevronDown,
+  ChevronRight,
+  Building,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { LoadingPage } from "@/components/LoadingSpinner";
 import { MobileHeader } from "@/components/MobileHeader";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { StudentFormDialog } from "@/components/StudentFormDialog";
 import { EvidenceDetailDialog } from "@/components/EvidenceDetailDialog";
-import type { Student, EvidenceWithOutcomes, OutcomeCoverage } from "@shared/schema";
+import type { Student, EvidenceWithOutcomes, StudentPLUCoverage } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 const evidenceTypeIcons: Record<string, typeof Camera> = {
   photo: Camera,
   video: Video,
   work_sample: FileText,
-  observation: Eye,
   audio: Mic,
   other: File,
 };
@@ -43,6 +47,7 @@ export default function StudentDashboard() {
   const { id } = useParams<{ id: string }>();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceWithOutcomes | null>(null);
+  const [expandedPLUs, setExpandedPLUs] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
 
   const { data: student, isLoading: studentLoading } = useQuery<Student>({
     queryKey: ["/api/students", id],
@@ -53,8 +58,8 @@ export default function StudentDashboard() {
     enabled: !!id,
   });
 
-  const { data: coverage, isLoading: coverageLoading } = useQuery<OutcomeCoverage[]>({
-    queryKey: ["/api/students", id, "coverage"],
+  const { data: pluCoverage, isLoading: coverageLoading } = useQuery<StudentPLUCoverage>({
+    queryKey: ["/api/students", id, "plu-coverage"],
     enabled: !!id,
   });
 
@@ -87,10 +92,22 @@ export default function StudentDashboard() {
     );
   }
 
-  const missingOutcomes = coverage?.filter((c) => c.evidenceCount === 0) || [];
-  const coveredOutcomes = coverage?.filter((c) => c.evidenceCount > 0) || [];
-  const totalOutcomes = coverage?.length || 0;
-  const coveragePercent = totalOutcomes > 0 ? Math.round((coveredOutcomes.length / totalOutcomes) * 100) : 0;
+  const missingOutcomes = pluCoverage?.missingOutcomes || [];
+  const weakOutcomes = pluCoverage?.weakOutcomes || [];
+  const plusOnTrack = pluCoverage?.plusCoverage.filter(p => p.isOnTrackForJCPA).length || 0;
+  const totalPlus = pluCoverage?.plusCoverage.length || 5;
+
+  const togglePLU = (pluNumber: number) => {
+    setExpandedPLUs((prev) => {
+      const next = new Set(prev);
+      if (next.has(pluNumber)) {
+        next.delete(pluNumber);
+      } else {
+        next.add(pluNumber);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -114,8 +131,8 @@ export default function StudentDashboard() {
                 {student.classGroup && (
                   <Badge variant="secondary">{student.classGroup}</Badge>
                 )}
-                {student.year && (
-                  <span className="text-sm text-muted-foreground">{student.year}</span>
+                {student.yearGroup && (
+                  <span className="text-sm text-muted-foreground">{student.yearGroup}</span>
                 )}
               </div>
             </div>
@@ -150,11 +167,11 @@ export default function StudentDashboard() {
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-primary" />
+                  <Award className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{coveredOutcomes.length}</p>
-                  <p className="text-xs text-muted-foreground">Outcomes Covered</p>
+                  <p className="text-2xl font-bold">{plusOnTrack}/{totalPlus}</p>
+                  <p className="text-xs text-muted-foreground">PLUs Ready</p>
                 </div>
               </CardContent>
             </Card>
@@ -165,17 +182,17 @@ export default function StudentDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{missingOutcomes.length}</p>
-                  <p className="text-xs text-muted-foreground">Missing Outcomes</p>
+                  <p className="text-xs text-muted-foreground">Missing</p>
                 </div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-md bg-accent flex items-center justify-center">
-                  <span className="text-sm font-bold text-accent-foreground">{coveragePercent}%</span>
+                  <span className="text-sm font-bold text-accent-foreground">{pluCoverage?.overallPercentage || 0}%</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{coveragePercent}%</p>
+                  <p className="text-2xl font-bold">{pluCoverage?.overallPercentage || 0}%</p>
                   <p className="text-xs text-muted-foreground">Coverage</p>
                 </div>
               </CardContent>
@@ -183,10 +200,11 @@ export default function StudentDashboard() {
           </div>
 
           <Tabs defaultValue="evidence" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="evidence" data-testid="tab-evidence">Evidence</TabsTrigger>
-              <TabsTrigger value="coverage" data-testid="tab-coverage">Coverage</TabsTrigger>
+              <TabsTrigger value="plu" data-testid="tab-plu">PLU Status</TabsTrigger>
               <TabsTrigger value="missing" data-testid="tab-missing">Missing</TabsTrigger>
+              <TabsTrigger value="weak" data-testid="tab-weak">Weak</TabsTrigger>
             </TabsList>
 
             <TabsContent value="evidence" className="space-y-4">
@@ -226,17 +244,22 @@ export default function StudentDashboard() {
                               <Badge variant="outline" className="capitalize">
                                 {evidence.evidenceType.replace("_", " ")}
                               </Badge>
-                              <Badge variant="secondary" className="capitalize">
-                                {evidence.independenceLevel}
+                              <Badge variant="secondary" className="capitalize flex items-center gap-1">
+                                {evidence.setting === "classroom" ? (
+                                  <Building className="h-3 w-3" />
+                                ) : (
+                                  <MapPin className="h-3 w-3" />
+                                )}
+                                {evidence.setting}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                              {evidence.notes || "No notes"}
+                              {evidence.assessmentActivity || evidence.observations || "No description"}
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
                               {evidence.outcomes?.slice(0, 3).map((outcome) => (
                                 <Badge key={outcome.id} variant="secondary" className="text-xs">
-                                  {outcome.code}
+                                  {outcome.outcomeCode}
                                 </Badge>
                               ))}
                               {(evidence.outcomes?.length || 0) > 3 && (
@@ -265,52 +288,74 @@ export default function StudentDashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="coverage">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Outcome Coverage</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <ScrollArea className="h-[400px]">
-                    <div className="divide-y">
-                      {coverage?.map((item) => (
-                        <div
-                          key={item.outcome.id}
-                          className="p-4 flex items-start gap-4"
-                          data-testid={`coverage-${item.outcome.code}`}
-                        >
-                          <Badge
-                            className={cn(
-                              "flex-shrink-0",
-                              item.evidenceCount === 0
-                                ? "bg-destructive text-destructive-foreground"
-                                : item.evidenceCount < 3
-                                ? "bg-amber-500 text-white"
-                                : "bg-primary text-primary-foreground"
-                            )}
-                          >
-                            {item.outcome.code}
-                          </Badge>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium mb-1">{item.outcome.strand}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {item.outcome.description}
-                            </p>
+            <TabsContent value="plu" className="space-y-4">
+              {pluCoverage?.plusCoverage.map((plu) => (
+                <Card key={plu.pluNumber} data-testid={`plu-coverage-${plu.pluNumber}`}>
+                  <button
+                    type="button"
+                    className="w-full p-4 flex items-center gap-3 text-left hover-elevate rounded-t-md"
+                    onClick={() => togglePLU(plu.pluNumber)}
+                  >
+                    {expandedPLUs.has(plu.pluNumber) ? (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    )}
+                    <Badge variant="outline" className="font-mono flex-shrink-0">
+                      PLU {plu.pluNumber}
+                    </Badge>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{plu.pluName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {plu.evidencedOutcomes}/{plu.totalOutcomes} outcomes covered
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 hidden sm:block">
+                        <Progress value={plu.percentage} className="h-2" />
+                      </div>
+                      {plu.isOnTrackForJCPA ? (
+                        <Badge className="bg-green-600 text-white flex-shrink-0">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          JCPA Ready
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="flex-shrink-0">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Needs Work
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+
+                  {expandedPLUs.has(plu.pluNumber) && (
+                    <CardContent className="pt-0 pb-4 space-y-3">
+                      {plu.elements.map((element) => (
+                        <div key={element.elementName} className="ml-8 p-3 rounded-md bg-muted/50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium">{element.elementName}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {element.evidencedOutcomes}/{element.totalOutcomes}
+                              </span>
+                              {element.hasMajority ? (
+                                <Badge size="sm" className="bg-green-600/20 text-green-600 border-green-600/30">
+                                  Majority
+                                </Badge>
+                              ) : (
+                                <Badge size="sm" variant="outline" className="text-amber-600 border-amber-600/30">
+                                  {element.percentage}%
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-medium">{item.evidenceCount}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.lastEvidenceDate
-                                ? format(new Date(item.lastEvidenceDate), "dd MMM")
-                                : "Never"}
-                            </p>
-                          </div>
+                          <Progress value={element.percentage} className="h-1" />
                         </div>
                       ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  )}
+                </Card>
+              ))}
             </TabsContent>
 
             <TabsContent value="missing">
@@ -326,24 +371,69 @@ export default function StudentDashboard() {
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {missingOutcomes.map((item) => (
-                    <Card key={item.outcome.id} className="border-destructive/20" data-testid={`missing-${item.outcome.code}`}>
+                  {missingOutcomes.map((outcome) => (
+                    <Card key={outcome.id} className="border-destructive/20" data-testid={`missing-${outcome.outcomeCode}`}>
                       <CardContent className="p-4 flex items-start gap-4">
-                        <Badge variant="destructive" className="flex-shrink-0">
-                          {item.outcome.code}
+                        <Badge variant="destructive" className="flex-shrink-0 font-mono">
+                          {outcome.outcomeCode}
                         </Badge>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium mb-1">{item.outcome.strand}</p>
+                          <p className="text-sm font-medium mb-1">{outcome.pluName}</p>
+                          <p className="text-xs text-muted-foreground mb-1">{outcome.elementName}</p>
                           <p className="text-xs text-muted-foreground line-clamp-2">
-                            {item.outcome.description}
+                            {outcome.outcomeText}
                           </p>
                         </div>
-                        <Link href={`/upload?student=${id}&outcome=${item.outcome.id}`}>
-                          <Button size="sm" variant="outline" data-testid={`button-add-evidence-${item.outcome.code}`}>
+                        <Link href={`/upload?student=${id}&outcome=${outcome.id}`}>
+                          <Button size="sm" variant="outline" data-testid={`button-add-evidence-${outcome.outcomeCode}`}>
                             <Plus className="h-4 w-4 mr-1" />
                             Add
                           </Button>
                         </Link>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="weak">
+              {weakOutcomes.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <CheckCircle className="h-12 w-12 mx-auto text-primary mb-4" />
+                    <h3 className="font-medium mb-2">No weak outcomes!</h3>
+                    <p className="text-sm text-muted-foreground">
+                      All covered outcomes have multiple evidence items.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    These outcomes have only 1 evidence item. Consider adding more.
+                  </p>
+                  {weakOutcomes.map(({ outcome, count }) => (
+                    <Card key={outcome.id} className="border-amber-500/20" data-testid={`weak-${outcome.outcomeCode}`}>
+                      <CardContent className="p-4 flex items-start gap-4">
+                        <Badge className="flex-shrink-0 font-mono bg-amber-500 text-white">
+                          {outcome.outcomeCode}
+                        </Badge>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium mb-1">{outcome.pluName}</p>
+                          <p className="text-xs text-muted-foreground mb-1">{outcome.elementName}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {outcome.outcomeText}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="outline">{count} item</Badge>
+                          <Link href={`/upload?student=${id}&outcome=${outcome.id}`}>
+                            <Button size="sm" variant="ghost" className="mt-2">
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

@@ -12,6 +12,9 @@ import {
   type EvidenceWithOutcomes,
   type StudentWithStats,
   type OutcomeCoverage,
+  type PLUCoverage,
+  type ElementCoverage,
+  type StudentPLUCoverage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, count } from "drizzle-orm";
@@ -39,6 +42,7 @@ export interface IStorage {
 
   // Coverage
   getStudentCoverage(studentId: string, userId: string): Promise<OutcomeCoverage[]>;
+  getStudentPLUCoverage(studentId: string, userId: string): Promise<StudentPLUCoverage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -95,7 +99,7 @@ export class DatabaseStorage implements IStorage {
 
   // ==================== Learning Outcomes ====================
   async getOutcomes(): Promise<LearningOutcome[]> {
-    return db.select().from(learningOutcomes).orderBy(learningOutcomes.code);
+    return db.select().from(learningOutcomes).orderBy(learningOutcomes.pluNumber, learningOutcomes.outcomeCode);
   }
 
   async getOutcome(id: string): Promise<LearningOutcome | undefined> {
@@ -215,7 +219,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         learningOutcomeId: evidenceOutcomes.learningOutcomeId,
         evidenceCount: sql<number>`COUNT(DISTINCT ${evidenceOutcomes.evidenceId})::int`,
-        lastEvidenceDate: sql<Date | null>`MAX(${evidence.dateOfActivity})`,
+        lastEvidenceDate: sql<string | null>`MAX(${evidence.dateOfActivity})::text`,
       })
       .from(evidenceOutcomes)
       .innerJoin(evidence, eq(evidence.id, evidenceOutcomes.evidenceId))
@@ -234,6 +238,115 @@ export class DatabaseStorage implements IStorage {
         lastEvidenceDate: coverage?.lastEvidenceDate || null,
       };
     });
+  }
+
+  async getStudentPLUCoverage(studentId: string, userId: string): Promise<StudentPLUCoverage> {
+    const allOutcomes = await this.getOutcomes();
+    const student = await this.getStudent(studentId, userId);
+    
+    if (!student) {
+      throw new Error("Student not found");
+    }
+
+    // Get all evidenced outcome IDs for this student
+    const evidencedOutcomes = await db
+      .select({
+        learningOutcomeId: evidenceOutcomes.learningOutcomeId,
+        evidenceCount: sql<number>`COUNT(DISTINCT ${evidenceOutcomes.evidenceId})::int`,
+      })
+      .from(evidenceOutcomes)
+      .innerJoin(evidence, eq(evidence.id, evidenceOutcomes.evidenceId))
+      .where(and(eq(evidence.studentId, studentId), eq(evidence.userId, userId)))
+      .groupBy(evidenceOutcomes.learningOutcomeId);
+
+    const evidenceMap = new Map(
+      evidencedOutcomes.map((e) => [e.learningOutcomeId, e.evidenceCount])
+    );
+
+    // Group outcomes by PLU and Element
+    const pluMap = new Map<number, { pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    
+    allOutcomes.forEach((outcome) => {
+      if (!pluMap.has(outcome.pluNumber)) {
+        pluMap.set(outcome.pluNumber, {
+          pluName: outcome.pluName,
+          elements: new Map(),
+        });
+      }
+      const plu = pluMap.get(outcome.pluNumber)!;
+      if (!plu.elements.has(outcome.elementName)) {
+        plu.elements.set(outcome.elementName, []);
+      }
+      plu.elements.get(outcome.elementName)!.push(outcome);
+    });
+
+    // Calculate coverage for each PLU
+    const plusCoverage: PLUCoverage[] = [];
+    const missingOutcomes: LearningOutcome[] = [];
+    const weakOutcomes: { outcome: LearningOutcome; count: number }[] = [];
+
+    pluMap.forEach((pluData, pluNumber) => {
+      const elements: ElementCoverage[] = [];
+      let pluTotalOutcomes = 0;
+      let pluEvidencedOutcomes = 0;
+
+      pluData.elements.forEach((outcomes, elementName) => {
+        const totalInElement = outcomes.length;
+        const evidencedInElement = outcomes.filter(o => evidenceMap.has(o.id)).length;
+        const percentage = totalInElement > 0 ? Math.round((evidencedInElement / totalInElement) * 100) : 0;
+        const hasMajority = evidencedInElement > totalInElement / 2;
+
+        elements.push({
+          elementName,
+          totalOutcomes: totalInElement,
+          evidencedOutcomes: evidencedInElement,
+          percentage,
+          hasMajority,
+        });
+
+        pluTotalOutcomes += totalInElement;
+        pluEvidencedOutcomes += evidencedInElement;
+
+        // Track missing and weak outcomes
+        outcomes.forEach((outcome) => {
+          const count = evidenceMap.get(outcome.id) || 0;
+          if (count === 0) {
+            missingOutcomes.push(outcome);
+          } else if (count === 1) {
+            weakOutcomes.push({ outcome, count });
+          }
+        });
+      });
+
+      // JCPA readiness: ALL elements must have majority coverage
+      const isOnTrackForJCPA = elements.every(e => e.hasMajority);
+      const pluPercentage = pluTotalOutcomes > 0 ? Math.round((pluEvidencedOutcomes / pluTotalOutcomes) * 100) : 0;
+
+      plusCoverage.push({
+        pluNumber,
+        pluName: pluData.pluName,
+        elements,
+        totalOutcomes: pluTotalOutcomes,
+        evidencedOutcomes: pluEvidencedOutcomes,
+        percentage: pluPercentage,
+        isOnTrackForJCPA,
+      });
+    });
+
+    // Sort by PLU number
+    plusCoverage.sort((a, b) => a.pluNumber - b.pluNumber);
+
+    const totalOutcomes = allOutcomes.length;
+    const totalEvidenced = evidencedOutcomes.length;
+    const overallPercentage = totalOutcomes > 0 ? Math.round((totalEvidenced / totalOutcomes) * 100) : 0;
+
+    return {
+      student,
+      plusCoverage,
+      missingOutcomes,
+      weakOutcomes,
+      overallPercentage,
+    };
   }
 }
 
