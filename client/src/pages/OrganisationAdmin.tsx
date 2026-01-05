@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check } from "lucide-react";
+import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,23 @@ export default function OrganisationAdmin() {
     },
     onError: () => {
       toast({ title: "Failed to remove member", variant: "destructive" });
+    },
+  });
+
+  const resetOutcomesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/reset-outcomes");
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/outcomes"] });
+      const pluTotals = data.pluTotals || {};
+      toast({ 
+        title: "Official L2LP Outcomes Imported",
+        description: `${data.imported} outcomes: PLU1=${pluTotals[1]||0}, PLU2=${pluTotals[2]||0}, PLU3=${pluTotals[3]||0}, PLU4=${pluTotals[4]||0}, PLU5=${pluTotals[5]||0}`,
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to import outcomes", variant: "destructive" });
     },
   });
 
@@ -237,6 +254,65 @@ export default function OrganisationAdmin() {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Data Management
+              </CardTitle>
+              <CardDescription>
+                Manage learning outcomes and curriculum data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-md">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">L2LP Learning Outcomes</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Reset and import the official NCCA L2LP outcomes dataset (196 outcomes across 5 PLUs)
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline"
+                      disabled={resetOutcomesMutation.isPending}
+                      data-testid="button-reset-outcomes"
+                    >
+                      {resetOutcomesMutation.isPending ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                      )}
+                      Reset & Import
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset Learning Outcomes?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will delete all existing L2LP outcomes and import the official NCCA dataset with 196 outcomes. 
+                        Existing evidence links to outcomes will be preserved if outcome codes match.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => resetOutcomesMutation.mutate()}
+                        data-testid="button-confirm-reset-outcomes"
+                      >
+                        Reset & Import
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardContent>
           </Card>
         </main>
