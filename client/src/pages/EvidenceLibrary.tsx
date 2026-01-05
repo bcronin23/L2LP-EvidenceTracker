@@ -9,10 +9,11 @@ import {
   Camera,
   Video,
   FileText,
-  Eye,
   Mic,
   File,
   X,
+  Building,
+  MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,6 @@ const evidenceTypeIcons: Record<string, typeof Camera> = {
   photo: Camera,
   video: Video,
   work_sample: FileText,
-  observation: Eye,
   audio: Mic,
   other: File,
 };
@@ -54,26 +54,22 @@ const evidenceTypes = [
   { value: "photo", label: "Photo" },
   { value: "video", label: "Video" },
   { value: "work_sample", label: "Work Sample" },
-  { value: "observation", label: "Observation" },
   { value: "audio", label: "Audio" },
   { value: "other", label: "Other" },
 ];
 
-const contextSources = [
-  { value: "all", label: "All Contexts" },
-  { value: "morning_work", label: "Morning Work" },
-  { value: "task_box", label: "Task Box" },
-  { value: "community_trip", label: "Community Trip" },
-  { value: "lesson", label: "Lesson" },
-  { value: "other", label: "Other" },
+const settingOptions = [
+  { value: "all", label: "All Settings" },
+  { value: "classroom", label: "Classroom" },
+  { value: "community", label: "Community" },
 ];
 
 export default function EvidenceLibrary() {
   const [search, setSearch] = useState("");
   const [studentFilter, setStudentFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [contextFilter, setContextFilter] = useState("all");
-  const [outcomeFilter, setOutcomeFilter] = useState("all");
+  const [settingFilter, setSettingFilter] = useState("all");
+  const [pluFilter, setPluFilter] = useState("all");
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceWithOutcomes | null>(null);
 
   const { data: evidence, isLoading: evidenceLoading } = useQuery<EvidenceWithOutcomes[]>({
@@ -88,38 +84,46 @@ export default function EvidenceLibrary() {
     queryKey: ["/api/outcomes"],
   });
 
+  const plus = useMemo(() => {
+    if (!outcomes) return [];
+    const pluMap = new Map<number, string>();
+    outcomes.forEach((o) => pluMap.set(o.pluNumber, o.pluName));
+    return Array.from(pluMap.entries()).sort((a, b) => a[0] - b[0]);
+  }, [outcomes]);
+
   const filteredEvidence = useMemo(() => {
     if (!evidence) return [];
     return evidence.filter((item) => {
       const matchesSearch =
         search === "" ||
-        item.notes?.toLowerCase().includes(search.toLowerCase()) ||
+        item.assessmentActivity?.toLowerCase().includes(search.toLowerCase()) ||
+        item.observations?.toLowerCase().includes(search.toLowerCase()) ||
         item.student?.firstName.toLowerCase().includes(search.toLowerCase()) ||
         item.student?.lastName.toLowerCase().includes(search.toLowerCase()) ||
-        item.outcomes?.some((o) => o.code.toLowerCase().includes(search.toLowerCase()));
+        item.outcomes?.some((o) => o.outcomeCode.toLowerCase().includes(search.toLowerCase()));
 
       const matchesStudent = studentFilter === "all" || item.studentId === studentFilter;
       const matchesType = typeFilter === "all" || item.evidenceType === typeFilter;
-      const matchesContext = contextFilter === "all" || item.contextSource === contextFilter;
-      const matchesOutcome =
-        outcomeFilter === "all" ||
-        item.outcomes?.some((o) => o.id === outcomeFilter);
+      const matchesSetting = settingFilter === "all" || item.setting === settingFilter;
+      const matchesPlu =
+        pluFilter === "all" ||
+        item.outcomes?.some((o) => o.pluNumber.toString() === pluFilter);
 
-      return matchesSearch && matchesStudent && matchesType && matchesContext && matchesOutcome;
+      return matchesSearch && matchesStudent && matchesType && matchesSetting && matchesPlu;
     });
-  }, [evidence, search, studentFilter, typeFilter, contextFilter, outcomeFilter]);
+  }, [evidence, search, studentFilter, typeFilter, settingFilter, pluFilter]);
 
   const hasActiveFilters =
     studentFilter !== "all" ||
     typeFilter !== "all" ||
-    contextFilter !== "all" ||
-    outcomeFilter !== "all";
+    settingFilter !== "all" ||
+    pluFilter !== "all";
 
   const clearFilters = () => {
     setStudentFilter("all");
     setTypeFilter("all");
-    setContextFilter("all");
-    setOutcomeFilter("all");
+    setSettingFilter("all");
+    setPluFilter("all");
     setSearch("");
   };
 
@@ -159,15 +163,15 @@ export default function EvidenceLibrary() {
       </div>
 
       <div className="space-y-2">
-        <Label>Context</Label>
-        <Select value={contextFilter} onValueChange={setContextFilter}>
-          <SelectTrigger data-testid="select-filter-context">
+        <Label>Setting</Label>
+        <Select value={settingFilter} onValueChange={setSettingFilter}>
+          <SelectTrigger data-testid="select-filter-setting">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {contextSources.map((source) => (
-              <SelectItem key={source.value} value={source.value}>
-                {source.label}
+            {settingOptions.map((setting) => (
+              <SelectItem key={setting.value} value={setting.value}>
+                {setting.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -175,16 +179,16 @@ export default function EvidenceLibrary() {
       </div>
 
       <div className="space-y-2">
-        <Label>Learning Outcome</Label>
-        <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
-          <SelectTrigger data-testid="select-filter-outcome">
+        <Label>Priority Learning Unit</Label>
+        <Select value={pluFilter} onValueChange={setPluFilter}>
+          <SelectTrigger data-testid="select-filter-plu">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Outcomes</SelectItem>
-            {outcomes?.map((outcome) => (
-              <SelectItem key={outcome.id} value={outcome.id}>
-                {outcome.code} - {outcome.strand}
+            <SelectItem value="all">All PLUs</SelectItem>
+            {plus.map(([pluNumber, pluName]) => (
+              <SelectItem key={pluNumber} value={pluNumber.toString()}>
+                PLU {pluNumber}: {pluName}
               </SelectItem>
             ))}
           </SelectContent>
@@ -282,23 +286,23 @@ export default function EvidenceLibrary() {
                       <X className="h-3 w-3 ml-1" />
                     </Badge>
                   )}
-                  {contextFilter !== "all" && (
+                  {settingFilter !== "all" && (
                     <Badge
                       variant="secondary"
                       className="cursor-pointer capitalize"
-                      onClick={() => setContextFilter("all")}
+                      onClick={() => setSettingFilter("all")}
                     >
-                      {contextFilter.replace("_", " ")}
+                      {settingFilter}
                       <X className="h-3 w-3 ml-1" />
                     </Badge>
                   )}
-                  {outcomeFilter !== "all" && (
+                  {pluFilter !== "all" && (
                     <Badge
                       variant="secondary"
                       className="cursor-pointer"
-                      onClick={() => setOutcomeFilter("all")}
+                      onClick={() => setPluFilter("all")}
                     >
-                      {outcomes?.find((o) => o.id === outcomeFilter)?.code}
+                      PLU {pluFilter}
                       <X className="h-3 w-3 ml-1" />
                     </Badge>
                   )}
@@ -340,17 +344,22 @@ export default function EvidenceLibrary() {
                                 <span className="font-medium text-sm">
                                   {item.student?.firstName} {item.student?.lastName}
                                 </span>
-                                <Badge variant="outline" className="capitalize text-xs">
-                                  {item.evidenceType.replace("_", " ")}
+                                <Badge variant="secondary" className="capitalize text-xs flex items-center gap-1">
+                                  {item.setting === "classroom" ? (
+                                    <Building className="h-3 w-3" />
+                                  ) : (
+                                    <MapPin className="h-3 w-3" />
+                                  )}
+                                  {item.setting}
                                 </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                                {item.notes || "No notes"}
+                                {item.assessmentActivity || item.observations || "No description"}
                               </p>
                               <div className="flex items-center gap-2 flex-wrap">
                                 {item.outcomes?.slice(0, 2).map((outcome) => (
-                                  <Badge key={outcome.id} variant="secondary" className="text-xs">
-                                    {outcome.code}
+                                  <Badge key={outcome.id} variant="secondary" className="text-xs font-mono">
+                                    {outcome.outcomeCode}
                                   </Badge>
                                 ))}
                                 {(item.outcomes?.length || 0) > 2 && (
@@ -365,7 +374,7 @@ export default function EvidenceLibrary() {
                                 <Calendar className="h-3 w-3" />
                                 {format(new Date(item.dateOfActivity), "dd MMM")}
                               </p>
-                              <Badge variant="secondary" className="text-xs mt-1 capitalize">
+                              <Badge variant="outline" className="text-xs mt-1 capitalize">
                                 {item.independenceLevel}
                               </Badge>
                             </div>

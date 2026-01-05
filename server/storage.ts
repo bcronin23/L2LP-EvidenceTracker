@@ -337,7 +337,7 @@ export class DatabaseStorage implements IStorage {
     plusCoverage.sort((a, b) => a.pluNumber - b.pluNumber);
 
     const totalOutcomes = allOutcomes.length;
-    const totalEvidenced = evidencedOutcomes.length;
+    const totalEvidenced = evidenceMap.size; // Count unique outcomes with evidence
     const overallPercentage = totalOutcomes > 0 ? Math.round((totalEvidenced / totalOutcomes) * 100) : 0;
 
     return {

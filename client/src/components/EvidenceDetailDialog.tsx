@@ -9,14 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Download, Camera, Video, FileText, Eye, Mic, File, ExternalLink } from "lucide-react";
+import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin } from "lucide-react";
 import type { EvidenceWithOutcomes } from "@shared/schema";
 
 const evidenceTypeIcons: Record<string, typeof Camera> = {
   photo: Camera,
   video: Video,
   work_sample: FileText,
-  observation: Eye,
   audio: Mic,
   other: File,
 };
@@ -91,8 +90,13 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
                 <Badge variant="outline" className="capitalize">
                   {evidence.evidenceType.replace("_", " ")}
                 </Badge>
-                <Badge variant="secondary" className="capitalize">
-                  {evidence.contextSource.replace("_", " ")}
+                <Badge variant="secondary" className="capitalize flex items-center gap-1">
+                  {evidence.setting === "classroom" ? (
+                    <Building className="h-3 w-3" />
+                  ) : (
+                    <MapPin className="h-3 w-3" />
+                  )}
+                  {evidence.setting}
                 </Badge>
                 <Badge
                   variant={
@@ -109,12 +113,42 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
               </div>
             </div>
 
-            {evidence.notes && (
+            {evidence.assessmentActivity && (
               <>
                 <Separator />
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                  <p className="text-sm">{evidence.notes}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Assessment Activity</p>
+                  <p className="text-sm">{evidence.assessmentActivity}</p>
+                </div>
+              </>
+            )}
+
+            {evidence.successCriteria && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Success Criteria</p>
+                  <p className="text-sm whitespace-pre-line">{evidence.successCriteria}</p>
+                </div>
+              </>
+            )}
+
+            {evidence.observations && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Observations</p>
+                  <p className="text-sm">{evidence.observations}</p>
+                </div>
+              </>
+            )}
+
+            {evidence.nextSteps && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Next Steps / Feedback</p>
+                  <p className="text-sm">{evidence.nextSteps}</p>
                 </div>
               </>
             )}
@@ -127,13 +161,14 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
                   <div className="space-y-2">
                     {evidence.outcomes.map((outcome) => (
                       <div key={outcome.id} className="flex items-start gap-2">
-                        <Badge variant="outline" className="flex-shrink-0">
-                          {outcome.code}
+                        <Badge variant="outline" className="flex-shrink-0 font-mono">
+                          {outcome.outcomeCode}
                         </Badge>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">{outcome.strand}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {outcome.description}
+                          <p className="text-sm font-medium">{outcome.pluName}</p>
+                          <p className="text-xs text-muted-foreground">{outcome.elementName}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            {outcome.outcomeText}
                           </p>
                         </div>
                       </div>
