@@ -1,10 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { Users, Upload, FolderOpen, BookOpen, LogOut, GraduationCap } from "lucide-react";
+import { Users, Upload, FolderOpen, BookOpen, LogOut, GraduationCap, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganisation } from "@/hooks/use-organisation";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 const navItems = [
   { path: "/students", label: "Students", icon: Users },
@@ -16,6 +18,7 @@ const navItems = [
 export function DesktopSidebar() {
   const [location] = useLocation();
   const { user, logout, isLoggingOut } = useAuth();
+  const { membership, isAdmin } = useOrganisation();
 
   const getInitials = () => {
     if (user?.firstName && user?.lastName) {
@@ -36,7 +39,9 @@ export function DesktopSidebar() {
           </div>
           <div>
             <h1 className="font-semibold text-lg leading-none">L2LP Tracker</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Evidence Management</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">
+              {membership?.organisation.name || "Evidence Management"}
+            </p>
           </div>
         </Link>
       </div>
@@ -61,6 +66,22 @@ export function DesktopSidebar() {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors hover-elevate",
+              location === "/admin"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground"
+            )}
+            data-testid="sidebar-admin"
+          >
+            <Settings className="h-5 w-5" />
+            School Admin
+          </Link>
+        )}
       </nav>
 
       <div className="p-4 border-t space-y-4">

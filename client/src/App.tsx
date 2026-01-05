@@ -5,13 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganisation } from "@/hooks/use-organisation";
 import { LoadingPage } from "@/components/LoadingSpinner";
 import Landing from "@/pages/Landing";
+import OrganisationSetup from "@/pages/OrganisationSetup";
 import Students from "@/pages/Students";
 import StudentDashboard from "@/pages/StudentDashboard";
 import LearningOutcomes from "@/pages/LearningOutcomes";
 import UploadEvidence from "@/pages/UploadEvidence";
 import EvidenceLibrary from "@/pages/EvidenceLibrary";
+import OrganisationAdmin from "@/pages/OrganisationAdmin";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRoutes() {
@@ -23,20 +26,30 @@ function AuthenticatedRoutes() {
       <Route path="/outcomes" component={LearningOutcomes} />
       <Route path="/upload" component={UploadEvidence} />
       <Route path="/library" component={EvidenceLibrary} />
+      <Route path="/admin" component={OrganisationAdmin} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function Router() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { hasOrganisation, isLoading: orgLoading } = useOrganisation();
 
-  if (isLoading) {
+  if (authLoading) {
     return <LoadingPage />;
   }
 
   if (!user) {
     return <Landing />;
+  }
+
+  if (orgLoading) {
+    return <LoadingPage />;
+  }
+
+  if (!hasOrganisation) {
+    return <OrganisationSetup />;
   }
 
   return <AuthenticatedRoutes />;

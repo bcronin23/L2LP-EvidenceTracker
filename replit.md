@@ -11,7 +11,7 @@ The application is built as a mobile-first utility tool optimized for teachers w
 - **Jan 2026**: Initial production release with full CRUD for students, evidence upload wizard, coverage tracking, and learning outcomes catalog
 - **Jan 2026**: Added multi-tenant organisation model with admin/staff roles, invite code system for staff onboarding
 - **Features**: Landing page, authentication via Replit Auth, mobile-first responsive UI with bottom navigation (mobile) and sidebar (desktop), dark/light theme toggle
-- **Data**: 52 L2LP learning outcomes auto-seeded on first startup across 5 PLUs (Communicating and literacy, Numeracy, Personal care, Living in a community, Preparing for work)
+- **Data**: 166 L2LP learning outcomes auto-seeded on first startup across 5 PLUs (Communicating and literacy: 37, Numeracy: 38, Personal care: 29, Living in a community: 32, Preparing for work: 30)
 
 ## Key Pages
 
