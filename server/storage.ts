@@ -5,6 +5,12 @@ import {
   evidenceOutcomes,
   organisations,
   organisationMembers,
+  studentSupportPlans,
+  supportPlanAttachments,
+  studentPlans,
+  planEvidenceLinks,
+  schemesOfWork,
+  schemeStudentLinks,
   type Student,
   type InsertStudent,
   type LearningOutcome,
@@ -22,9 +28,24 @@ import {
   type OrganisationMember,
   type InsertOrganisationMember,
   type UserMembership,
+  type StudentSupportPlan,
+  type InsertStudentSupportPlan,
+  type SupportPlanAttachment,
+  type InsertSupportPlanAttachment,
+  type StudentSupportPlanWithAttachments,
+  type StudentPlan,
+  type InsertStudentPlan,
+  type PlanEvidenceLink,
+  type InsertPlanEvidenceLink,
+  type StudentPlanWithEvidence,
+  type SchemeOfWork,
+  type InsertSchemeOfWork,
+  type SchemeStudentLink,
+  type InsertSchemeStudentLink,
+  type SchemeOfWorkWithStudents,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and, count, or } from "drizzle-orm";
+import { eq, desc, sql, and, count, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // Organisations
@@ -67,6 +88,38 @@ export interface IStorage {
   // Coverage (scoped by organisation)
   getStudentCoverageByOrganisation(studentId: string, organisationId: string): Promise<OutcomeCoverage[]>;
   getStudentPLUCoverageByOrganisation(studentId: string, organisationId: string): Promise<StudentPLUCoverage>;
+
+  // Evidence soft delete (admin only)
+  softDeleteEvidence(id: string, organisationId: string): Promise<boolean>;
+
+  // Student Support Plans
+  getStudentSupportPlans(studentId: string, organisationId: string): Promise<StudentSupportPlanWithAttachments[]>;
+  getStudentSupportPlan(id: string, organisationId: string): Promise<StudentSupportPlanWithAttachments | undefined>;
+  createStudentSupportPlan(data: InsertStudentSupportPlan): Promise<StudentSupportPlan>;
+  updateStudentSupportPlan(id: string, organisationId: string, data: Partial<InsertStudentSupportPlan>): Promise<StudentSupportPlan | undefined>;
+  deleteStudentSupportPlan(id: string, organisationId: string): Promise<boolean>;
+
+  // Support Plan Attachments
+  addSupportPlanAttachment(data: InsertSupportPlanAttachment): Promise<SupportPlanAttachment>;
+  deleteSupportPlanAttachment(id: string, organisationId: string): Promise<boolean>;
+
+  // Student Plans (Weekly Planning)
+  getStudentPlans(studentId: string, organisationId: string): Promise<StudentPlanWithEvidence[]>;
+  getStudentPlan(id: string, organisationId: string): Promise<StudentPlanWithEvidence | undefined>;
+  createStudentPlan(data: InsertStudentPlan): Promise<StudentPlan>;
+  updateStudentPlan(id: string, organisationId: string, data: Partial<InsertStudentPlan>): Promise<StudentPlan | undefined>;
+  deleteStudentPlan(id: string, organisationId: string): Promise<boolean>;
+  linkEvidenceToPlan(data: InsertPlanEvidenceLink): Promise<PlanEvidenceLink>;
+  unlinkEvidenceFromPlan(planId: string, evidenceId: string): Promise<boolean>;
+
+  // Schemes of Work
+  getSchemesOfWork(organisationId: string): Promise<SchemeOfWorkWithStudents[]>;
+  getSchemeOfWork(id: string, organisationId: string): Promise<SchemeOfWorkWithStudents | undefined>;
+  createSchemeOfWork(data: InsertSchemeOfWork): Promise<SchemeOfWork>;
+  updateSchemeOfWork(id: string, organisationId: string, data: Partial<InsertSchemeOfWork>): Promise<SchemeOfWork | undefined>;
+  deleteSchemeOfWork(id: string, organisationId: string): Promise<boolean>;
+  linkStudentToScheme(data: InsertSchemeStudentLink): Promise<SchemeStudentLink>;
+  unlinkStudentFromScheme(schemeId: string, studentId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -313,7 +366,7 @@ export class DatabaseStorage implements IStorage {
     const evidenceList = await db
       .select()
       .from(evidence)
-      .where(eq(evidence.organisationId, organisationId))
+      .where(and(eq(evidence.organisationId, organisationId), isNull(evidence.deletedAt)))
       .orderBy(desc(evidence.dateOfActivity));
 
     return this.enrichEvidenceWithOutcomes(evidenceList);
@@ -333,7 +386,7 @@ export class DatabaseStorage implements IStorage {
     const evidenceList = await db
       .select()
       .from(evidence)
-      .where(and(eq(evidence.studentId, studentId), eq(evidence.organisationId, organisationId)))
+      .where(and(eq(evidence.studentId, studentId), eq(evidence.organisationId, organisationId), isNull(evidence.deletedAt)))
       .orderBy(desc(evidence.dateOfActivity));
 
     return this.enrichEvidenceWithOutcomes(evidenceList);
@@ -700,6 +753,263 @@ export class DatabaseStorage implements IStorage {
       weakOutcomes,
       overallPercentage,
     };
+  }
+
+  // ==================== Evidence Soft Delete ====================
+  async softDeleteEvidence(id: string, organisationId: string): Promise<boolean> {
+    const result = await db
+      .update(evidence)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(evidence.id, id), eq(evidence.organisationId, organisationId)))
+      .returning();
+    return result.length > 0;
+  }
+
+  // ==================== Student Support Plans ====================
+  async getStudentSupportPlans(studentId: string, organisationId: string): Promise<StudentSupportPlanWithAttachments[]> {
+    const plans = await db
+      .select()
+      .from(studentSupportPlans)
+      .where(and(eq(studentSupportPlans.studentId, studentId), eq(studentSupportPlans.organisationId, organisationId)))
+      .orderBy(desc(studentSupportPlans.updatedAt));
+
+    return this.enrichPlansWithAttachments(plans);
+  }
+
+  async getStudentSupportPlan(id: string, organisationId: string): Promise<StudentSupportPlanWithAttachments | undefined> {
+    const [plan] = await db
+      .select()
+      .from(studentSupportPlans)
+      .where(and(eq(studentSupportPlans.id, id), eq(studentSupportPlans.organisationId, organisationId)));
+
+    if (!plan) return undefined;
+    const enriched = await this.enrichPlansWithAttachments([plan]);
+    return enriched[0];
+  }
+
+  async createStudentSupportPlan(data: InsertStudentSupportPlan): Promise<StudentSupportPlan> {
+    const [plan] = await db.insert(studentSupportPlans).values(data).returning();
+    return plan;
+  }
+
+  async updateStudentSupportPlan(id: string, organisationId: string, data: Partial<InsertStudentSupportPlan>): Promise<StudentSupportPlan | undefined> {
+    const [plan] = await db
+      .update(studentSupportPlans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(studentSupportPlans.id, id), eq(studentSupportPlans.organisationId, organisationId)))
+      .returning();
+    return plan || undefined;
+  }
+
+  async deleteStudentSupportPlan(id: string, organisationId: string): Promise<boolean> {
+    const result = await db
+      .delete(studentSupportPlans)
+      .where(and(eq(studentSupportPlans.id, id), eq(studentSupportPlans.organisationId, organisationId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  private async enrichPlansWithAttachments(plans: StudentSupportPlan[]): Promise<StudentSupportPlanWithAttachments[]> {
+    if (plans.length === 0) return [];
+
+    const planIds = plans.map((p) => p.id);
+    const attachments = await db
+      .select()
+      .from(supportPlanAttachments)
+      .where(sql`${supportPlanAttachments.supportPlanId} = ANY(${planIds})`);
+
+    const attachmentsByPlan = new Map<string, SupportPlanAttachment[]>();
+    attachments.forEach((att) => {
+      const existing = attachmentsByPlan.get(att.supportPlanId) || [];
+      existing.push(att);
+      attachmentsByPlan.set(att.supportPlanId, existing);
+    });
+
+    return plans.map((plan) => ({
+      ...plan,
+      attachments: attachmentsByPlan.get(plan.id) || [],
+    }));
+  }
+
+  // ==================== Support Plan Attachments ====================
+  async addSupportPlanAttachment(data: InsertSupportPlanAttachment): Promise<SupportPlanAttachment> {
+    const [attachment] = await db.insert(supportPlanAttachments).values(data).returning();
+    return attachment;
+  }
+
+  async deleteSupportPlanAttachment(id: string, organisationId: string): Promise<boolean> {
+    const result = await db
+      .delete(supportPlanAttachments)
+      .where(
+        and(
+          eq(supportPlanAttachments.id, id),
+          sql`${supportPlanAttachments.supportPlanId} IN (
+            SELECT id FROM student_support_plans WHERE organisation_id = ${organisationId}
+          )`
+        )
+      );
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // ==================== Student Plans ====================
+  async getStudentPlans(studentId: string, organisationId: string): Promise<StudentPlanWithEvidence[]> {
+    const plans = await db
+      .select()
+      .from(studentPlans)
+      .where(and(eq(studentPlans.studentId, studentId), eq(studentPlans.organisationId, organisationId)))
+      .orderBy(desc(studentPlans.weekStartDate));
+
+    return this.enrichPlansWithEvidence(plans, organisationId);
+  }
+
+  async getStudentPlan(id: string, organisationId: string): Promise<StudentPlanWithEvidence | undefined> {
+    const [plan] = await db
+      .select()
+      .from(studentPlans)
+      .where(and(eq(studentPlans.id, id), eq(studentPlans.organisationId, organisationId)));
+
+    if (!plan) return undefined;
+    const enriched = await this.enrichPlansWithEvidence([plan], organisationId);
+    return enriched[0];
+  }
+
+  async createStudentPlan(data: InsertStudentPlan): Promise<StudentPlan> {
+    const [plan] = await db.insert(studentPlans).values(data).returning();
+    return plan;
+  }
+
+  async updateStudentPlan(id: string, organisationId: string, data: Partial<InsertStudentPlan>): Promise<StudentPlan | undefined> {
+    const [plan] = await db
+      .update(studentPlans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(studentPlans.id, id), eq(studentPlans.organisationId, organisationId)))
+      .returning();
+    return plan || undefined;
+  }
+
+  async deleteStudentPlan(id: string, organisationId: string): Promise<boolean> {
+    const result = await db
+      .delete(studentPlans)
+      .where(and(eq(studentPlans.id, id), eq(studentPlans.organisationId, organisationId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async linkEvidenceToPlan(data: InsertPlanEvidenceLink): Promise<PlanEvidenceLink> {
+    const [link] = await db.insert(planEvidenceLinks).values(data).returning();
+    return link;
+  }
+
+  async unlinkEvidenceFromPlan(planId: string, evidenceId: string): Promise<boolean> {
+    const result = await db
+      .delete(planEvidenceLinks)
+      .where(and(eq(planEvidenceLinks.planId, planId), eq(planEvidenceLinks.evidenceId, evidenceId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  private async enrichPlansWithEvidence(plans: StudentPlan[], organisationId: string): Promise<StudentPlanWithEvidence[]> {
+    if (plans.length === 0) return [];
+
+    const planIds = plans.map((p) => p.id);
+    const links = await db
+      .select({
+        planId: planEvidenceLinks.planId,
+        evidence: evidence,
+      })
+      .from(planEvidenceLinks)
+      .innerJoin(evidence, eq(evidence.id, planEvidenceLinks.evidenceId))
+      .where(sql`${planEvidenceLinks.planId} = ANY(${planIds})`);
+
+    const evidenceByPlan = new Map<string, Evidence[]>();
+    links.forEach((link) => {
+      const existing = evidenceByPlan.get(link.planId) || [];
+      existing.push(link.evidence);
+      evidenceByPlan.set(link.planId, existing);
+    });
+
+    return plans.map((plan) => ({
+      ...plan,
+      linkedEvidence: evidenceByPlan.get(plan.id) || [],
+    }));
+  }
+
+  // ==================== Schemes of Work ====================
+  async getSchemesOfWork(organisationId: string): Promise<SchemeOfWorkWithStudents[]> {
+    const schemes = await db
+      .select()
+      .from(schemesOfWork)
+      .where(eq(schemesOfWork.organisationId, organisationId))
+      .orderBy(desc(schemesOfWork.createdAt));
+
+    return this.enrichSchemesWithStudents(schemes);
+  }
+
+  async getSchemeOfWork(id: string, organisationId: string): Promise<SchemeOfWorkWithStudents | undefined> {
+    const [scheme] = await db
+      .select()
+      .from(schemesOfWork)
+      .where(and(eq(schemesOfWork.id, id), eq(schemesOfWork.organisationId, organisationId)));
+
+    if (!scheme) return undefined;
+    const enriched = await this.enrichSchemesWithStudents([scheme]);
+    return enriched[0];
+  }
+
+  async createSchemeOfWork(data: InsertSchemeOfWork): Promise<SchemeOfWork> {
+    const [scheme] = await db.insert(schemesOfWork).values(data).returning();
+    return scheme;
+  }
+
+  async updateSchemeOfWork(id: string, organisationId: string, data: Partial<InsertSchemeOfWork>): Promise<SchemeOfWork | undefined> {
+    const [scheme] = await db
+      .update(schemesOfWork)
+      .set({ ...data, updatedAt: new Date() })
+      .where(and(eq(schemesOfWork.id, id), eq(schemesOfWork.organisationId, organisationId)))
+      .returning();
+    return scheme || undefined;
+  }
+
+  async deleteSchemeOfWork(id: string, organisationId: string): Promise<boolean> {
+    const result = await db
+      .delete(schemesOfWork)
+      .where(and(eq(schemesOfWork.id, id), eq(schemesOfWork.organisationId, organisationId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async linkStudentToScheme(data: InsertSchemeStudentLink): Promise<SchemeStudentLink> {
+    const [link] = await db.insert(schemeStudentLinks).values(data).returning();
+    return link;
+  }
+
+  async unlinkStudentFromScheme(schemeId: string, studentId: string): Promise<boolean> {
+    const result = await db
+      .delete(schemeStudentLinks)
+      .where(and(eq(schemeStudentLinks.schemeId, schemeId), eq(schemeStudentLinks.studentId, studentId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  private async enrichSchemesWithStudents(schemes: SchemeOfWork[]): Promise<SchemeOfWorkWithStudents[]> {
+    if (schemes.length === 0) return [];
+
+    const schemeIds = schemes.map((s) => s.id);
+    const links = await db
+      .select({
+        schemeId: schemeStudentLinks.schemeId,
+        student: students,
+      })
+      .from(schemeStudentLinks)
+      .innerJoin(students, eq(students.id, schemeStudentLinks.studentId))
+      .where(sql`${schemeStudentLinks.schemeId} = ANY(${schemeIds})`);
+
+    const studentsByScheme = new Map<string, Student[]>();
+    links.forEach((link) => {
+      const existing = studentsByScheme.get(link.schemeId) || [];
+      existing.push(link.student);
+      studentsByScheme.set(link.schemeId, existing);
+    });
+
+    return schemes.map((scheme) => ({
+      ...scheme,
+      linkedStudents: studentsByScheme.get(scheme.id) || [],
+    }));
   }
 }
 
