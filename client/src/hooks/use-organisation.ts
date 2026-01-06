@@ -11,6 +11,9 @@ export interface OrganisationMembership {
     name: string;
     inviteCode: string;
     createdAt: string;
+    displayName?: string | null;
+    logoStoragePath?: string | null;
+    accentColor?: string | null;
   };
 }
 

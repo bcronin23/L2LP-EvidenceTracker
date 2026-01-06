@@ -4,6 +4,9 @@ export {
   objectStorageClient,
 } from "./objectStorage";
 
+import { ObjectStorageService } from "./objectStorage";
+export const objectStorageService = new ObjectStorageService();
+
 export type {
   ObjectAclPolicy,
   ObjectAccessGroup,

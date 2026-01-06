@@ -4,7 +4,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -148,6 +148,80 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error regenerating invite code:", error);
       res.status(500).json({ message: "Failed to regenerate invite code" });
+    }
+  });
+
+  // Update organisation branding (admin only)
+  const updateBrandingSchema = z.object({
+    displayName: z.string().nullable().optional(),
+    accentColor: z.string().nullable().optional(),
+    logoStoragePath: z.string().nullable().optional(),
+  });
+
+  app.patch("/api/organisation/branding", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const data = updateBrandingSchema.parse(req.body);
+      const updated = await storage.updateOrganisation(membership.organisation.id, data);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Organisation not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error updating branding:", error);
+      res.status(500).json({ message: "Failed to update branding" });
+    }
+  });
+
+  // Get signed URL for logo upload (admin only)
+  app.get("/api/organisation/logo-upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const uploadUrl = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadUrl });
+    } catch (error) {
+      console.error("Error getting logo upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Get signed URL for reading organisation logo
+  app.get("/api/organisation/logo-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+
+      const logoPath = membership.organisation.logoStoragePath;
+      if (!logoPath) {
+        return res.status(404).json({ message: "No logo configured" });
+      }
+
+      const signedUrl = await objectStorageService.getSignedReadUrl(logoPath, 3600);
+      res.json({ signedUrl, expiresIn: 3600 });
+    } catch (error) {
+      console.error("Error getting logo URL:", error);
+      res.status(500).json({ message: "Failed to get logo URL" });
     }
   });
 
@@ -533,6 +607,7 @@ export async function registerRoutes(
     }
   });
 
+  // Admin-only: Soft delete evidence (sets deletedAt timestamp)
   app.delete("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -542,7 +617,12 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
       }
       
-      const deleted = await storage.deleteEvidenceByOrganisation(req.params.id, membership.organisation.id);
+      // Only admins can delete evidence
+      if (membership.role !== "admin") {
+        return res.status(403).json({ message: "Only administrators can delete evidence" });
+      }
+      
+      const deleted = await storage.softDeleteEvidence(req.params.id, membership.organisation.id);
       if (!deleted) {
         return res.status(404).json({ message: "Evidence not found" });
       }
@@ -550,6 +630,34 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting evidence:", error);
       res.status(500).json({ message: "Failed to delete evidence" });
+    }
+  });
+
+  // Get signed URL for evidence file (private storage access)
+  app.get("/api/evidence/:id/signed-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const evidence = await storage.getEvidenceByOrgAndId(req.params.id, membership.organisation.id);
+      if (!evidence) {
+        return res.status(404).json({ message: "Evidence not found" });
+      }
+      
+      if (!evidence.storagePath) {
+        return res.status(400).json({ message: "Evidence has no associated file" });
+      }
+      
+      // Generate signed URL with 1 hour expiry
+      const signedUrl = await objectStorageService.getSignedReadUrl(evidence.storagePath, 3600);
+      res.json({ signedUrl, expiresIn: 3600 });
+    } catch (error) {
+      console.error("Error generating signed URL:", error);
+      res.status(500).json({ message: "Failed to generate signed URL" });
     }
   });
 

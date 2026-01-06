@@ -15,8 +15,6 @@ import {
   File,
   Mic,
   Award,
-  ChevronDown,
-  ChevronRight,
   Building,
   MapPin,
 } from "lucide-react";
@@ -47,7 +45,6 @@ export default function StudentDashboard() {
   const { id } = useParams<{ id: string }>();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceWithOutcomes | null>(null);
-  const [expandedPLUs, setExpandedPLUs] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
 
   const { data: student, isLoading: studentLoading } = useQuery<Student>({
     queryKey: ["/api/students", id],
@@ -96,18 +93,6 @@ export default function StudentDashboard() {
   const weakOutcomes = pluCoverage?.weakOutcomes || [];
   const plusOnTrack = pluCoverage?.plusCoverage.filter(p => p.isOnTrackForJCPA).length || 0;
   const totalPlus = pluCoverage?.plusCoverage.length || 5;
-
-  const togglePLU = (pluNumber: number) => {
-    setExpandedPLUs((prev) => {
-      const next = new Set(prev);
-      if (next.has(pluNumber)) {
-        next.delete(pluNumber);
-      } else {
-        next.add(pluNumber);
-      }
-      return next;
-    });
-  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -199,13 +184,109 @@ export default function StudentDashboard() {
             </Card>
           </div>
 
-          <Tabs defaultValue="evidence" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs defaultValue="overview" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
               <TabsTrigger value="evidence" data-testid="tab-evidence">Evidence</TabsTrigger>
-              <TabsTrigger value="plu" data-testid="tab-plu">PLU Status</TabsTrigger>
-              <TabsTrigger value="missing" data-testid="tab-missing">Missing</TabsTrigger>
-              <TabsTrigger value="weak" data-testid="tab-weak">Weak</TabsTrigger>
+              <TabsTrigger value="ssp" data-testid="tab-ssp">SSP</TabsTrigger>
+              <TabsTrigger value="planning" data-testid="tab-planning">Planning</TabsTrigger>
+              <TabsTrigger value="scheme" data-testid="tab-scheme">Scheme</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    PLU Coverage Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pluCoverage?.plusCoverage.map((plu) => (
+                      <div key={plu.pluNumber} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">PLU {plu.pluNumber}</span>
+                            <span className="text-sm text-muted-foreground truncate">{plu.pluName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{plu.percentage}%</span>
+                            {plu.isOnTrackForJCPA ? (
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                            )}
+                          </div>
+                        </div>
+                        <Progress value={plu.percentage} className="h-2" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                      Missing Outcomes ({missingOutcomes.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {missingOutcomes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No missing outcomes - great coverage!</p>
+                    ) : (
+                      <ScrollArea className="h-40">
+                        <div className="space-y-2">
+                          {missingOutcomes.slice(0, 10).map((outcome) => (
+                            <div key={outcome.id} className="text-sm p-2 rounded-md bg-muted">
+                              <span className="font-medium">{outcome.outcomeCode}</span>
+                              <span className="text-muted-foreground ml-2 truncate">{outcome.outcomeText}</span>
+                            </div>
+                          ))}
+                          {missingOutcomes.length > 10 && (
+                            <p className="text-sm text-muted-foreground">+{missingOutcomes.length - 10} more</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-amber-500" />
+                      Weak Outcomes ({weakOutcomes.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {weakOutcomes.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No weak outcomes - solid evidence base!</p>
+                    ) : (
+                      <ScrollArea className="h-40">
+                        <div className="space-y-2">
+                          {weakOutcomes.slice(0, 10).map(({ outcome, count }) => (
+                            <div key={outcome.id} className="text-sm p-2 rounded-md bg-muted flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium">{outcome.outcomeCode}</span>
+                                <span className="text-muted-foreground ml-2 truncate">{outcome.outcomeText}</span>
+                              </div>
+                              <Badge variant="outline" className="flex-shrink-0">{count}</Badge>
+                            </div>
+                          ))}
+                          {weakOutcomes.length > 10 && (
+                            <p className="text-sm text-muted-foreground">+{weakOutcomes.length - 10} more</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
             <TabsContent value="evidence" className="space-y-4">
               {evidenceList?.length === 0 ? (
@@ -288,157 +369,51 @@ export default function StudentDashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="plu" className="space-y-4">
-              {pluCoverage?.plusCoverage.map((plu) => (
-                <Card key={plu.pluNumber} data-testid={`plu-coverage-${plu.pluNumber}`}>
-                  <button
-                    type="button"
-                    className="w-full p-4 flex items-center gap-3 text-left hover-elevate rounded-t-md"
-                    onClick={() => togglePLU(plu.pluNumber)}
-                  >
-                    {expandedPLUs.has(plu.pluNumber) ? (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    )}
-                    <Badge variant="outline" className="font-mono flex-shrink-0">
-                      PLU {plu.pluNumber}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{plu.pluName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {plu.evidencedOutcomes}/{plu.totalOutcomes} outcomes covered
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 hidden sm:block">
-                        <Progress value={plu.percentage} className="h-2" />
-                      </div>
-                      {plu.isOnTrackForJCPA ? (
-                        <Badge className="bg-green-600 text-white flex-shrink-0">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          JCPA Ready
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="flex-shrink-0">
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Needs Work
-                        </Badge>
-                      )}
-                    </div>
-                  </button>
-
-                  {expandedPLUs.has(plu.pluNumber) && (
-                    <CardContent className="pt-0 pb-4 space-y-3">
-                      {plu.elements.map((element) => (
-                        <div key={element.elementName} className="ml-8 p-3 rounded-md bg-muted/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium">{element.elementName}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {element.evidencedOutcomes}/{element.totalOutcomes}
-                              </span>
-                              {element.hasMajority ? (
-                                <Badge size="sm" className="bg-green-600/20 text-green-600 border-green-600/30">
-                                  Majority
-                                </Badge>
-                              ) : (
-                                <Badge size="sm" variant="outline" className="text-amber-600 border-amber-600/30">
-                                  {element.percentage}%
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <Progress value={element.percentage} className="h-1" />
-                        </div>
-                      ))}
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
-            </TabsContent>
-
-            <TabsContent value="missing">
-              {missingOutcomes.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto text-primary mb-4" />
-                    <h3 className="font-medium mb-2">All outcomes covered!</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Great job! This student has evidence for all learning outcomes.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {missingOutcomes.map((outcome) => (
-                    <Card key={outcome.id} className="border-destructive/20" data-testid={`missing-${outcome.outcomeCode}`}>
-                      <CardContent className="p-4 flex items-start gap-4">
-                        <Badge variant="destructive" className="flex-shrink-0 font-mono">
-                          {outcome.outcomeCode}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium mb-1">{outcome.pluName}</p>
-                          <p className="text-xs text-muted-foreground mb-1">{outcome.elementName}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {outcome.outcomeText}
-                          </p>
-                        </div>
-                        <Link href={`/upload?student=${id}&outcome=${outcome.id}`}>
-                          <Button size="sm" variant="outline" data-testid={`button-add-evidence-${outcome.outcomeCode}`}>
-                            <Plus className="h-4 w-4 mr-1" />
-                            Add
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="weak">
-              {weakOutcomes.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <CheckCircle className="h-12 w-12 mx-auto text-primary mb-4" />
-                    <h3 className="font-medium mb-2">No weak outcomes!</h3>
-                    <p className="text-sm text-muted-foreground">
-                      All covered outcomes have multiple evidence items.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    These outcomes have only 1 evidence item. Consider adding more.
+            <TabsContent value="ssp" className="space-y-4">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium mb-2">Student Support Plan</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Document key needs, strengths, communication supports, targets, and strategies for this student.
                   </p>
-                  {weakOutcomes.map(({ outcome, count }) => (
-                    <Card key={outcome.id} className="border-amber-500/20" data-testid={`weak-${outcome.outcomeCode}`}>
-                      <CardContent className="p-4 flex items-start gap-4">
-                        <Badge className="flex-shrink-0 font-mono bg-amber-500 text-white">
-                          {outcome.outcomeCode}
-                        </Badge>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium mb-1">{outcome.pluName}</p>
-                          <p className="text-xs text-muted-foreground mb-1">{outcome.elementName}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {outcome.outcomeText}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="outline">{count} item</Badge>
-                          <Link href={`/upload?student=${id}&outcome=${outcome.id}`}>
-                            <Button size="sm" variant="ghost" className="mt-2">
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                  <Button data-testid="button-create-ssp">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Support Plan
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="planning" className="space-y-4">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium mb-2">Weekly Planning</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Plan weekly activities and link evidence to track progress toward learning outcomes.
+                  </p>
+                  <Button data-testid="button-create-plan">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Weekly Plan
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="scheme" className="space-y-4">
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-medium mb-2">Scheme of Work</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    View and manage curriculum schemes assigned to this student or their class group.
+                  </p>
+                  <Button variant="outline" data-testid="button-view-schemes">
+                    View Assigned Schemes
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </main>

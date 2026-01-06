@@ -1,6 +1,8 @@
+import { useQuery } from "@tanstack/react-query";
 import { GraduationCap, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useOrganisation } from "@/hooks/use-organisation";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -15,8 +17,19 @@ interface MobileHeaderProps {
   title?: string;
 }
 
-export function MobileHeader({ title = "L2LP Tracker" }: MobileHeaderProps) {
+export function MobileHeader({ title }: MobileHeaderProps) {
   const { user, logout, isLoggingOut } = useAuth();
+  const { membership } = useOrganisation();
+  
+  const org = membership?.organisation;
+  const hasLogo = !!org?.logoStoragePath;
+  
+  const { data: logoUrl } = useQuery<{ signedUrl: string }>({
+    queryKey: ["/api/organisation/logo-url"],
+    enabled: hasLogo,
+  });
+  
+  const displayName = title || org?.displayName || org?.name || "L2LP Tracker";
 
   const getInitials = () => {
     if (user?.firstName && user?.lastName) {
@@ -31,10 +44,18 @@ export function MobileHeader({ title = "L2LP Tracker" }: MobileHeaderProps) {
   return (
     <header className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b bg-background px-4 py-3 md:hidden">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
-          <GraduationCap className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <h1 className="font-semibold text-lg">{title}</h1>
+        {hasLogo && logoUrl?.signedUrl ? (
+          <img
+            src={logoUrl.signedUrl}
+            alt={displayName}
+            className="w-8 h-8 rounded-md object-contain bg-muted"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+            <GraduationCap className="h-5 w-5 text-primary-foreground" />
+          </div>
+        )}
+        <h1 className="font-semibold text-lg truncate max-w-[180px]">{displayName}</h1>
       </div>
 
       <div className="flex items-center gap-2">

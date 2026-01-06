@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Users, Upload, FolderOpen, BookOpen, LogOut, GraduationCap, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,14 @@ export function DesktopSidebar() {
   const { user, logout, isLoggingOut } = useAuth();
   const { membership, isAdmin } = useOrganisation();
 
+  const org = membership?.organisation;
+  const hasLogo = !!org?.logoStoragePath;
+
+  const { data: logoUrl } = useQuery<{ signedUrl: string }>({
+    queryKey: ["/api/organisation/logo-url"],
+    enabled: hasLogo,
+  });
+
   const getInitials = () => {
     if (user?.firstName && user?.lastName) {
       return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
@@ -30,18 +39,31 @@ export function DesktopSidebar() {
     return "U";
   };
 
+  const displayName = org?.displayName || org?.name || "L2LP Tracker";
+  const orgName = org?.name || "Evidence Management";
+
   return (
     <aside className="hidden md:flex md:flex-col md:w-64 border-r bg-sidebar h-screen sticky top-0">
       <div className="p-4 border-b">
         <Link href="/students" className="flex items-center gap-3" data-testid="link-logo">
-          <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center">
-            <GraduationCap className="h-6 w-6 text-primary-foreground" />
-          </div>
+          {hasLogo && logoUrl?.signedUrl ? (
+            <img
+              src={logoUrl.signedUrl}
+              alt={displayName}
+              className="w-10 h-10 rounded-md object-contain bg-muted"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center">
+              <GraduationCap className="h-6 w-6 text-primary-foreground" />
+            </div>
+          )}
           <div>
-            <h1 className="font-semibold text-lg leading-none">L2LP Tracker</h1>
-            <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">
-              {membership?.organisation.name || "Evidence Management"}
-            </p>
+            <h1 className="font-semibold text-lg leading-none">{displayName}</h1>
+            {displayName !== orgName && (
+              <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">
+                {orgName}
+              </p>
+            )}
           </div>
         </Link>
       </div>

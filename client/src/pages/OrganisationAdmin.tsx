@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen } from "lucide-react";
+import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen, Palette, Upload, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MobileHeader } from "@/components/MobileHeader";
@@ -12,7 +14,7 @@ import { MobileNav } from "@/components/MobileNav";
 import { LoadingPage, LoadingSpinner } from "@/components/LoadingSpinner";
 import { useOrganisation } from "@/hooks/use-organisation";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface OrganisationMember {
   id: string;
@@ -21,23 +23,113 @@ interface OrganisationMember {
   joinedAt: string;
 }
 
+const PRESET_COLORS = [
+  { name: "Blue", value: "#2563eb" },
+  { name: "Green", value: "#16a34a" },
+  { name: "Purple", value: "#9333ea" },
+  { name: "Orange", value: "#ea580c" },
+  { name: "Red", value: "#dc2626" },
+  { name: "Teal", value: "#0d9488" },
+  { name: "Pink", value: "#db2777" },
+  { name: "Indigo", value: "#4f46e5" },
+];
+
 export default function OrganisationAdmin() {
   const { membership, isAdmin, regenerateCode, isRegeneratingCode } = useOrganisation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const [copiedCode, setCopiedCode] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [accentColor, setAccentColor] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: members, isLoading: membersLoading } = useQuery<OrganisationMember[]>({
     queryKey: ["/api/organisation/members"],
     enabled: isAdmin,
   });
 
+  const { data: logoData } = useQuery<{ signedUrl: string }>({
+    queryKey: ["/api/organisation/logo-url"],
+    enabled: !!membership?.organisation.logoStoragePath,
+  });
+
+  const updateBrandingMutation = useMutation({
+    mutationFn: async (data: { displayName?: string | null; accentColor?: string | null; logoStoragePath?: string | null }) => {
+      return apiRequest("PATCH", "/api/organisation/branding", data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/organisation"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/organisation"] });
+      toast({ title: "Branding updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update branding", variant: "destructive" });
+    },
+  });
+
+  const handleSaveDisplayName = () => {
+    if (displayName.trim()) {
+      updateBrandingMutation.mutate({ displayName: displayName.trim() });
+    }
+  };
+
+  const handleColorSelect = (color: string) => {
+    setAccentColor(color);
+    updateBrandingMutation.mutate({ accentColor: color });
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image must be less than 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      const response = await fetch("/api/organisation/logo-upload-url");
+      if (!response.ok) throw new Error("Failed to get upload URL");
+      const { uploadUrl } = await response.json();
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!uploadResponse.ok) throw new Error("Upload failed");
+
+      const url = new URL(uploadUrl);
+      const storagePath = url.pathname;
+      
+      await updateBrandingMutation.mutateAsync({ logoStoragePath: storagePath });
+      qc.invalidateQueries({ queryKey: ["/api/organisation/logo-url"] });
+      toast({ title: "Logo uploaded successfully" });
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      toast({ title: "Failed to upload logo", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const updateRoleMutation = useMutation({
     mutationFn: async ({ memberId, role }: { memberId: string; role: string }) => {
       return apiRequest("PATCH", `/api/organisation/members/${memberId}`, { role });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/organisation/members"] });
+      qc.invalidateQueries({ queryKey: ["/api/organisation/members"] });
       toast({ title: "Role updated successfully" });
     },
     onError: () => {
@@ -50,7 +142,7 @@ export default function OrganisationAdmin() {
       return apiRequest("DELETE", `/api/organisation/members/${memberId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/organisation/members"] });
+      qc.invalidateQueries({ queryKey: ["/api/organisation/members"] });
       toast({ title: "Member removed" });
     },
     onError: () => {
@@ -63,7 +155,7 @@ export default function OrganisationAdmin() {
       return apiRequest("POST", "/api/admin/reset-outcomes");
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/outcomes"] });
+      qc.invalidateQueries({ queryKey: ["/api/outcomes"] });
       const pluTotals = data.pluTotals || {};
       toast({ 
         title: "Official L2LP Outcomes Imported",
@@ -164,6 +256,112 @@ export default function OrganisationAdmin() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Share this code with colleagues so they can join your school
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                School Branding
+              </CardTitle>
+              <CardDescription>
+                Customise how your school appears in the app
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Display Name</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="displayName"
+                    placeholder={membership?.organisation.name || "Enter display name"}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    data-testid="input-display-name"
+                  />
+                  <Button 
+                    onClick={handleSaveDisplayName}
+                    disabled={!displayName.trim() || updateBrandingMutation.isPending}
+                    data-testid="button-save-display-name"
+                  >
+                    {updateBrandingMutation.isPending ? <LoadingSpinner className="h-4 w-4" /> : "Save"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {membership?.organisation.displayName 
+                    ? `Current: "${membership.organisation.displayName}"` 
+                    : "Optional friendly name shown in headers"}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Accent Colour</Label>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_COLORS.map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => handleColorSelect(color.value)}
+                      className={`w-8 h-8 rounded-md border-2 transition-all ${
+                        (accentColor || membership?.organisation.accentColor) === color.value
+                          ? "border-foreground scale-110"
+                          : "border-transparent hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                      data-testid={`color-${color.value.replace("#", "")}`}
+                    />
+                  ))}
+                </div>
+                {membership?.organisation.accentColor && (
+                  <p className="text-xs text-muted-foreground">
+                    Current: {PRESET_COLORS.find(c => c.value === membership.organisation.accentColor)?.name || membership.organisation.accentColor}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>School Logo</Label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-md border flex items-center justify-center bg-muted overflow-hidden">
+                    {logoData?.signedUrl ? (
+                      <img 
+                        src={logoData.signedUrl} 
+                        alt="School logo" 
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      data-testid="input-logo-file"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingLogo}
+                      data-testid="button-upload-logo"
+                    >
+                      {isUploadingLogo ? (
+                        <LoadingSpinner className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {isUploadingLogo ? "Uploading..." : "Upload Logo"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PNG, JPG or SVG, max 5MB
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

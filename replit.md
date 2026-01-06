@@ -10,17 +10,25 @@ The application is built as a mobile-first utility tool optimized for teachers w
 
 - **Jan 2026**: Initial production release with full CRUD for students, evidence upload wizard, coverage tracking, and learning outcomes catalog
 - **Jan 2026**: Added multi-tenant organisation model with admin/staff roles, invite code system for staff onboarding
+- **Jan 2026**: Added school branding (logo upload, display name, accent colors) with private storage using signed URLs
+- **Jan 2026**: Added Student Space with 5 tabs: Overview, Evidence, SSP, Planning, Scheme of Work
+- **Jan 2026**: Security hardening - admin-only evidence deletion (soft delete), application-level access controls
 - **Features**: Landing page, authentication via Replit Auth, mobile-first responsive UI with bottom navigation (mobile) and sidebar (desktop), dark/light theme toggle
-- **Data**: 166 L2LP learning outcomes auto-seeded on first startup across 5 PLUs (Communicating and literacy: 37, Numeracy: 38, Personal care: 29, Living in a community: 32, Preparing for work: 30)
+- **Data**: 166 L2LP learning outcomes auto-seeded on first startup across 5 PLUs
 
 ## Key Pages
 
 - **Landing (`/`)**: Public page for unauthenticated users with feature highlights and Sign In button
 - **Students (`/students`)**: List of students with search, add student dialog, and stats (evidence count, outcomes covered)
-- **Student Dashboard (`/students/:id`)**: Individual student view with tabs for Evidence, Coverage, and Missing Outcomes
+- **Student Dashboard (`/students/:id`)**: Student Space with 5 tabs - Overview (PLU coverage, weak/missing outcomes), Evidence, SSP, Planning, Scheme of Work
 - **Upload Evidence (`/upload`)**: 5-step wizard - Select Student, Upload File (optional), Select Outcomes, Add Details, Review & Submit
 - **Evidence Library (`/library`)**: Browse all evidence with filters by student, type, context, and outcome
-- **Learning Outcomes (`/outcomes`)**: Browse all 40 L2LP outcomes organized by strand with search and filter
+- **Learning Outcomes (`/outcomes`)**: Browse all L2LP outcomes organized by PLU with search and filter
+- **School Admin (`/admin`)**: Organisation settings, branding (logo, colors), staff management, invite codes (admin only)
+
+## Documentation
+
+- **docs/ADMIN_GUIDE.md**: Administrator guide for branding, staff management, and storage
 
 ## User Preferences
 

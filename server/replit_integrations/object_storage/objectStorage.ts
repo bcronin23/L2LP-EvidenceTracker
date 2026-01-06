@@ -237,6 +237,32 @@ export class ObjectStorageService {
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
+
+  // Gets a signed URL for reading a private object entity
+  async getSignedReadUrl(storagePath: string, ttlSec: number = 3600): Promise<string> {
+    if (!storagePath) {
+      throw new Error("Storage path is required");
+    }
+
+    // Handle /objects/ prefix format
+    if (storagePath.startsWith("/objects/")) {
+      const entityId = storagePath.slice("/objects/".length);
+      let entityDir = this.getPrivateObjectDir();
+      if (!entityDir.endsWith("/")) {
+        entityDir = `${entityDir}/`;
+      }
+      storagePath = `${entityDir}${entityId}`;
+    }
+
+    const { bucketName, objectName } = parseObjectPath(storagePath);
+
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec,
+    });
+  }
 }
 
 function parseObjectPath(path: string): {
