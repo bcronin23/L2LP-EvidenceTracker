@@ -661,5 +661,577 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Student Support Plans API ====================
+  
+  // Get all SSPs for a student (ordered by createdAt desc)
+  app.get("/api/students/:studentId/ssp", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.getStudentByOrganisation(req.params.studentId, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const ssps = await storage.getStudentSupportPlans(req.params.studentId, membership.organisation.id);
+      res.json(ssps);
+    } catch (error) {
+      console.error("Error fetching SSPs:", error);
+      res.status(500).json({ message: "Failed to fetch support plans" });
+    }
+  });
+  
+  // Get single SSP
+  app.get("/api/ssp/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const ssp = await storage.getStudentSupportPlan(req.params.id, membership.organisation.id);
+      if (!ssp) {
+        return res.status(404).json({ message: "Support plan not found" });
+      }
+      res.json(ssp);
+    } catch (error) {
+      console.error("Error fetching SSP:", error);
+      res.status(500).json({ message: "Failed to fetch support plan" });
+    }
+  });
+  
+  // Create SSP (auto-archives previous active SSP)
+  const createSspSchema = z.object({
+    studentId: z.string().min(1),
+    keyNeeds: z.string().optional(),
+    strengths: z.string().optional(),
+    communicationSupports: z.string().optional(),
+    regulationSupports: z.string().optional(),
+    targets: z.string().optional(),
+    strategies: z.string().optional(),
+    notes: z.string().optional(),
+  });
+  
+  app.post("/api/ssp", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = createSspSchema.parse(req.body);
+      
+      const student = await storage.getStudentByOrganisation(data.studentId, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      // Archive any existing active SSP for this student
+      const existingSsps = await storage.getStudentSupportPlans(data.studentId, membership.organisation.id);
+      for (const ssp of existingSsps) {
+        if (ssp.status === "active") {
+          await storage.updateStudentSupportPlan(ssp.id, membership.organisation.id, { status: "archived" });
+        }
+      }
+      
+      const ssp = await storage.createStudentSupportPlan({
+        ...data,
+        organisationId: membership.organisation.id,
+        createdBy: userId,
+        status: "active",
+      });
+      
+      res.status(201).json(ssp);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating SSP:", error);
+      res.status(500).json({ message: "Failed to create support plan" });
+    }
+  });
+  
+  // Update SSP
+  app.patch("/api/ssp/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = createSspSchema.partial().parse(req.body);
+      const ssp = await storage.updateStudentSupportPlan(req.params.id, membership.organisation.id, data);
+      
+      if (!ssp) {
+        return res.status(404).json({ message: "Support plan not found" });
+      }
+      
+      res.json(ssp);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error updating SSP:", error);
+      res.status(500).json({ message: "Failed to update support plan" });
+    }
+  });
+  
+  // ==================== Weekly Plans API ====================
+  
+  // Get all plans for a student
+  app.get("/api/students/:studentId/plans", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.getStudentByOrganisation(req.params.studentId, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const plans = await storage.getStudentPlans(req.params.studentId, membership.organisation.id);
+      res.json(plans);
+    } catch (error) {
+      console.error("Error fetching plans:", error);
+      res.status(500).json({ message: "Failed to fetch plans" });
+    }
+  });
+  
+  // Get single plan
+  app.get("/api/plans/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const plan = await storage.getStudentPlan(req.params.id, membership.organisation.id);
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      res.json(plan);
+    } catch (error) {
+      console.error("Error fetching plan:", error);
+      res.status(500).json({ message: "Failed to fetch plan" });
+    }
+  });
+  
+  // Create weekly plan
+  const createPlanSchema = z.object({
+    studentId: z.string().min(1),
+    weekStartDate: z.string().min(1),
+    focusPlu: z.string().optional(),
+    focusElement: z.string().optional(),
+    focusOutcomeCodes: z.array(z.string()).optional(),
+    planText: z.string().optional(),
+    nextSteps: z.string().optional(),
+  });
+  
+  app.post("/api/plans", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = createPlanSchema.parse(req.body);
+      
+      const student = await storage.getStudentByOrganisation(data.studentId, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const plan = await storage.createStudentPlan({
+        ...data,
+        organisationId: membership.organisation.id,
+        createdBy: userId,
+      });
+      
+      res.status(201).json(plan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating plan:", error);
+      res.status(500).json({ message: "Failed to create plan" });
+    }
+  });
+  
+  // Update plan
+  app.patch("/api/plans/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = createPlanSchema.partial().parse(req.body);
+      const plan = await storage.updateStudentPlan(req.params.id, membership.organisation.id, data);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      
+      res.json(plan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error updating plan:", error);
+      res.status(500).json({ message: "Failed to update plan" });
+    }
+  });
+  
+  // Delete plan
+  app.delete("/api/plans/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const deleted = await storage.deleteStudentPlan(req.params.id, membership.organisation.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+      res.status(500).json({ message: "Failed to delete plan" });
+    }
+  });
+  
+  // Link evidence to plan
+  app.post("/api/plans/:planId/evidence/:evidenceId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const plan = await storage.getStudentPlan(req.params.planId, membership.organisation.id);
+      if (!plan) {
+        return res.status(404).json({ message: "Plan not found" });
+      }
+      
+      const evidence = await storage.getEvidenceByOrgAndId(req.params.evidenceId, membership.organisation.id);
+      if (!evidence) {
+        return res.status(404).json({ message: "Evidence not found" });
+      }
+      
+      const link = await storage.linkEvidenceToPlan({
+        planId: req.params.planId,
+        evidenceId: req.params.evidenceId,
+      });
+      
+      res.status(201).json(link);
+    } catch (error) {
+      console.error("Error linking evidence:", error);
+      res.status(500).json({ message: "Failed to link evidence" });
+    }
+  });
+  
+  // Unlink evidence from plan
+  app.delete("/api/plans/:planId/evidence/:evidenceId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const deleted = await storage.unlinkEvidenceFromPlan(req.params.planId, req.params.evidenceId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Link not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unlinking evidence:", error);
+      res.status(500).json({ message: "Failed to unlink evidence" });
+    }
+  });
+  
+  // ==================== Schemes of Work API ====================
+  
+  // Get all schemes for organisation
+  app.get("/api/schemes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const schemes = await storage.getSchemesOfWork(membership.organisation.id);
+      res.json(schemes);
+    } catch (error) {
+      console.error("Error fetching schemes:", error);
+      res.status(500).json({ message: "Failed to fetch schemes" });
+    }
+  });
+  
+  // Get schemes assigned to a student (directly or via class group)
+  app.get("/api/students/:studentId/schemes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.getStudentByOrganisation(req.params.studentId, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const schemes = await storage.getStudentSchemes(req.params.studentId, membership.organisation.id, student.classGroup || undefined);
+      res.json(schemes);
+    } catch (error) {
+      console.error("Error fetching student schemes:", error);
+      res.status(500).json({ message: "Failed to fetch schemes" });
+    }
+  });
+  
+  // Get single scheme
+  app.get("/api/schemes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const scheme = await storage.getSchemeOfWork(req.params.id, membership.organisation.id);
+      if (!scheme) {
+        return res.status(404).json({ message: "Scheme not found" });
+      }
+      res.json(scheme);
+    } catch (error) {
+      console.error("Error fetching scheme:", error);
+      res.status(500).json({ message: "Failed to fetch scheme" });
+    }
+  });
+  
+  // Create scheme
+  const createSchemeSchema = z.object({
+    title: z.string().min(1),
+    term: z.string().optional(),
+    classGroup: z.string().optional(),
+    description: z.string().optional(),
+    storagePath: z.string().optional(),
+  });
+  
+  app.post("/api/schemes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = createSchemeSchema.parse(req.body);
+      
+      const scheme = await storage.createSchemeOfWork({
+        ...data,
+        organisationId: membership.organisation.id,
+        createdBy: userId,
+      });
+      
+      res.status(201).json(scheme);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating scheme:", error);
+      res.status(500).json({ message: "Failed to create scheme" });
+    }
+  });
+  
+  // Update scheme
+  app.patch("/api/schemes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const data = createSchemeSchema.partial().parse(req.body);
+      const scheme = await storage.updateSchemeOfWork(req.params.id, membership.organisation.id, data);
+      
+      if (!scheme) {
+        return res.status(404).json({ message: "Scheme not found" });
+      }
+      
+      res.json(scheme);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error updating scheme:", error);
+      res.status(500).json({ message: "Failed to update scheme" });
+    }
+  });
+  
+  // Delete scheme (admin only)
+  app.delete("/api/schemes/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      if (membership.role !== "admin") {
+        return res.status(403).json({ message: "Only administrators can delete schemes" });
+      }
+      
+      const deleted = await storage.deleteSchemeOfWork(req.params.id, membership.organisation.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Scheme not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting scheme:", error);
+      res.status(500).json({ message: "Failed to delete scheme" });
+    }
+  });
+  
+  // Assign scheme to student
+  app.post("/api/schemes/:schemeId/students/:studentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const scheme = await storage.getSchemeOfWork(req.params.schemeId, membership.organisation.id);
+      if (!scheme) {
+        return res.status(404).json({ message: "Scheme not found" });
+      }
+      
+      const student = await storage.getStudentByOrganisation(req.params.studentId, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const link = await storage.linkStudentToScheme({
+        schemeId: req.params.schemeId,
+        studentId: req.params.studentId,
+      });
+      
+      res.status(201).json(link);
+    } catch (error) {
+      console.error("Error assigning scheme:", error);
+      res.status(500).json({ message: "Failed to assign scheme" });
+    }
+  });
+  
+  // Unassign scheme from student (admin only)
+  app.delete("/api/schemes/:schemeId/students/:studentId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      if (membership.role !== "admin") {
+        return res.status(403).json({ message: "Only administrators can unassign schemes" });
+      }
+      
+      const deleted = await storage.unlinkStudentFromScheme(req.params.schemeId, req.params.studentId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Assignment not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error unassigning scheme:", error);
+      res.status(500).json({ message: "Failed to unassign scheme" });
+    }
+  });
+  
+  // Get presigned upload URL for scheme files
+  app.get("/api/schemes/upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const uploadUrl = await objectStorageService.getObjectEntityUploadURL();
+      const storagePath = objectStorageService.normalizeObjectEntityPath(uploadUrl);
+      
+      res.json({ uploadUrl, storagePath });
+    } catch (error) {
+      console.error("Error generating upload URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL" });
+    }
+  });
+  
+  // Get signed download URL for scheme file
+  app.get("/api/schemes/:id/signed-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const scheme = await storage.getSchemeOfWork(req.params.id, membership.organisation.id);
+      if (!scheme) {
+        return res.status(404).json({ message: "Scheme not found" });
+      }
+      
+      if (!scheme.storagePath) {
+        return res.status(400).json({ message: "Scheme has no associated file" });
+      }
+      
+      const signedUrl = await objectStorageService.getSignedReadUrl(scheme.storagePath, 3600);
+      res.json({ signedUrl, expiresIn: 3600 });
+    } catch (error) {
+      console.error("Error generating signed URL:", error);
+      res.status(500).json({ message: "Failed to generate signed URL" });
+    }
+  });
+
   return httpServer;
 }

@@ -220,10 +220,13 @@ export type EvidenceOutcome = typeof evidenceOutcomes.$inferSelect;
 // ============================================
 // STUDENT SUPPORT PLANS TABLE
 // ============================================
+export const sspStatusEnum = ["active", "archived"] as const;
+
 export const studentSupportPlans = pgTable("student_support_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
   organisationId: varchar("organisation_id").notNull().references(() => organisations.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 20 }).notNull().default("active"),
   keyNeeds: text("key_needs"),
   strengths: text("strengths"),
   communicationSupports: text("communication_supports"),
@@ -237,6 +240,7 @@ export const studentSupportPlans = pgTable("student_support_plans", {
 }, (table) => [
   index("idx_ssp_student_id").on(table.studentId),
   index("idx_ssp_organisation_id").on(table.organisationId),
+  index("idx_ssp_status").on(table.status),
 ]);
 
 export const studentSupportPlansRelations = relations(studentSupportPlans, ({ one, many }) => ({
@@ -299,6 +303,9 @@ export const studentPlans = pgTable("student_plans", {
   studentId: varchar("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
   organisationId: varchar("organisation_id").notNull().references(() => organisations.id, { onDelete: "cascade" }),
   weekStartDate: date("week_start_date").notNull(),
+  focusPlu: varchar("focus_plu", { length: 10 }),
+  focusElement: varchar("focus_element", { length: 150 }),
+  focusOutcomeCodes: text("focus_outcome_codes").array(),
   planText: text("plan_text"),
   nextSteps: text("next_steps"),
   createdBy: varchar("created_by").notNull(),

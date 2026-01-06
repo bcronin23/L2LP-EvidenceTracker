@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
-import { format } from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, Link, useLocation } from "wouter";
+import { format, startOfWeek, addDays } from "date-fns";
 import {
   ArrowLeft,
   Edit,
@@ -17,6 +17,11 @@ import {
   Award,
   Building,
   MapPin,
+  History,
+  ClipboardList,
+  Download,
+  Trash2,
+  LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,13 +29,21 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { LoadingPage } from "@/components/LoadingSpinner";
+import { LoadingPage, LoadingSpinner } from "@/components/LoadingSpinner";
 import { MobileHeader } from "@/components/MobileHeader";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { MobileNav } from "@/components/MobileNav";
 import { StudentFormDialog } from "@/components/StudentFormDialog";
 import { EvidenceDetailDialog } from "@/components/EvidenceDetailDialog";
-import type { Student, EvidenceWithOutcomes, StudentPLUCoverage } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Student, EvidenceWithOutcomes, StudentPLUCoverage, StudentSupportPlanWithAttachments, StudentPlanWithEvidence, SchemeOfWorkWithStudents, LearningOutcome } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 const evidenceTypeIcons: Record<string, typeof Camera> = {
@@ -43,8 +56,17 @@ const evidenceTypeIcons: Record<string, typeof Camera> = {
 
 export default function StudentDashboard() {
   const { id } = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceWithOutcomes | null>(null);
+  const [sspDialogOpen, setSspDialogOpen] = useState(false);
+  const [editingSsp, setEditingSsp] = useState<StudentSupportPlanWithAttachments | null>(null);
+  const [showSspHistory, setShowSspHistory] = useState(false);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<StudentPlanWithEvidence | null>(null);
+  const [schemeDialogOpen, setSchemeDialogOpen] = useState(false);
 
   const { data: student, isLoading: studentLoading } = useQuery<Student>({
     queryKey: ["/api/students", id],
@@ -58,6 +80,25 @@ export default function StudentDashboard() {
   const { data: pluCoverage, isLoading: coverageLoading } = useQuery<StudentPLUCoverage>({
     queryKey: ["/api/students", id, "plu-coverage"],
     enabled: !!id,
+  });
+
+  const { data: ssps, isLoading: sspLoading } = useQuery<StudentSupportPlanWithAttachments[]>({
+    queryKey: ["/api/students", id, "ssp"],
+    enabled: !!id,
+  });
+
+  const { data: plans, isLoading: plansLoading } = useQuery<StudentPlanWithEvidence[]>({
+    queryKey: ["/api/students", id, "plans"],
+    enabled: !!id,
+  });
+
+  const { data: schemes, isLoading: schemesLoading } = useQuery<SchemeOfWorkWithStudents[]>({
+    queryKey: ["/api/students", id, "schemes"],
+    enabled: !!id,
+  });
+
+  const { data: outcomes } = useQuery<LearningOutcome[]>({
+    queryKey: ["/api/outcomes"],
   });
 
   const isLoading = studentLoading || evidenceLoading || coverageLoading;
@@ -93,6 +134,8 @@ export default function StudentDashboard() {
   const weakOutcomes = pluCoverage?.weakOutcomes || [];
   const plusOnTrack = pluCoverage?.plusCoverage.filter(p => p.isOnTrackForJCPA).length || 0;
   const totalPlus = pluCoverage?.plusCoverage.length || 5;
+  const activeSsp = ssps?.find(s => s.status === "active");
+  const archivedSsps = ssps?.filter(s => s.status === "archived") || [];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -123,69 +166,45 @@ export default function StudentDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setEditDialogOpen(true)} data-testid="button-edit-student">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditDialogOpen(true)}
+              data-testid="button-edit-student"
+            >
+              <Edit className="h-4 w-4" />
             </Button>
-            <Link href={`/upload?student=${id}`}>
-              <Button data-testid="button-add-evidence">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Evidence
-              </Button>
-            </Link>
           </div>
         </div>
 
-        <main className="flex-1 p-4 md:p-6 space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <main className="flex-1 p-4 md:p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-accent flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{evidenceList?.length || 0}</p>
-                  <p className="text-xs text-muted-foreground">Evidence Items</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center">
-                  <Award className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{plusOnTrack}/{totalPlus}</p>
-                  <p className="text-xs text-muted-foreground">PLUs Ready</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-destructive/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
                   <AlertCircle className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{missingOutcomes.length}</p>
-                  <p className="text-xs text-muted-foreground">Missing</p>
+                  <p className="text-sm text-muted-foreground">Missing</p>
                 </div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-md bg-accent flex items-center justify-center">
-                  <span className="text-sm font-bold text-accent-foreground">{pluCoverage?.overallPercentage || 0}%</span>
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <span className="text-sm font-medium text-muted-foreground">{plusOnTrack}/{totalPlus}</span>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{pluCoverage?.overallPercentage || 0}%</p>
-                  <p className="text-xs text-muted-foreground">Coverage</p>
+                  <p className="text-sm text-muted-foreground">Coverage</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-5">
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full justify-start gap-1 overflow-x-auto flex-nowrap">
               <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
               <TabsTrigger value="evidence" data-testid="tab-evidence">Evidence</TabsTrigger>
               <TabsTrigger value="ssp" data-testid="tab-ssp">SSP</TabsTrigger>
@@ -370,50 +389,139 @@ export default function StudentDashboard() {
             </TabsContent>
 
             <TabsContent value="ssp" className="space-y-4">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium mb-2">Student Support Plan</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Document key needs, strengths, communication supports, targets, and strategies for this student.
-                  </p>
-                  <Button data-testid="button-create-ssp">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Support Plan
-                  </Button>
-                </CardContent>
-              </Card>
+              {sspLoading ? (
+                <div className="flex justify-center p-8"><LoadingSpinner /></div>
+              ) : activeSsp ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Active</Badge>
+                      <span className="text-sm text-muted-foreground">
+                        Created {format(new Date(activeSsp.createdAt), "dd MMM yyyy")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {archivedSsps.length > 0 && (
+                        <Button variant="outline" size="sm" onClick={() => setShowSspHistory(true)} data-testid="button-ssp-history">
+                          <History className="h-4 w-4 mr-2" />
+                          History ({archivedSsps.length})
+                        </Button>
+                      )}
+                      <Button size="sm" onClick={() => { setEditingSsp(activeSsp); setSspDialogOpen(true); }} data-testid="button-edit-ssp">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+
+                  <SspDisplayCard ssp={activeSsp} />
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="font-medium mb-2">Student Support Plan</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Document key needs, strengths, communication supports, targets, and strategies for this student.
+                    </p>
+                    <Button onClick={() => { setEditingSsp(null); setSspDialogOpen(true); }} data-testid="button-create-ssp">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Support Plan
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="planning" className="space-y-4">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium mb-2">Weekly Planning</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Plan weekly activities and link evidence to track progress toward learning outcomes.
-                  </p>
-                  <Button data-testid="button-create-plan">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Weekly Plan
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <h3 className="font-medium">Weekly Plans</h3>
+                <Button size="sm" onClick={() => { setEditingPlan(null); setPlanDialogOpen(true); }} data-testid="button-create-plan">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Plan
+                </Button>
+              </div>
+              
+              {plansLoading ? (
+                <div className="flex justify-center p-8"><LoadingSpinner /></div>
+              ) : plans && plans.length > 0 ? (
+                <div className="space-y-3">
+                  {plans.map((plan) => (
+                    <Card key={plan.id} className="hover-elevate cursor-pointer" onClick={() => { setEditingPlan(plan); setPlanDialogOpen(true); }} data-testid={`card-plan-${plan.id}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">Week of {format(new Date(plan.weekStartDate), "dd MMM yyyy")}</span>
+                            </div>
+                            {plan.focusPlu && (
+                              <Badge variant="secondary" className="mb-2">PLU {plan.focusPlu}</Badge>
+                            )}
+                            {plan.planText && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">{plan.planText}</p>
+                            )}
+                            {plan.linkedEvidence && plan.linkedEvidence.length > 0 && (
+                              <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                                <LinkIcon className="h-3 w-3" />
+                                {plan.linkedEvidence.length} evidence linked
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="font-medium mb-2">Weekly Planning</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Plan weekly activities and link evidence to track progress toward learning outcomes.
+                    </p>
+                    <Button onClick={() => { setEditingPlan(null); setPlanDialogOpen(true); }} data-testid="button-first-plan">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Weekly Plan
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="scheme" className="space-y-4">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-medium mb-2">Scheme of Work</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    View and manage curriculum schemes assigned to this student or their class group.
-                  </p>
-                  <Button variant="outline" data-testid="button-view-schemes">
-                    View Assigned Schemes
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <h3 className="font-medium">Assigned Schemes</h3>
+                <Button size="sm" onClick={() => setSchemeDialogOpen(true)} data-testid="button-assign-scheme">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Assign Scheme
+                </Button>
+              </div>
+
+              {schemesLoading ? (
+                <div className="flex justify-center p-8"><LoadingSpinner /></div>
+              ) : schemes && schemes.length > 0 ? (
+                <div className="space-y-3">
+                  {schemes.map((scheme) => (
+                    <SchemeCard key={scheme.id} scheme={scheme} studentId={id!} />
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="font-medium mb-2">Scheme of Work</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      No schemes assigned to this student or their class group yet.
+                    </p>
+                    <Button onClick={() => setSchemeDialogOpen(true)} data-testid="button-first-scheme">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Assign Scheme
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </main>
@@ -441,6 +549,438 @@ export default function StudentDashboard() {
         evidence={selectedEvidence}
         onClose={() => setSelectedEvidence(null)}
       />
+
+      <SspFormDialog
+        open={sspDialogOpen}
+        onOpenChange={setSspDialogOpen}
+        studentId={id!}
+        existingSsp={editingSsp}
+      />
+
+      <SspHistoryDialog
+        open={showSspHistory}
+        onOpenChange={setShowSspHistory}
+        ssps={archivedSsps}
+      />
+
+      <PlanFormDialog
+        open={planDialogOpen}
+        onOpenChange={setPlanDialogOpen}
+        studentId={id!}
+        existingPlan={editingPlan}
+        outcomes={outcomes || []}
+        studentEvidence={evidenceList || []}
+      />
+
+      <SchemeAssignDialog
+        open={schemeDialogOpen}
+        onOpenChange={setSchemeDialogOpen}
+        studentId={id!}
+      />
     </div>
+  );
+}
+
+function SspDisplayCard({ ssp }: { ssp: StudentSupportPlanWithAttachments }) {
+  const sections = [
+    { key: "strengths", label: "Strengths", value: ssp.strengths },
+    { key: "keyNeeds", label: "Key Needs", value: ssp.keyNeeds },
+    { key: "communicationSupports", label: "Communication Supports", value: ssp.communicationSupports },
+    { key: "regulationSupports", label: "Regulation Supports", value: ssp.regulationSupports },
+    { key: "targets", label: "Targets", value: ssp.targets },
+    { key: "strategies", label: "Strategies & Adjustments", value: ssp.strategies },
+    { key: "notes", label: "Notes", value: ssp.notes },
+  ];
+
+  return (
+    <Accordion type="multiple" defaultValue={sections.filter(s => s.value).map(s => s.key)} className="space-y-2">
+      {sections.map((section) => (
+        section.value && (
+          <AccordionItem key={section.key} value={section.key} className="border rounded-md px-4">
+            <AccordionTrigger className="text-sm font-medium">{section.label}</AccordionTrigger>
+            <AccordionContent>
+              <p className="text-sm whitespace-pre-wrap">{section.value}</p>
+            </AccordionContent>
+          </AccordionItem>
+        )
+      ))}
+    </Accordion>
+  );
+}
+
+function SspFormDialog({ open, onOpenChange, studentId, existingSsp }: { open: boolean; onOpenChange: (open: boolean) => void; studentId: string; existingSsp: StudentSupportPlanWithAttachments | null }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [formData, setFormData] = useState({
+    strengths: existingSsp?.strengths || "",
+    keyNeeds: existingSsp?.keyNeeds || "",
+    communicationSupports: existingSsp?.communicationSupports || "",
+    regulationSupports: existingSsp?.regulationSupports || "",
+    targets: existingSsp?.targets || "",
+    strategies: existingSsp?.strategies || "",
+    notes: existingSsp?.notes || "",
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      if (existingSsp) {
+        return apiRequest("PATCH", `/api/ssp/${existingSsp.id}`, data);
+      } else {
+        return apiRequest("POST", "/api/ssp", { ...data, studentId });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: existingSsp ? "Support plan updated" : "Support plan created" });
+      qc.invalidateQueries({ queryKey: ["/api/students", studentId, "ssp"] });
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to save support plan", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{existingSsp ? "Edit Support Plan" : "Create Support Plan"}</DialogTitle>
+          <DialogDescription>Document the student's needs, strengths, and support strategies.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="strengths">Strengths</Label>
+            <Textarea id="strengths" value={formData.strengths} onChange={(e) => setFormData({ ...formData, strengths: e.target.value })} placeholder="What are this student's strengths?" className="min-h-[80px]" data-testid="input-strengths" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="keyNeeds">Key Needs</Label>
+            <Textarea id="keyNeeds" value={formData.keyNeeds} onChange={(e) => setFormData({ ...formData, keyNeeds: e.target.value })} placeholder="What are the student's key needs?" className="min-h-[80px]" data-testid="input-key-needs" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="communicationSupports">Communication Supports</Label>
+            <Textarea id="communicationSupports" value={formData.communicationSupports} onChange={(e) => setFormData({ ...formData, communicationSupports: e.target.value })} placeholder="What communication supports are needed?" className="min-h-[80px]" data-testid="input-communication" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="regulationSupports">Regulation Supports</Label>
+            <Textarea id="regulationSupports" value={formData.regulationSupports} onChange={(e) => setFormData({ ...formData, regulationSupports: e.target.value })} placeholder="What regulation supports are needed?" className="min-h-[80px]" data-testid="input-regulation" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="targets">Targets</Label>
+            <Textarea id="targets" value={formData.targets} onChange={(e) => setFormData({ ...formData, targets: e.target.value })} placeholder="What are the learning targets?" className="min-h-[80px]" data-testid="input-targets" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="strategies">Strategies & Adjustments</Label>
+            <Textarea id="strategies" value={formData.strategies} onChange={(e) => setFormData({ ...formData, strategies: e.target.value })} placeholder="What teaching strategies and adjustments are used?" className="min-h-[80px]" data-testid="input-strategies" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea id="notes" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Any additional notes" className="min-h-[60px]" data-testid="input-notes" />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={mutation.isPending} data-testid="button-save-ssp">
+              {mutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SspHistoryDialog({ open, onOpenChange, ssps }: { open: boolean; onOpenChange: (open: boolean) => void; ssps: StudentSupportPlanWithAttachments[] }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Support Plan History</DialogTitle>
+          <DialogDescription>View previous versions of the student's support plan.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          {ssps.map((ssp) => (
+            <Card key={ssp.id}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant="secondary">Archived</Badge>
+                  <span className="text-sm text-muted-foreground">{format(new Date(ssp.createdAt), "dd MMM yyyy")}</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <SspDisplayCard ssp={ssp} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PlanFormDialog({ open, onOpenChange, studentId, existingPlan, outcomes, studentEvidence }: { open: boolean; onOpenChange: (open: boolean) => void; studentId: string; existingPlan: StudentPlanWithEvidence | null; outcomes: LearningOutcome[]; studentEvidence: EvidenceWithOutcomes[] }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const mondayOfWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+  
+  const [formData, setFormData] = useState({
+    weekStartDate: existingPlan?.weekStartDate || format(mondayOfWeek, "yyyy-MM-dd"),
+    focusPlu: existingPlan?.focusPlu || "",
+    planText: existingPlan?.planText || "",
+    nextSteps: existingPlan?.nextSteps || "",
+  });
+
+  const pluOptions = Array.from(new Set(outcomes.map(o => o.pluNumber))).sort((a, b) => a - b);
+
+  const mutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      if (existingPlan) {
+        return apiRequest("PATCH", `/api/plans/${existingPlan.id}`, data);
+      } else {
+        return apiRequest("POST", "/api/plans", { ...data, studentId });
+      }
+    },
+    onSuccess: () => {
+      toast({ title: existingPlan ? "Plan updated" : "Plan created" });
+      qc.invalidateQueries({ queryKey: ["/api/students", studentId, "plans"] });
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to save plan", variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/plans/${existingPlan!.id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Plan deleted" });
+      qc.invalidateQueries({ queryKey: ["/api/students", studentId, "plans"] });
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete plan", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{existingPlan ? "Edit Weekly Plan" : "Create Weekly Plan"}</DialogTitle>
+          <DialogDescription>Plan activities and goals for the week.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="weekStartDate">Week Starting</Label>
+            <Input type="date" id="weekStartDate" value={formData.weekStartDate} onChange={(e) => setFormData({ ...formData, weekStartDate: e.target.value })} data-testid="input-week-start" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="focusPlu">Focus PLU (optional)</Label>
+            <Select value={formData.focusPlu} onValueChange={(v) => setFormData({ ...formData, focusPlu: v })}>
+              <SelectTrigger data-testid="select-focus-plu">
+                <SelectValue placeholder="Select PLU focus" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No specific focus</SelectItem>
+                {pluOptions.map((plu) => (
+                  <SelectItem key={plu} value={String(plu)}>PLU {plu}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="planText">Plan</Label>
+            <Textarea id="planText" value={formData.planText} onChange={(e) => setFormData({ ...formData, planText: e.target.value })} placeholder="What will you work on this week?" className="min-h-[100px]" data-testid="input-plan-text" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="nextSteps">Next Steps</Label>
+            <Textarea id="nextSteps" value={formData.nextSteps} onChange={(e) => setFormData({ ...formData, nextSteps: e.target.value })} placeholder="What are the next steps?" className="min-h-[60px]" data-testid="input-next-steps" />
+          </div>
+          <div className="flex justify-between gap-2">
+            <div>
+              {existingPlan && (
+                <Button type="button" variant="destructive" size="sm" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending} data-testid="button-delete-plan">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button type="submit" disabled={mutation.isPending} data-testid="button-save-plan">
+                {mutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SchemeCard({ scheme, studentId }: { scheme: SchemeOfWorkWithStudents; studentId: string }) {
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    if (!scheme.storagePath) return;
+    try {
+      const res = await fetch(`/api/schemes/${scheme.id}/signed-url`);
+      const data = await res.json();
+      if (data.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      }
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium">{scheme.title}</h4>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {scheme.term && <Badge variant="outline">{scheme.term}</Badge>}
+              {scheme.classGroup && <Badge variant="secondary">{scheme.classGroup}</Badge>}
+            </div>
+            {scheme.description && (
+              <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{scheme.description}</p>
+            )}
+          </div>
+          {scheme.storagePath && (
+            <Button variant="outline" size="sm" onClick={handleDownload} data-testid={`button-download-scheme-${scheme.id}`}>
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SchemeAssignDialog({ open, onOpenChange, studentId }: { open: boolean; onOpenChange: (open: boolean) => void; studentId: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [mode, setMode] = useState<"assign" | "create">("assign");
+  const [selectedSchemeId, setSelectedSchemeId] = useState("");
+  const [newScheme, setNewScheme] = useState({ title: "", term: "", classGroup: "", description: "" });
+
+  const { data: allSchemes } = useQuery<SchemeOfWorkWithStudents[]>({
+    queryKey: ["/api/schemes"],
+    enabled: open,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async (schemeId: string) => {
+      return apiRequest("POST", `/api/schemes/${schemeId}/students/${studentId}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Scheme assigned" });
+      qc.invalidateQueries({ queryKey: ["/api/students", studentId, "schemes"] });
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to assign scheme", variant: "destructive" });
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: typeof newScheme) => {
+      const scheme = await apiRequest("POST", "/api/schemes", data);
+      const schemeData = await scheme.json();
+      await apiRequest("POST", `/api/schemes/${schemeData.id}/students/${studentId}`);
+      return schemeData;
+    },
+    onSuccess: () => {
+      toast({ title: "Scheme created and assigned" });
+      qc.invalidateQueries({ queryKey: ["/api/students", studentId, "schemes"] });
+      qc.invalidateQueries({ queryKey: ["/api/schemes"] });
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create scheme", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === "assign" && selectedSchemeId) {
+      assignMutation.mutate(selectedSchemeId);
+    } else if (mode === "create" && newScheme.title) {
+      createMutation.mutate(newScheme);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Assign Scheme of Work</DialogTitle>
+          <DialogDescription>Choose an existing scheme or create a new one.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex gap-2">
+            <Button type="button" variant={mode === "assign" ? "default" : "outline"} size="sm" onClick={() => setMode("assign")}>Existing</Button>
+            <Button type="button" variant={mode === "create" ? "default" : "outline"} size="sm" onClick={() => setMode("create")}>New</Button>
+          </div>
+
+          {mode === "assign" ? (
+            <div className="space-y-2">
+              <Label>Select Scheme</Label>
+              <Select value={selectedSchemeId} onValueChange={setSelectedSchemeId}>
+                <SelectTrigger data-testid="select-scheme">
+                  <SelectValue placeholder="Choose a scheme" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allSchemes?.map((scheme) => (
+                    <SelectItem key={scheme.id} value={scheme.id}>
+                      {scheme.title} {scheme.term && `(${scheme.term})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="schemeTitle">Title</Label>
+                <Input id="schemeTitle" value={newScheme.title} onChange={(e) => setNewScheme({ ...newScheme, title: e.target.value })} placeholder="Scheme title" data-testid="input-scheme-title" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="schemeTerm">Term</Label>
+                  <Input id="schemeTerm" value={newScheme.term} onChange={(e) => setNewScheme({ ...newScheme, term: e.target.value })} placeholder="e.g. Autumn" data-testid="input-scheme-term" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="schemeClass">Class Group</Label>
+                  <Input id="schemeClass" value={newScheme.classGroup} onChange={(e) => setNewScheme({ ...newScheme, classGroup: e.target.value })} placeholder="e.g. 6th Class" data-testid="input-scheme-class" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="schemeDesc">Description</Label>
+                <Textarea id="schemeDesc" value={newScheme.description} onChange={(e) => setNewScheme({ ...newScheme, description: e.target.value })} placeholder="Brief description" data-testid="input-scheme-desc" />
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={assignMutation.isPending || createMutation.isPending} data-testid="button-confirm-scheme">
+              {(assignMutation.isPending || createMutation.isPending) ? "Saving..." : mode === "assign" ? "Assign" : "Create & Assign"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

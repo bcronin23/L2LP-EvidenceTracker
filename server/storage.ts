@@ -115,6 +115,7 @@ export interface IStorage {
   // Schemes of Work
   getSchemesOfWork(organisationId: string): Promise<SchemeOfWorkWithStudents[]>;
   getSchemeOfWork(id: string, organisationId: string): Promise<SchemeOfWorkWithStudents | undefined>;
+  getStudentSchemes(studentId: string, organisationId: string, classGroup?: string): Promise<SchemeOfWorkWithStudents[]>;
   createSchemeOfWork(data: InsertSchemeOfWork): Promise<SchemeOfWork>;
   updateSchemeOfWork(id: string, organisationId: string, data: Partial<InsertSchemeOfWork>): Promise<SchemeOfWork | undefined>;
   deleteSchemeOfWork(id: string, organisationId: string): Promise<boolean>;
@@ -951,6 +952,47 @@ export class DatabaseStorage implements IStorage {
     if (!scheme) return undefined;
     const enriched = await this.enrichSchemesWithStudents([scheme]);
     return enriched[0];
+  }
+
+  async getStudentSchemes(studentId: string, organisationId: string, classGroup?: string): Promise<SchemeOfWorkWithStudents[]> {
+    const directlyAssignedIds = await db
+      .select({ schemeId: schemeStudentLinks.schemeId })
+      .from(schemeStudentLinks)
+      .where(eq(schemeStudentLinks.studentId, studentId));
+
+    const directIds = directlyAssignedIds.map((r) => r.schemeId);
+
+    let schemes: SchemeOfWork[];
+    if (classGroup) {
+      schemes = await db
+        .select()
+        .from(schemesOfWork)
+        .where(
+          and(
+            eq(schemesOfWork.organisationId, organisationId),
+            or(
+              sql`${schemesOfWork.id} = ANY(${directIds})`,
+              eq(schemesOfWork.classGroup, classGroup)
+            )
+          )
+        )
+        .orderBy(desc(schemesOfWork.createdAt));
+    } else if (directIds.length > 0) {
+      schemes = await db
+        .select()
+        .from(schemesOfWork)
+        .where(
+          and(
+            eq(schemesOfWork.organisationId, organisationId),
+            sql`${schemesOfWork.id} = ANY(${directIds})`
+          )
+        )
+        .orderBy(desc(schemesOfWork.createdAt));
+    } else {
+      return [];
+    }
+
+    return this.enrichSchemesWithStudents(schemes);
   }
 
   async createSchemeOfWork(data: InsertSchemeOfWork): Promise<SchemeOfWork> {

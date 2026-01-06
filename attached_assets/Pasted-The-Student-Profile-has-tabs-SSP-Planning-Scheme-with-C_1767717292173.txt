@@ -1,0 +1,157 @@
+The Student Profile has tabs (SSP, Planning, Scheme) with “Create …” buttons, but the buttons currently do nothing. I need full working CRUD (create, view, edit) flows for each tab, with secure organisation-based access and mobile-first UI.
+
+TECH:
+- Next.js App Router + TypeScript
+- Supabase (Auth + Postgres)
+- Use existing organisation_id / membership model and RLS
+- Keep UI simple, fast, and reliable on phone
+
+========================================
+A) SSP TAB — Student Support Plan (working)
+========================================
+Goal: Clicking “Create Support Plan” opens a form. Saving creates an SSP record for that student. After saving, the SSP tab shows the saved plan, with Edit + History.
+
+DB:
+Create table student_support_plans:
+- id uuid pk default gen_random_uuid()
+- organisation_id uuid not null
+- student_id uuid not null
+- created_by uuid not null
+- created_at timestamptz default now()
+- updated_at timestamptz default now()
+- status text default 'ACTIVE'
+- key_needs text
+- strengths text
+- communication_supports text
+- regulation_supports text
+- targets text
+- strategies text
+- notes text
+
+Rules:
+- A student can have multiple SSP versions, but only one ACTIVE at a time.
+- When creating a new SSP, auto-mark previous ACTIVE as ARCHIVED.
+
+UI:
+SSP empty state:
+- Button: “Create Support Plan”
+When clicked:
+- open /students/[id]/ssp/new
+Form sections (accordion or cards):
+1) Strengths
+2) Key needs
+3) Communication supports
+4) Regulation supports
+5) Targets
+6) Strategies/adjustments
+7) Notes
+Buttons:
+- Save (primary)
+- Cancel
+After save:
+- show the ACTIVE SSP in a readable format
+- button: Edit
+- button: “View history” (list older SSP versions)
+
+========================================
+B) PLANNING TAB — Weekly Planning (working)
+========================================
+Goal: Clicking “Create Weekly Plan” opens a form. Saving creates a plan for that week. The Planning tab lists weekly plans and lets you open one.
+
+DB:
+Create table weekly_plans:
+- id uuid pk
+- organisation_id uuid not null
+- student_id uuid not null
+- week_start_date date not null
+- focus_plu text (optional)
+- focus_element text (optional)
+- focus_outcome_codes text[] (optional)
+- plan_text text
+- next_steps text
+- created_by uuid not null
+- created_at timestamptz default now()
+Unique:
+- unique(student_id, week_start_date)
+
+UI:
+Planning empty state:
+- Button “Create Weekly Plan”
+Click:
+- /students/[id]/planning/new
+Form fields:
+- Week starting (date picker; default Monday of current week)
+- Focus PLU (dropdown)
+- Optional: outcomes multi-select (by code)
+- Plan text (what we’re doing this week)
+- Next steps
+Save
+After save:
+- Planning tab shows list of plans (most recent first)
+Each item shows:
+- week_start_date + short preview
+- Open button to /students/[id]/planning/[planId]
+Plan detail view:
+- Edit button
+- (Optional) link evidence: search evidence for that student and attach selected evidence ids
+Create join table plan_evidence (plan_id, evidence_id) if implementing linking.
+
+========================================
+C) SCHEME TAB — Assigned schemes of work (working)
+========================================
+Goal: “View Assigned Schemes” should show schemes assigned to this student (directly) and/or to their class_group. Admin or staff can attach a scheme. Schemes can be uploaded PDF/doc or created as a simple text plan.
+
+DB:
+Create table schemes_of_work:
+- id uuid pk
+- organisation_id uuid not null
+- title text not null
+- term text
+- class_group text (nullable)
+- description text (nullable)
+- file_storage_path text (nullable)  -- if uploading
+- created_by uuid not null
+- created_at timestamptz default now()
+
+Create table student_schemes:
+- student_id uuid not null
+- scheme_id uuid not null
+- organisation_id uuid not null
+Primary key (student_id, scheme_id)
+
+UI:
+Scheme tab:
+- Button “View Assigned Schemes” must navigate to /students/[id]/schemes
+Schemes page shows:
+A) Assigned directly to student (from student_schemes)
+B) Schemes matching student.class_group (where schemes_of_work.class_group == student.class_group)
+
+Add scheme actions:
+- Button “Assign Scheme”
+Flow:
+- select existing scheme OR create new scheme
+- if create new:
+  - title, term, class_group (optional), description
+  - optional file upload (PDF/doc) to Supabase Storage PRIVATE bucket
+  - save scheme + assign to student
+- allow unassign (admin only or confirm dialog)
+
+========================================
+SECURITY / RLS (must be correct)
+========================================
+All SSP/plans/schemes must be scoped by organisation_id.
+Policies:
+- user can read/write if they are a member of that organisation (organisation_members)
+- students can be read by org members
+- only ADMIN can manage staff/org settings
+- STAFF can create SSP/plans/evidence for students in their organisation
+- STAFF cannot delete SSP/plans/schemes (optional: allow edit)
+
+========================================
+DELIVERABLES
+========================================
+- SQL migrations for new tables + RLS
+- Route pages and components wired to buttons
+- Error handling (toast messages), loading states
+- Mobile-first layout
+- Update the Student profile tabs so the buttons actually navigate to the new pages and refresh after save
