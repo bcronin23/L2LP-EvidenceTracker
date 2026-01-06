@@ -1,0 +1,118 @@
+I need 2 upgrades before public launch:
+
+========================================
+A) Clean School Registration / Onboarding
+========================================
+The current school registration page needs to be professional and structured.
+
+Build a school onboarding flow:
+1) User signs up/signs in (Supabase Auth)
+2) If user is NOT in an organisation, they are redirected to /onboarding/school
+3) The onboarding form collects:
+
+SCHOOL DETAILS (required unless noted):
+- school_name (required)
+- roll_number (required)
+- allowed_domains (required; allow multiple; e.g. kwetb.ie)
+- crest/logo upload (optional) -> store in PRIVATE Supabase Storage, save logo_path
+- accent_color (optional)
+
+ADMIN DETAILS:
+- admin_first_name (required)
+- admin_last_name (required)
+- admin_email (read-only, from auth user)
+- admin_role (default “ADMIN”)
+
+On submit:
+- create organisations row with name, roll_number, allowed_domains, logo_path, accent_color
+- create organisation_members row for auth user with role ADMIN
+- create a staff_profile row for user with first/last name, role title
+
+Then redirect to /admin with a checklist:
+- Invite staff
+- Add students
+- Import outcomes
+
+DB changes:
+Update organisations table:
+- roll_number text not null
+- logo_path text null
+- accent_color text null
+- allowed_domains text[] not null
+
+Add staff_profiles table:
+- id uuid pk
+- organisation_id uuid not null
+- user_id uuid not null unique
+- first_name text not null
+- last_name text not null
+- job_title text null
+- created_at timestamptz default now()
+
+RLS:
+- Only organisation members can read org details
+- Only ADMIN can update organisation settings and manage members
+
+========================================
+B) Add JC L1LP + SC L1LP + SC L2LP (and keep JC L2LP)
+========================================
+Currently the app only supports one outcomes set. Upgrade it to support multiple programmes:
+
+Programmes required:
+- JC L2LP
+- JC L1LP
+- SC L1LP
+- SC L2LP
+
+Data model:
+Update learning_outcomes table to include:
+- cycle enum: JUNIOR | SENIOR
+- programme_type enum: L1LP | L2LP
+- programme_name text (e.g. “JC L2LP”)
+- plu_number int null
+- plu_name text not null
+- element_name text not null
+- outcome_code text not null
+- outcome_text text not null
+
+Important:
+- Outcomes must be filtered by (cycle + programme_type) everywhere.
+- Outcome ordering must be numeric by outcome_code.
+
+Student programme assignment:
+Update students table:
+- cycle enum: JUNIOR | SENIOR
+- programme_type enum: L1LP | L2LP
+
+UI requirements:
+1) Outcomes page:
+- Add a programme filter dropdown at the top:
+  “JC L2LP / JC L1LP / SC L1LP / SC L2LP”
+- Default to the user’s last selected programme, saved in local storage.
+
+2) Evidence upload:
+- When selecting a student, outcomes picker must automatically filter to that student’s cycle + programme_type.
+- Still allow admin override via “Change programme for this upload” (optional toggle).
+
+3) Admin import:
+- Admin page should allow importing outcomes by programme (cycle+programme_type).
+- Buttons:
+  - “Import official JC L2LP”
+  - “Import JC L1LP”
+  - “Import SC L1LP”
+  - “Import SC L2LP”
+- Use seed JSON files in /data/ :
+  - jc_l2lp_outcomes.json (official)
+  - jc_l1lp_outcomes.json
+  - sc_l1lp_outcomes.json
+  - sc_l2lp_outcomes.json
+
+Note:
+If full outcomes text for JC L1LP and Senior Cycle programmes is not yet in the repo, implement the import system + schema + UI now, and include placeholder seed JSON structure so I can paste outcomes in later.
+
+Deliverables:
+- SQL migrations + enums + RLS policies
+- Updated onboarding pages
+- Updated student create/edit to include cycle + programme_type
+- Updated Outcomes and Upload screens to filter correctly
+- README steps for setting up a school, inviting staff, importing outcomes

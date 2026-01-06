@@ -5,6 +5,7 @@ import {
   evidenceOutcomes,
   organisations,
   organisationMembers,
+  staffProfiles,
   studentSupportPlans,
   supportPlanAttachments,
   studentPlans,
@@ -28,6 +29,8 @@ import {
   type OrganisationMember,
   type InsertOrganisationMember,
   type UserMembership,
+  type StaffProfile,
+  type InsertStaffProfile,
   type StudentSupportPlan,
   type InsertStudentSupportPlan,
   type SupportPlanAttachment,
@@ -63,6 +66,16 @@ export interface IStorage {
   updateMemberRole(memberId: string, role: "admin" | "staff"): Promise<OrganisationMember | undefined>;
   removeMember(memberId: string): Promise<boolean>;
   joinOrganisationByCode(userId: string, inviteCode: string): Promise<OrganisationMember | undefined>;
+
+  // Staff Profiles
+  getStaffProfile(userId: string): Promise<StaffProfile | undefined>;
+  getStaffProfilesByOrganisation(organisationId: string): Promise<StaffProfile[]>;
+  createStaffProfile(data: InsertStaffProfile): Promise<StaffProfile>;
+  updateStaffProfile(userId: string, data: Partial<InsertStaffProfile>): Promise<StaffProfile | undefined>;
+
+  // Learning Outcomes (with programme filtering)
+  getOutcomesByProgramme(cycle: string, programmeType: string): Promise<LearningOutcome[]>;
+  deleteOutcomesByProgrammeFilter(cycle: string, programmeType: string): Promise<number>;
 
   // Students (scoped by organisation - all CRUD requires organisationId)
   getStudentsByOrganisation(organisationId: string): Promise<StudentWithStats[]>;
@@ -225,6 +238,61 @@ export class DatabaseStorage implements IStorage {
       userId,
       role: "staff",
     });
+  }
+
+  // ==================== Staff Profiles ====================
+  async getStaffProfile(userId: string): Promise<StaffProfile | undefined> {
+    const [profile] = await db
+      .select()
+      .from(staffProfiles)
+      .where(eq(staffProfiles.userId, userId));
+    return profile || undefined;
+  }
+
+  async getStaffProfilesByOrganisation(organisationId: string): Promise<StaffProfile[]> {
+    return db
+      .select()
+      .from(staffProfiles)
+      .where(eq(staffProfiles.organisationId, organisationId))
+      .orderBy(staffProfiles.firstName, staffProfiles.lastName);
+  }
+
+  async createStaffProfile(data: InsertStaffProfile): Promise<StaffProfile> {
+    const [profile] = await db.insert(staffProfiles).values(data).returning();
+    return profile;
+  }
+
+  async updateStaffProfile(userId: string, data: Partial<InsertStaffProfile>): Promise<StaffProfile | undefined> {
+    const [profile] = await db
+      .update(staffProfiles)
+      .set(data)
+      .where(eq(staffProfiles.userId, userId))
+      .returning();
+    return profile || undefined;
+  }
+
+  // ==================== Learning Outcomes (Programme Filtering) ====================
+  async getOutcomesByProgramme(cycle: string, programmeType: string): Promise<LearningOutcome[]> {
+    return db
+      .select()
+      .from(learningOutcomes)
+      .where(
+        and(
+          eq(learningOutcomes.cycle, cycle),
+          eq(learningOutcomes.programmeType, programmeType)
+        )
+      )
+      .orderBy(learningOutcomes.pluNumber, learningOutcomes.outcomeCode);
+  }
+
+  async deleteOutcomesByProgrammeFilter(cycle: string, programmeType: string): Promise<number> {
+    const result = await db.delete(learningOutcomes).where(
+      and(
+        eq(learningOutcomes.cycle, cycle),
+        eq(learningOutcomes.programmeType, programmeType)
+      )
+    );
+    return result.rowCount ?? 0;
   }
 
   // ==================== Students ====================

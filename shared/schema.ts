@@ -7,12 +7,19 @@ import { z } from "zod";
 export * from "./models/auth";
 
 // ============================================
+// ENUMS
+// ============================================
+export const cycleEnum = ["junior", "senior"] as const;
+export const programmeTypeEnum = ["l1lp", "l2lp"] as const;
+
+// ============================================
 // ORGANISATIONS TABLE
 // ============================================
 export const organisations = pgTable("organisations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 200 }).notNull(),
   displayName: varchar("display_name", { length: 200 }),
+  rollNumber: varchar("roll_number", { length: 20 }),
   logoStoragePath: text("logo_storage_path"),
   accentColor: varchar("accent_color", { length: 7 }),
   allowedDomains: text("allowed_domains").array(),
@@ -20,6 +27,7 @@ export const organisations = pgTable("organisations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_organisations_invite_code").on(table.inviteCode),
+  index("idx_organisations_roll_number").on(table.rollNumber),
 ]);
 
 export const organisationsRelations = relations(organisations, ({ many }) => ({
@@ -67,6 +75,37 @@ export type InsertOrganisationMember = z.infer<typeof insertOrganisationMemberSc
 export type OrganisationMember = typeof organisationMembers.$inferSelect;
 
 // ============================================
+// STAFF PROFILES TABLE
+// ============================================
+export const staffProfiles = pgTable("staff_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organisationId: varchar("organisation_id").notNull().references(() => organisations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().unique(),
+  firstName: varchar("first_name", { length: 100 }).notNull(),
+  lastName: varchar("last_name", { length: 100 }).notNull(),
+  jobTitle: varchar("job_title", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_staff_profiles_org_id").on(table.organisationId),
+  index("idx_staff_profiles_user_id").on(table.userId),
+]);
+
+export const staffProfilesRelations = relations(staffProfiles, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [staffProfiles.organisationId],
+    references: [organisations.id],
+  }),
+}));
+
+export const insertStaffProfileSchema = createInsertSchema(staffProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStaffProfile = z.infer<typeof insertStaffProfileSchema>;
+export type StaffProfile = typeof staffProfiles.$inferSelect;
+
+// ============================================
 // STUDENTS TABLE
 // ============================================
 export const students = pgTable("students", {
@@ -77,11 +116,14 @@ export const students = pgTable("students", {
   lastName: varchar("last_name", { length: 100 }).notNull(),
   classGroup: varchar("class_group", { length: 50 }),
   yearGroup: varchar("year_group", { length: 20 }),
+  cycle: varchar("cycle", { length: 10 }).default("junior"),
+  programmeType: varchar("programme_type", { length: 10 }).default("l2lp"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_students_user_id").on(table.userId),
   index("idx_students_organisation_id").on(table.organisationId),
+  index("idx_students_programme").on(table.cycle, table.programmeType),
 ]);
 
 export const studentsRelations = relations(students, ({ one, many }) => ({
@@ -107,8 +149,10 @@ export type Student = typeof students.$inferSelect;
 // ============================================
 export const learningOutcomes = pgTable("learning_outcomes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  programme: varchar("programme", { length: 50 }).notNull().default("L2LP"),
-  pluNumber: integer("plu_number").notNull(),
+  cycle: varchar("cycle", { length: 10 }).notNull().default("junior"),
+  programmeType: varchar("programme_type", { length: 10 }).notNull().default("l2lp"),
+  programmeName: varchar("programme_name", { length: 50 }).notNull().default("JC L2LP"),
+  pluNumber: integer("plu_number"),
   pluName: varchar("plu_name", { length: 100 }).notNull(),
   elementName: varchar("element_name", { length: 150 }).notNull(),
   outcomeCode: varchar("outcome_code", { length: 20 }).notNull(),
@@ -117,6 +161,7 @@ export const learningOutcomes = pgTable("learning_outcomes", {
   index("idx_learning_outcomes_plu").on(table.pluNumber),
   index("idx_learning_outcomes_code").on(table.outcomeCode),
   index("idx_learning_outcomes_element").on(table.elementName),
+  index("idx_learning_outcomes_programme").on(table.cycle, table.programmeType),
 ]);
 
 export const learningOutcomesRelations = relations(learningOutcomes, ({ many }) => ({
