@@ -89,15 +89,38 @@ export async function registerRoutes(
   app.post("/api/organisation", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { name, allowedDomains } = req.body;
+      const { 
+        name, 
+        rollNumber, 
+        allowedDomains, 
+        accentColor,
+        adminFirstName,
+        adminLastName,
+        adminJobTitle
+      } = req.body;
 
       const existing = await storage.getUserMembership(userId);
       if (existing) {
         return res.status(400).json({ message: "You already belong to an organisation" });
       }
 
-      const org = await storage.createOrganisation({ name, allowedDomains: allowedDomains || [] });
+      const org = await storage.createOrganisation({ 
+        name, 
+        rollNumber: rollNumber || null,
+        allowedDomains: allowedDomains || [],
+        accentColor: accentColor || null,
+      });
       await storage.addMember({ organisationId: org.id, userId, role: "admin" });
+
+      if (adminFirstName && adminLastName) {
+        await storage.createStaffProfile({
+          organisationId: org.id,
+          userId,
+          firstName: adminFirstName,
+          lastName: adminLastName,
+          jobTitle: adminJobTitle || null,
+        });
+      }
 
       const membership = await storage.getUserMembership(userId);
       res.status(201).json(membership);
@@ -110,7 +133,7 @@ export async function registerRoutes(
   app.post("/api/organisation/join", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { inviteCode } = req.body;
+      const { inviteCode, firstName, lastName, jobTitle } = req.body;
 
       if (!inviteCode) {
         return res.status(400).json({ message: "Invite code is required" });
@@ -124,6 +147,16 @@ export async function registerRoutes(
       const member = await storage.joinOrganisationByCode(userId, inviteCode.toUpperCase());
       if (!member) {
         return res.status(404).json({ message: "Invalid invite code" });
+      }
+
+      if (firstName && lastName) {
+        await storage.createStaffProfile({
+          organisationId: member.organisationId,
+          userId,
+          firstName,
+          lastName,
+          jobTitle: jobTitle || null,
+        });
       }
 
       const membership = await storage.getUserMembership(userId);

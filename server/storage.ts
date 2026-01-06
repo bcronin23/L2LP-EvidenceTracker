@@ -415,8 +415,8 @@ export class DatabaseStorage implements IStorage {
     return outcomes;
   }
 
-  async deleteOutcomesByProgramme(programme: string): Promise<number> {
-    const result = await db.delete(learningOutcomes).where(eq(learningOutcomes.programme, programme));
+  async deleteOutcomesByProgramme(programmeName: string): Promise<number> {
+    const result = await db.delete(learningOutcomes).where(eq(learningOutcomes.programmeName, programmeName));
     return result.rowCount ?? 0;
   }
 

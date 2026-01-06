@@ -44,7 +44,15 @@ export function useOrganisation() {
   });
 
   const createOrgMutation = useMutation({
-    mutationFn: async (data: { name: string }) => {
+    mutationFn: async (data: { 
+      name: string; 
+      rollNumber?: string;
+      allowedDomains?: string[];
+      accentColor?: string;
+      adminFirstName?: string;
+      adminLastName?: string;
+      adminJobTitle?: string;
+    }) => {
       return apiRequest("POST", "/api/organisation", data);
     },
     onSuccess: () => {
@@ -53,7 +61,12 @@ export function useOrganisation() {
   });
 
   const joinOrgMutation = useMutation({
-    mutationFn: async (data: { inviteCode: string }) => {
+    mutationFn: async (data: { 
+      inviteCode: string;
+      firstName?: string;
+      lastName?: string;
+      jobTitle?: string;
+    }) => {
       return apiRequest("POST", "/api/organisation/join", data);
     },
     onSuccess: () => {
