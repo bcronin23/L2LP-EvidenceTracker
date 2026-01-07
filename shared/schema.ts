@@ -11,6 +11,34 @@ export * from "./models/auth";
 // ============================================
 export const cycleEnum = ["junior", "senior"] as const;
 export const programmeTypeEnum = ["l1lp", "l2lp"] as const;
+export const programmeCodeEnum = ["JC_L1LP", "JC_L2LP", "SC_L1LP", "SC_L2LP"] as const;
+export const areaCodeEnum = [
+  "COMM_LIT", "NUMERACY", "PERSONAL_CARE", "COMMUNITY", "PREP_FOR_WORK",
+  "ARTS_VISUAL", "ARTS_MUSIC", "ARTS_DRAMA", "PE", "COOKERY",
+  "MY_LIFE_MY_FINANCE", "LOOKING_AFTER_MY_ENV"
+] as const;
+
+// ============================================
+// PROGRAMMES TABLE
+// ============================================
+export const programmes = pgTable("programmes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 20 }).notNull().unique(),
+  title: varchar("title", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const programmesRelations = relations(programmes, ({ many }) => ({
+  learningOutcomes: many(learningOutcomes),
+}));
+
+export const insertProgrammeSchema = createInsertSchema(programmes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertProgramme = z.infer<typeof insertProgrammeSchema>;
+export type Programme = typeof programmes.$inferSelect;
 
 // ============================================
 // ORGANISATIONS TABLE
@@ -116,6 +144,7 @@ export const students = pgTable("students", {
   lastName: varchar("last_name", { length: 100 }).notNull(),
   classGroup: varchar("class_group", { length: 50 }),
   yearGroup: varchar("year_group", { length: 20 }),
+  programmeId: varchar("programme_id").references(() => programmes.id),
   cycle: varchar("cycle", { length: 10 }).default("junior"),
   programmeType: varchar("programme_type", { length: 10 }).default("l2lp"),
   notes: text("notes"),
@@ -123,6 +152,7 @@ export const students = pgTable("students", {
 }, (table) => [
   index("idx_students_user_id").on(table.userId),
   index("idx_students_organisation_id").on(table.organisationId),
+  index("idx_students_programme_id").on(table.programmeId),
   index("idx_students_programme").on(table.cycle, table.programmeType),
 ]);
 
@@ -149,22 +179,34 @@ export type Student = typeof students.$inferSelect;
 // ============================================
 export const learningOutcomes = pgTable("learning_outcomes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  cycle: varchar("cycle", { length: 10 }).notNull().default("junior"),
-  programmeType: varchar("programme_type", { length: 10 }).notNull().default("l2lp"),
-  programmeName: varchar("programme_name", { length: 50 }).notNull().default("JC L2LP"),
-  pluNumber: integer("plu_number"),
-  pluName: varchar("plu_name", { length: 100 }).notNull(),
-  elementName: varchar("element_name", { length: 150 }).notNull(),
+  uid: varchar("uid", { length: 20 }).unique(),
+  programmeId: varchar("programme_id").references(() => programmes.id),
+  programmeCode: varchar("programme_code", { length: 20 }),
+  pluOrModuleCode: varchar("plu_or_module_code", { length: 50 }),
+  pluOrModuleTitle: varchar("plu_or_module_title", { length: 150 }),
+  elementName: varchar("element_name", { length: 150 }),
   outcomeCode: varchar("outcome_code", { length: 20 }).notNull(),
   outcomeText: text("outcome_text").notNull(),
+  sortOrder: integer("sort_order").default(0),
+  cycle: varchar("cycle", { length: 10 }).default("junior"),
+  programmeType: varchar("programme_type", { length: 10 }).default("l2lp"),
+  programmeName: varchar("programme_name", { length: 50 }),
+  pluNumber: integer("plu_number"),
+  pluName: varchar("plu_name", { length: 100 }),
 }, (table) => [
   index("idx_learning_outcomes_plu").on(table.pluNumber),
   index("idx_learning_outcomes_code").on(table.outcomeCode),
   index("idx_learning_outcomes_element").on(table.elementName),
-  index("idx_learning_outcomes_programme").on(table.cycle, table.programmeType),
+  index("idx_learning_outcomes_programme_id").on(table.programmeId),
+  index("idx_learning_outcomes_programme_code").on(table.programmeCode),
+  index("idx_learning_outcomes_uid").on(table.uid),
 ]);
 
-export const learningOutcomesRelations = relations(learningOutcomes, ({ many }) => ({
+export const learningOutcomesRelations = relations(learningOutcomes, ({ one, many }) => ({
+  programme: one(programmes, {
+    fields: [learningOutcomes.programmeId],
+    references: [programmes.id],
+  }),
   evidenceOutcomes: many(evidenceOutcomes),
 }));
 
@@ -174,6 +216,46 @@ export const insertLearningOutcomeSchema = createInsertSchema(learningOutcomes).
 
 export type InsertLearningOutcome = z.infer<typeof insertLearningOutcomeSchema>;
 export type LearningOutcome = typeof learningOutcomes.$inferSelect;
+
+// ============================================
+// STUDENT PROGRAMME OVERRIDES TABLE (Blended Programmes)
+// ============================================
+export const studentProgrammeOverrides = pgTable("student_programme_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organisationId: varchar("organisation_id").notNull().references(() => organisations.id, { onDelete: "cascade" }),
+  studentId: varchar("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+  areaCode: varchar("area_code", { length: 30 }).notNull(),
+  programmeId: varchar("programme_id").notNull().references(() => programmes.id),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_spo_student_id").on(table.studentId),
+  index("idx_spo_org_id").on(table.organisationId),
+  index("idx_spo_area_code").on(table.areaCode),
+]);
+
+export const studentProgrammeOverridesRelations = relations(studentProgrammeOverrides, ({ one }) => ({
+  student: one(students, {
+    fields: [studentProgrammeOverrides.studentId],
+    references: [students.id],
+  }),
+  programme: one(programmes, {
+    fields: [studentProgrammeOverrides.programmeId],
+    references: [programmes.id],
+  }),
+  organisation: one(organisations, {
+    fields: [studentProgrammeOverrides.organisationId],
+    references: [organisations.id],
+  }),
+}));
+
+export const insertStudentProgrammeOverrideSchema = createInsertSchema(studentProgrammeOverrides).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStudentProgrammeOverride = z.infer<typeof insertStudentProgrammeOverrideSchema>;
+export type StudentProgrammeOverride = typeof studentProgrammeOverrides.$inferSelect;
 
 // ============================================
 // EVIDENCE TABLE (Observation Sheet Structure)
@@ -187,6 +269,8 @@ export const evidence = pgTable("evidence", {
   userId: varchar("user_id").notNull(),
   organisationId: varchar("organisation_id").references(() => organisations.id, { onDelete: "cascade" }),
   studentId: varchar("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+  areaCode: varchar("area_code", { length: 30 }),
+  programmeId: varchar("programme_id").references(() => programmes.id),
   dateOfActivity: date("date_of_activity").notNull(),
   setting: varchar("setting", { length: 20 }).notNull(),
   assessmentActivity: text("assessment_activity"),
@@ -206,6 +290,8 @@ export const evidence = pgTable("evidence", {
   index("idx_evidence_user_id").on(table.userId),
   index("idx_evidence_organisation_id").on(table.organisationId),
   index("idx_evidence_student_id").on(table.studentId),
+  index("idx_evidence_area_code").on(table.areaCode),
+  index("idx_evidence_programme_id").on(table.programmeId),
   index("idx_evidence_date").on(table.dateOfActivity),
   index("idx_evidence_setting").on(table.setting),
 ]);

@@ -8,14 +8,29 @@ import { registerObjectStorageRoutes, objectStorageService } from "./replit_inte
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
 
-// Load official L2LP outcomes from JSON file
-function loadOfficialOutcomes() {
-  const filePath = join(process.cwd(), "data", "l2lp_outcomes.json");
+// Load official learning outcomes from JSON file (all 4 programmes)
+function loadAllProgrammeOutcomes() {
+  const filePath = join(process.cwd(), "data", "all_learning_outcomes_seed.json");
   const data = readFileSync(filePath, "utf-8");
   return JSON.parse(data);
 }
 
-// Transform JSON outcomes from snake_case to camelCase for database
+// Transform JSON outcomes to database format for new schema
+function transformOutcomesForNewSchema(jsonOutcomes: any[], programmeMap: Map<string, string>) {
+  return jsonOutcomes.map((o: any) => ({
+    uid: o.uid,
+    programmeId: programmeMap.get(o.programme),
+    programmeCode: o.programme,
+    pluOrModuleCode: o.plu_or_module_code,
+    pluOrModuleTitle: o.plu_or_module_title,
+    elementName: o.element_title || null,
+    outcomeCode: o.outcome_code,
+    outcomeText: o.outcome_text,
+    sortOrder: o.sort_order || 0,
+  }));
+}
+
+// Legacy transform for backward compatibility
 function transformOutcomesForDb(jsonOutcomes: any[]) {
   return jsonOutcomes.map((o: any) => ({
     programme: o.programme,
@@ -31,11 +46,18 @@ async function seedOutcomesIfNeeded() {
   try {
     const existing = await storage.getOutcomes();
     if (existing.length === 0) {
-      console.log("Seeding L2LP learning outcomes from official JSON file...");
-      const officialOutcomes = loadOfficialOutcomes();
-      const outcomesToInsert = transformOutcomesForDb(officialOutcomes);
-      await storage.createOutcomesBatch(outcomesToInsert);
-      console.log(`Seeded ${outcomesToInsert.length} learning outcomes across 5 PLUs`);
+      console.log("Seeding learning outcomes from official JSON file...");
+      try {
+        // Try to load new multi-programme outcomes
+        const allProgrammes = await storage.getProgrammes();
+        const programmeMap = new Map(allProgrammes.map(p => [p.code, p.id]));
+        const allOutcomes = loadAllProgrammeOutcomes();
+        const outcomesToInsert = transformOutcomesForNewSchema(allOutcomes, programmeMap);
+        await storage.createOutcomesBatch(outcomesToInsert);
+        console.log(`Seeded ${outcomesToInsert.length} learning outcomes across all programmes`);
+      } catch (fileError) {
+        console.log("No seed file found - outcomes will need to be imported via admin");
+      }
     }
   } catch (error) {
     console.error("Error seeding outcomes:", error);
@@ -510,7 +532,7 @@ export async function registerRoutes(
     }
   });
 
-  // Admin endpoint to reset and import official L2LP outcomes
+  // Admin endpoint to reset and import official outcomes (legacy endpoint - now redirects to import-all)
   app.post("/api/admin/reset-outcomes", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -520,42 +542,213 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      // Delete all existing L2LP outcomes
-      const deleted = await storage.deleteOutcomesByProgramme("L2LP");
-      console.log(`Deleted ${deleted} existing L2LP outcomes`);
+      // Get programme ID map
+      const allProgrammes = await storage.getProgrammes();
+      const programmeMap = new Map(allProgrammes.map(p => [p.code, p.id]));
 
-      // Load and import official outcomes from JSON file
-      const officialOutcomes = loadOfficialOutcomes();
-      const outcomesToInsert = transformOutcomesForDb(officialOutcomes);
-      const created = await storage.createOutcomesBatch(outcomesToInsert);
+      // Clear existing outcomes
+      const deleted = await storage.clearAllOutcomes();
+      console.log(`Deleted ${deleted} existing outcomes`);
+
+      // Load and import all programme outcomes
+      const allOutcomes = loadAllProgrammeOutcomes();
+      const outcomesToInsert = transformOutcomesForNewSchema(allOutcomes, programmeMap);
       
-      // Calculate totals per PLU
-      const pluTotals: Record<number, number> = {};
-      created.forEach((o) => {
-        pluTotals[o.pluNumber] = (pluTotals[o.pluNumber] || 0) + 1;
+      // Insert in batches
+      const batchSize = 100;
+      let insertedCount = 0;
+      for (let i = 0; i < outcomesToInsert.length; i += batchSize) {
+        const batch = outcomesToInsert.slice(i, i + batchSize);
+        await storage.createOutcomesBatch(batch);
+        insertedCount += batch.length;
+      }
+
+      // Calculate totals per programme
+      const programmeTotals: Record<string, number> = {};
+      allOutcomes.forEach((o: any) => {
+        programmeTotals[o.programme] = (programmeTotals[o.programme] || 0) + 1;
       });
 
-      // Log totals for verification
-      console.log("L2LP Outcomes imported successfully:");
-      console.log(`  PLU1=${pluTotals[1] || 0}, PLU2=${pluTotals[2] || 0}, PLU3=${pluTotals[3] || 0}, PLU4=${pluTotals[4] || 0}, PLU5=${pluTotals[5] || 0}`);
-      console.log(`  Total: ${created.length} outcomes`);
-
-      // Spot-check verification
-      const spotChecks = ["1.1", "2.1", "3.1", "4.1", "5.1"];
-      const verified = spotChecks.filter(code => 
-        created.some(o => o.outcomeCode === code)
-      );
+      console.log("All programme outcomes imported successfully:");
+      Object.entries(programmeTotals).forEach(([prog, count]) => {
+        console.log(`  ${prog}: ${count} outcomes`);
+      });
+      console.log(`  Total: ${insertedCount} outcomes`);
 
       res.json({
-        message: "Official L2LP outcomes imported successfully",
+        message: "All programme outcomes imported successfully",
         deleted,
-        imported: created.length,
-        pluTotals,
-        spotChecksVerified: verified.length === spotChecks.length,
+        imported: insertedCount,
+        programmeTotals,
       });
     } catch (error) {
       console.error("Error resetting outcomes:", error);
       res.status(500).json({ message: "Failed to reset outcomes" });
+    }
+  });
+
+  // ==================== Programmes API ====================
+  app.get("/api/programmes", isAuthenticated, async (req: any, res) => {
+    try {
+      const allProgrammes = await storage.getProgrammes();
+      res.json(allProgrammes);
+    } catch (error) {
+      console.error("Error fetching programmes:", error);
+      res.status(500).json({ message: "Failed to fetch programmes" });
+    }
+  });
+
+  // Admin endpoint to import ALL programme outcomes from seed file
+  app.post("/api/admin/import-all-outcomes", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      // Get programme ID map
+      const allProgrammes = await storage.getProgrammes();
+      const programmeMap = new Map(allProgrammes.map(p => [p.code, p.id]));
+
+      // Clear existing outcomes
+      const deleted = await storage.clearAllOutcomes();
+      console.log(`Deleted ${deleted} existing outcomes`);
+
+      // Load and import all programme outcomes
+      const allOutcomes = loadAllProgrammeOutcomes();
+      const outcomesToInsert = transformOutcomesForNewSchema(allOutcomes, programmeMap);
+      
+      // Insert in batches
+      const batchSize = 100;
+      let insertedCount = 0;
+      for (let i = 0; i < outcomesToInsert.length; i += batchSize) {
+        const batch = outcomesToInsert.slice(i, i + batchSize);
+        await storage.createOutcomesBatch(batch);
+        insertedCount += batch.length;
+      }
+
+      // Calculate totals per programme
+      const programmeTotals: Record<string, number> = {};
+      allOutcomes.forEach((o: any) => {
+        programmeTotals[o.programme] = (programmeTotals[o.programme] || 0) + 1;
+      });
+
+      console.log("All programme outcomes imported successfully:");
+      Object.entries(programmeTotals).forEach(([prog, count]) => {
+        console.log(`  ${prog}: ${count} outcomes`);
+      });
+      console.log(`  Total: ${insertedCount} outcomes`);
+
+      res.json({
+        message: "All programme outcomes imported successfully",
+        deleted,
+        imported: insertedCount,
+        programmeTotals,
+      });
+    } catch (error) {
+      console.error("Error importing outcomes:", error);
+      res.status(500).json({ message: "Failed to import outcomes" });
+    }
+  });
+
+  // Get outcomes by programme code
+  app.get("/api/outcomes/programme/:code", isAuthenticated, async (req: any, res) => {
+    try {
+      const { code } = req.params;
+      const outcomes = await storage.getOutcomesByProgrammeCode(code);
+      res.json(outcomes);
+    } catch (error) {
+      console.error("Error fetching outcomes by programme:", error);
+      res.status(500).json({ message: "Failed to fetch outcomes" });
+    }
+  });
+
+  // ==================== Student Programme Overrides API ====================
+  app.get("/api/students/:id/programme-overrides", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const overrides = await storage.getStudentProgrammeOverrides(req.params.id);
+      res.json(overrides);
+    } catch (error) {
+      console.error("Error fetching programme overrides:", error);
+      res.status(500).json({ message: "Failed to fetch programme overrides" });
+    }
+  });
+
+  app.post("/api/students/:id/programme-overrides", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const { areaCode, programmeId } = req.body;
+      
+      const override = await storage.createStudentProgrammeOverride({
+        organisationId: membership.organisation.id,
+        studentId: req.params.id,
+        areaCode,
+        programmeId,
+        createdBy: userId,
+      });
+      
+      res.status(201).json(override);
+    } catch (error) {
+      console.error("Error creating programme override:", error);
+      res.status(500).json({ message: "Failed to create programme override" });
+    }
+  });
+
+  app.delete("/api/students/:studentId/programme-overrides/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const deleted = await storage.deleteStudentProgrammeOverride(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Programme override not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting programme override:", error);
+      res.status(500).json({ message: "Failed to delete programme override" });
+    }
+  });
+
+  // Get effective programme for a student and area
+  app.get("/api/students/:id/effective-programme/:areaCode", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const programmeId = await storage.getEffectiveProgrammeId(req.params.id, req.params.areaCode);
+      
+      if (!programmeId) {
+        return res.status(404).json({ message: "No programme found for student" });
+      }
+      
+      res.json({ programmeId });
+    } catch (error) {
+      console.error("Error fetching effective programme:", error);
+      res.status(500).json({ message: "Failed to fetch effective programme" });
     }
   });
 

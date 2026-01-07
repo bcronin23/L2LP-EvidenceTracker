@@ -6,6 +6,8 @@ import {
   organisations,
   organisationMembers,
   staffProfiles,
+  programmes,
+  studentProgrammeOverrides,
   studentSupportPlans,
   supportPlanAttachments,
   studentPlans,
@@ -31,6 +33,10 @@ import {
   type UserMembership,
   type StaffProfile,
   type InsertStaffProfile,
+  type Programme,
+  type InsertProgramme,
+  type StudentProgrammeOverride,
+  type InsertStudentProgrammeOverride,
   type StudentSupportPlan,
   type InsertStudentSupportPlan,
   type SupportPlanAttachment,
@@ -134,6 +140,23 @@ export interface IStorage {
   deleteSchemeOfWork(id: string, organisationId: string): Promise<boolean>;
   linkStudentToScheme(data: InsertSchemeStudentLink): Promise<SchemeStudentLink>;
   unlinkStudentFromScheme(schemeId: string, studentId: string): Promise<boolean>;
+
+  // Programmes
+  getProgrammes(): Promise<Programme[]>;
+  getProgrammeByCode(code: string): Promise<Programme | undefined>;
+  
+  // Student Programme Overrides
+  getStudentProgrammeOverrides(studentId: string): Promise<StudentProgrammeOverride[]>;
+  createStudentProgrammeOverride(data: InsertStudentProgrammeOverride): Promise<StudentProgrammeOverride>;
+  updateStudentProgrammeOverride(id: string, data: Partial<InsertStudentProgrammeOverride>): Promise<StudentProgrammeOverride | undefined>;
+  deleteStudentProgrammeOverride(id: string): Promise<boolean>;
+  getEffectiveProgrammeId(studentId: string, areaCode: string): Promise<string | null>;
+  
+  // Outcomes by programme
+  getOutcomesByProgrammeId(programmeId: string): Promise<LearningOutcome[]>;
+  getOutcomesByProgrammeCode(programmeCode: string): Promise<LearningOutcome[]>;
+  clearAllOutcomes(): Promise<number>;
+  upsertOutcomeByUid(outcome: InsertLearningOutcome): Promise<LearningOutcome>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -607,21 +630,26 @@ export class DatabaseStorage implements IStorage {
       evidencedOutcomes.map((e) => [e.learningOutcomeId, e.evidenceCount])
     );
 
-    // Group outcomes by PLU and Element
-    const pluMap = new Map<number, { pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    // Group outcomes by PLU and Element (using pluOrModuleCode or fallback to pluNumber)
+    const pluMap = new Map<string, { pluName: string; pluNumber: number; elements: Map<string, LearningOutcome[]> }>();
     
     allOutcomes.forEach((outcome) => {
-      if (!pluMap.has(outcome.pluNumber)) {
-        pluMap.set(outcome.pluNumber, {
-          pluName: outcome.pluName,
+      const pluKey = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
+      const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluKey;
+      const elementName = outcome.elementName || "General";
+      
+      if (!pluMap.has(pluKey)) {
+        pluMap.set(pluKey, {
+          pluName,
+          pluNumber: outcome.pluNumber || 0,
           elements: new Map(),
         });
       }
-      const plu = pluMap.get(outcome.pluNumber)!;
-      if (!plu.elements.has(outcome.elementName)) {
-        plu.elements.set(outcome.elementName, []);
+      const plu = pluMap.get(pluKey)!;
+      if (!plu.elements.has(elementName)) {
+        plu.elements.set(elementName, []);
       }
-      plu.elements.get(outcome.elementName)!.push(outcome);
+      plu.elements.get(elementName)!.push(outcome);
     });
 
     // Calculate coverage for each PLU
@@ -629,7 +657,8 @@ export class DatabaseStorage implements IStorage {
     const missingOutcomes: LearningOutcome[] = [];
     const weakOutcomes: { outcome: LearningOutcome; count: number }[] = [];
 
-    pluMap.forEach((pluData, pluNumber) => {
+    pluMap.forEach((pluData, pluKey) => {
+      const pluNumber = pluData.pluNumber;
       const elements: ElementCoverage[] = [];
       let pluTotalOutcomes = 0;
       let pluEvidencedOutcomes = 0;
@@ -743,27 +772,33 @@ export class DatabaseStorage implements IStorage {
       evidencedOutcomes.map((e) => [e.learningOutcomeId, e.evidenceCount])
     );
 
-    const pluMap = new Map<number, { pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    const pluMap = new Map<string, { pluName: string; pluNumber: number; elements: Map<string, LearningOutcome[]> }>();
     
     allOutcomes.forEach((outcome) => {
-      if (!pluMap.has(outcome.pluNumber)) {
-        pluMap.set(outcome.pluNumber, {
-          pluName: outcome.pluName,
+      const pluKey = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
+      const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluKey;
+      const elementName = outcome.elementName || "General";
+      
+      if (!pluMap.has(pluKey)) {
+        pluMap.set(pluKey, {
+          pluName,
+          pluNumber: outcome.pluNumber || 0,
           elements: new Map(),
         });
       }
-      const plu = pluMap.get(outcome.pluNumber)!;
-      if (!plu.elements.has(outcome.elementName)) {
-        plu.elements.set(outcome.elementName, []);
+      const plu = pluMap.get(pluKey)!;
+      if (!plu.elements.has(elementName)) {
+        plu.elements.set(elementName, []);
       }
-      plu.elements.get(outcome.elementName)!.push(outcome);
+      plu.elements.get(elementName)!.push(outcome);
     });
 
     const plusCoverage: PLUCoverage[] = [];
     const missingOutcomes: LearningOutcome[] = [];
     const weakOutcomes: { outcome: LearningOutcome; count: number }[] = [];
 
-    pluMap.forEach((pluData, pluNumber) => {
+    pluMap.forEach((pluData, pluKey) => {
+      const pluNumber = pluData.pluNumber;
       const elements: ElementCoverage[] = [];
       let pluTotalOutcomes = 0;
       let pluEvidencedOutcomes = 0;
@@ -1120,6 +1155,111 @@ export class DatabaseStorage implements IStorage {
       ...scheme,
       linkedStudents: studentsByScheme.get(scheme.id) || [],
     }));
+  }
+
+  // ==================== Programmes ====================
+  async getProgrammes(): Promise<Programme[]> {
+    return db.select().from(programmes).orderBy(programmes.code);
+  }
+
+  async getProgrammeByCode(code: string): Promise<Programme | undefined> {
+    const [programme] = await db.select().from(programmes).where(eq(programmes.code, code));
+    return programme || undefined;
+  }
+
+  // ==================== Student Programme Overrides ====================
+  async getStudentProgrammeOverrides(studentId: string): Promise<StudentProgrammeOverride[]> {
+    return db
+      .select()
+      .from(studentProgrammeOverrides)
+      .where(eq(studentProgrammeOverrides.studentId, studentId))
+      .orderBy(studentProgrammeOverrides.areaCode);
+  }
+
+  async createStudentProgrammeOverride(data: InsertStudentProgrammeOverride): Promise<StudentProgrammeOverride> {
+    const [override] = await db.insert(studentProgrammeOverrides).values(data).returning();
+    return override;
+  }
+
+  async updateStudentProgrammeOverride(id: string, data: Partial<InsertStudentProgrammeOverride>): Promise<StudentProgrammeOverride | undefined> {
+    const [override] = await db
+      .update(studentProgrammeOverrides)
+      .set(data)
+      .where(eq(studentProgrammeOverrides.id, id))
+      .returning();
+    return override || undefined;
+  }
+
+  async deleteStudentProgrammeOverride(id: string): Promise<boolean> {
+    const result = await db.delete(studentProgrammeOverrides).where(eq(studentProgrammeOverrides.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getEffectiveProgrammeId(studentId: string, areaCode: string): Promise<string | null> {
+    // First check if there's an override for this area
+    const [override] = await db
+      .select()
+      .from(studentProgrammeOverrides)
+      .where(
+        and(
+          eq(studentProgrammeOverrides.studentId, studentId),
+          eq(studentProgrammeOverrides.areaCode, areaCode)
+        )
+      );
+    
+    if (override) {
+      return override.programmeId;
+    }
+
+    // Otherwise return the student's default programme
+    const [student] = await db.select().from(students).where(eq(students.id, studentId));
+    return student?.programmeId || null;
+  }
+
+  // ==================== Outcomes by Programme ====================
+  async getOutcomesByProgrammeId(programmeId: string): Promise<LearningOutcome[]> {
+    return db
+      .select()
+      .from(learningOutcomes)
+      .where(eq(learningOutcomes.programmeId, programmeId))
+      .orderBy(learningOutcomes.pluOrModuleCode, learningOutcomes.sortOrder);
+  }
+
+  async getOutcomesByProgrammeCode(programmeCode: string): Promise<LearningOutcome[]> {
+    return db
+      .select()
+      .from(learningOutcomes)
+      .where(eq(learningOutcomes.programmeCode, programmeCode))
+      .orderBy(learningOutcomes.pluOrModuleCode, learningOutcomes.sortOrder);
+  }
+
+  async clearAllOutcomes(): Promise<number> {
+    const result = await db.delete(learningOutcomes);
+    return result.rowCount ?? 0;
+  }
+
+  async upsertOutcomeByUid(outcome: InsertLearningOutcome): Promise<LearningOutcome> {
+    if (!outcome.uid) {
+      const [created] = await db.insert(learningOutcomes).values(outcome).returning();
+      return created;
+    }
+    
+    const [existing] = await db
+      .select()
+      .from(learningOutcomes)
+      .where(eq(learningOutcomes.uid, outcome.uid));
+    
+    if (existing) {
+      const [updated] = await db
+        .update(learningOutcomes)
+        .set(outcome)
+        .where(eq(learningOutcomes.uid, outcome.uid))
+        .returning();
+      return updated;
+    }
+    
+    const [created] = await db.insert(learningOutcomes).values(outcome).returning();
+    return created;
   }
 }
 

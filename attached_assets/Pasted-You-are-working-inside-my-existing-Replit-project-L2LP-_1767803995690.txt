@@ -1,0 +1,308 @@
+You are working inside my existing Replit project (“L2LP Tracker”). Do NOT rebuild the app from scratch. Extend what’s already there.
+
+OBJECTIVE
+Finalise the app so it can be made public for school use. It must:
+1) Contain EVERY learning outcome across ALL programmes (JC L1LP, JC L2LP, SC L1LP, SC L2LP)
+2) Support BLENDED programmes per student (e.g. L1 Communication & Literacy but L2 for everything else)
+3) Enforce that when a student is created they MUST be assigned a default programme (and therefore only see outcomes from that programme unless an override applies)
+4) Allow Schemes of Work to be uploaded as files (PDF/DOCX/PPTX/XLSX) and assigned to students and/or class groups
+5) Keep everything secure (school multi-tenant, roles, private file storage, signed URLs, audit logs)
+
+FILES PROVIDED
+Full outcomes seed files:
+- /mnt/data/all_learning_outcomes_seed.csv
+- /mnt/data/all_learning_outcomes_seed.json
+
+Use one of these to import outcomes into the database.
+
+NON-NEGOTIABLE IMPLEMENTATION RULES
+- First inspect the current codebase/stack and extend it. No rewrites.
+- All student data + files are private. No public file URLs.
+- Server-side scoping by school_id on every query. Never rely on client filtering.
+- Outcome browsing, evidence linking, and coverage must always respect the student’s effective programme (default + overrides).
+
+========================
+A) PROGRAMMES + OUTCOMES (ALL PROGRAMMES)
+========================
+Create (or update) database tables to support a full outcomes catalogue:
+
+Tables:
+1) programmes
+- id uuid pk
+- code text unique not null   (JC_L1LP, JC_L2LP, SC_L1LP, SC_L2LP)
+- title text not null
+- created_at timestamptz default now()
+
+2) learning_outcomes
+- id uuid pk default gen_random_uuid()
+- programme_id uuid not null references programmes(id)
+- plu_or_module_code text not null
+- plu_or_module_title text not null
+- element_title text null
+- outcome_code text not null
+- outcome_text text not null
+- sort_order int not null
+- uid text unique not null  (stable unique key from seed file)
+
+Indexes:
+- (programme_id, plu_or_module_code)
+- (programme_id, outcome_code)
+- FTS/GIN index on outcome_text if available (otherwise ilike fallback)
+
+IMPORT TOOL (Admin only)
+Build an Admin-only page: “Import Outcomes”
+- Upload CSV or JSON
+- Preview rows (first 50, totals per programme)
+- On confirm: upsert by uid into learning_outcomes
+- Must NOT create duplicates
+- Show import summary (inserted/updated counts per programme)
+- Allow “Import from seed file path” shortcut for admins using:
+  /mnt/data/all_learning_outcomes_seed.csv OR /mnt/data/all_learning_outcomes_seed.json
+
+IMPORTANT: After import, Outcomes page must:
+- Filter by programme
+- Display hierarchy: Programme → PLU/Module → (Element) → Outcomes
+- Search by outcome_code and text
+- Show correct counts and ordering using sort_order
+
+========================
+B) STUDENTS: REQUIRED DEFAULT PROGRAMME + BLENDED OVERRIDES
+========================
+Students must have a default programme, AND optionally have per-area overrides for blended delivery.
+
+DB (Students)
+students table must include:
+- programme_id uuid not null references programmes(id)   -- DEFAULT programme
+
+BLENDED PROGRAMMES (Overrides)
+Add table:
+student_programme_overrides
+- id uuid pk default gen_random_uuid()
+- school_id uuid not null
+- student_id uuid not null references students(id)
+- area_code text not null
+- programme_id uuid not null references programmes(id)
+- created_by uuid not null
+- created_at timestamptz default now()
+Unique constraint:
+- unique(student_id, area_code)
+
+AREA MODEL (must be usable)
+Implement a stable set of “areas” for overrides. Do NOT overcomplicate.
+Use these as area_code values:
+- COMM_LIT
+- NUMERACY
+- PERSONAL_CARE
+- COMMUNITY
+- PREP_FOR_WORK
+- ARTS_VISUAL
+- ARTS_MUSIC
+- ARTS_DRAMA
+- PE
+- COOKERY
+- MY_LIFE_MY_FINANCE
+- LOOKING_AFTER_MY_ENV
+(If a programme doesn’t have a matching area/module, ignore it gracefully.)
+
+UI (Student create/edit)
+- Student create form MUST include a required dropdown: “Default Programme”
+  Options: JC L1LP / JC L2LP / SC L1LP / SC L2LP
+- Do not allow saving without programme selection.
+- Student profile header must show:
+  - Default programme chip/badge
+  - “Blended programme” badge if any overrides exist
+- Add a “Programme Overrides” section (Admin/Staff):
+  - Add override: choose Area (dropdown) + choose Programme
+  - Edit/remove override
+  - Show list of active overrides
+
+Effective programme resolution (core logic)
+Create a helper function used everywhere outcomes are queried:
+getEffectiveProgrammeId(student_id, area_code):
+- If an override exists for that student + area_code, return override programme_id
+- Else return student.programme_id
+
+Where this applies:
+- Evidence upload (outcome picker)
+- Student outcomes coverage (missing/covered)
+- Outcomes suggestions for planning
+- Any “link to outcomes” feature
+
+Coverage calculations
+- Coverage must be computed per-area AND overall:
+  - Overall uses default programme outcomes ONLY for areas without overrides
+  - If overrides exist, coverage for those areas uses the override programme outcomes
+- Show breakdown by area/PLU/module.
+
+========================
+C) SCHEMES OF WORK: FILE UPLOAD + ASSIGNMENT + PROGRAMME AWARENESS
+========================
+Add Schemes of Work as first-class objects, with file upload support.
+
+DB:
+1) schemes_of_work
+- id uuid pk default gen_random_uuid()
+- school_id uuid not null
+- title text not null
+- description text null
+- term text null
+- programme_id uuid not null references programmes(id)     -- required
+- area_code text null                                      -- optional but recommended (links to overrides logic)
+- class_group text null
+- file_storage_path text null   (private storage)
+- file_name text null
+- file_mime text null
+- file_size int null
+- created_by uuid not null
+- created_at timestamptz default now()
+
+2) scheme_assignments
+- id uuid pk default gen_random_uuid()
+- school_id uuid not null
+- scheme_id uuid not null references schemes_of_work(id)
+- student_id uuid null references students(id)
+- class_group text null
+- assigned_by uuid not null
+- created_at timestamptz default now()
+Constraint:
+- Either student_id OR class_group must be provided.
+
+STORAGE (private)
+- Store scheme files in a PRIVATE bucket/folder (no public URLs)
+- Generate short-lived signed URLs to view/download
+- Enforce file type allowlist: PDF/DOCX/PPTX/XLSX (+ optional txt)
+
+UI:
+Admin/Schemes page:
+- “Upload Scheme of Work”
+  - Title (required)
+  - Programme (required)
+  - Optional: Area (dropdown using the same areas list)
+  - Optional: Term and class group
+  - File upload (optional but supported)
+- Show list of schemes with filters:
+  - Programme
+  - Area
+  - Term/class group
+- “Assign” button (assign to student OR class group)
+
+Student profile → Scheme tab:
+- “View Assigned Schemes” shows:
+  A) schemes assigned directly to student
+  B) schemes assigned to the student’s class_group
+- Each scheme has “Open file” (signed URL) + details
+- Add “Assign Scheme” button for Admin/Staff
+
+Programme matching behaviour
+- When assigning a scheme to a student:
+  - If scheme.programme_id mismatches the student’s EFFECTIVE programme for scheme.area_code (if area_code exists), warn.
+  - Default behaviour: block assignment unless ADMIN confirms override.
+  - If no area_code on scheme, compare against student default programme and warn.
+
+========================
+D) EVIDENCE UPLOAD MUST WORK + OUTCOME TAGGING (PROGRAMME-AWARE)
+========================
+Finish/ensure evidence upload supports:
+- Photo/video/document selection from device
+- Private storage + signed URLs
+- Link evidence to one or more outcomes
+- Evidence appears in student Evidence tab and in Library
+
+Evidence upload UI must require:
+- Select Student (required)
+- Select Area (required dropdown)  <-- this is critical for blended programmes
+- Then automatically set programme = getEffectiveProgrammeId(student, area_code)
+- Outcome picker shows ONLY outcomes for that effective programme
+- Allow Admin-only toggle “Override programme for this upload” (default OFF)
+
+DB for evidence (if not already present)
+evidence table must include:
+- school_id
+- student_id
+- uploader_user_id
+- area_code (required)
+- programme_id (store effective programme at time of upload for audit consistency)
+- title/description
+- evidence_type
+- file_storage_path or file_url (private)
+- captured_at/created_at
+
+evidence_outcomes join table:
+- evidence_id
+- outcome_id
+
+Library + student evidence filters:
+- filter by area_code
+- filter by programme
+- filter by PLU/module/element/outcome
+
+========================
+E) SECURITY (SCHOOL MULTI-TENANT + ROLES + AUDIT)
+========================
+Enforce:
+- Every table has school_id and queries are scoped server-side
+- Role-based access control:
+  ADMIN: manage school, staff, outcomes import, students, schemes
+  STAFF: manage students/evidence/ssp/planning/schemes within school
+  VIEWER: read-only
+
+Files:
+- All uploads PRIVATE
+- Only authenticated users in the same school can access via signed URLs
+- No direct public file links
+
+Add audit logging for:
+- scheme created/assigned/opened
+- evidence uploaded/linked/unlinked/opened
+- outcomes imported
+- student created/updated
+- programme overrides added/changed/removed
+
+========================
+F) BUTTONS MUST WORK (SSP/PLANNING/SCHEME)
+========================
+Ensure Student tabs’ buttons route correctly and CRUD works:
+
+SSP
+- Create/edit/view a support plan (store as structured JSON)
+- Save updated_by + updated_at
+- Optional version history (nice-to-have)
+
+Planning
+- Create/edit/view weekly plans (week starting Monday)
+- Link plan items to outcomes based on effective programme for that item’s area
+
+Scheme
+- View assigned schemes + assign scheme (as above)
+
+========================
+DELIVERABLES
+========================
+- DB migrations + RLS/policies if using Supabase
+- Working pages/routes and components
+- Admin: Outcomes Import using provided seed file paths
+- Student Create requires DEFAULT programme assignment
+- Student can have BLENDED programme overrides by area
+- Evidence upload requires Area selection and respects effective programme
+- Scheme of Work file upload + assignment + signed access
+- Mobile-first UI and clear empty states
+
+QA CHECKLIST (must run through)
+1) Admin registers school + sets crest/logo
+2) Admin imports outcomes from seed file → totals look correct per programme
+3) Creating a student is BLOCKED without default programme
+4) Add an override (e.g. COMM_LIT → SC_L1LP), verify:
+   - evidence upload with Area=COMM_LIT shows SC_L1LP outcomes
+   - evidence upload with Area=NUMERACY shows default outcomes
+5) Scheme upload (PDF/DOCX/PPTX/XLSX) opens via signed URL only when logged in
+6) Student Scheme tab shows assigned schemes (student + class group)
+7) Coverage updates correctly per area and overall
+8) Attempt URL guessing between schools fails (403/redirect)
+
+Now implement this plan, starting in this order:
+1) Programmes + outcomes import
+2) Student default programme + overrides + effective programme helper
+3) Evidence upload + outcome tagging filtered by effective programme
+4) Schemes of work file upload + assignment
+5) SSP/Planning/Scheme button wiring + CRUD
+6) Security hardening + audit logs + QA pass
