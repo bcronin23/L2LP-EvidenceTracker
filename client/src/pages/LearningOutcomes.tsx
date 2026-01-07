@@ -15,68 +15,98 @@ import { LoadingPage } from "@/components/LoadingSpinner";
 import { MobileHeader } from "@/components/MobileHeader";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { MobileNav } from "@/components/MobileNav";
-import type { LearningOutcome } from "@shared/schema";
+import type { LearningOutcome, Programme } from "@shared/schema";
 
 export default function LearningOutcomes() {
   const [search, setSearch] = useState("");
+  const [programmeFilter, setProgrammeFilter] = useState<string>("all");
   const [pluFilter, setPluFilter] = useState<string>("all");
-  const [expandedPLUs, setExpandedPLUs] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+  const [expandedPLUs, setExpandedPLUs] = useState<Set<string>>(new Set());
 
   const { data: outcomes, isLoading } = useQuery<LearningOutcome[]>({
     queryKey: ["/api/outcomes"],
   });
 
-  const plus = useMemo(() => {
-    if (!outcomes) return [];
-    const pluMap = new Map<number, string>();
-    outcomes.forEach((o) => pluMap.set(o.pluNumber, o.pluName));
-    return Array.from(pluMap.entries()).sort((a, b) => a[0] - b[0]);
-  }, [outcomes]);
+  const { data: programmes } = useQuery<Programme[]>({
+    queryKey: ["/api/programmes"],
+  });
 
   const filteredOutcomes = useMemo(() => {
     if (!outcomes) return [];
     return outcomes.filter((outcome) => {
+      const pluName = outcome.pluOrModuleTitle || outcome.pluName || "";
+      const elementName = outcome.elementName || "";
+      
       const matchesSearch =
         search === "" ||
         outcome.outcomeCode.toLowerCase().includes(search.toLowerCase()) ||
         outcome.outcomeText.toLowerCase().includes(search.toLowerCase()) ||
-        outcome.pluName.toLowerCase().includes(search.toLowerCase()) ||
-        outcome.elementName.toLowerCase().includes(search.toLowerCase());
+        pluName.toLowerCase().includes(search.toLowerCase()) ||
+        elementName.toLowerCase().includes(search.toLowerCase());
 
-      const matchesPlu = pluFilter === "all" || outcome.pluNumber.toString() === pluFilter;
+      const pluCode = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
+      const matchesPlu = pluFilter === "all" || pluCode === pluFilter;
+      
+      const matchesProgramme = programmeFilter === "all" || outcome.programmeId === programmeFilter;
 
-      return matchesSearch && matchesPlu;
+      return matchesSearch && matchesPlu && matchesProgramme;
     });
-  }, [outcomes, search, pluFilter]);
+  }, [outcomes, search, pluFilter, programmeFilter]);
+
+  const plus = useMemo(() => {
+    if (!filteredOutcomes) return [];
+    const pluMap = new Map<string, string>();
+    filteredOutcomes.forEach((o) => {
+      const code = o.pluOrModuleCode || String(o.pluNumber || 0);
+      const name = o.pluOrModuleTitle || o.pluName || code;
+      pluMap.set(code, name);
+    });
+    return Array.from(pluMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [filteredOutcomes]);
 
   const groupedOutcomes = useMemo(() => {
-    const groups = new Map<number, { pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    const groups = new Map<string, { pluCode: string; pluName: string; elements: Map<string, LearningOutcome[]> }>();
     
     filteredOutcomes.forEach((outcome) => {
-      if (!groups.has(outcome.pluNumber)) {
-        groups.set(outcome.pluNumber, { pluName: outcome.pluName, elements: new Map() });
+      const pluCode = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
+      const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluCode;
+      const elementName = outcome.elementName || "General";
+      
+      if (!groups.has(pluCode)) {
+        groups.set(pluCode, { pluCode, pluName, elements: new Map() });
       }
-      const plu = groups.get(outcome.pluNumber)!;
-      if (!plu.elements.has(outcome.elementName)) {
-        plu.elements.set(outcome.elementName, []);
+      const plu = groups.get(pluCode)!;
+      if (!plu.elements.has(elementName)) {
+        plu.elements.set(elementName, []);
       }
-      plu.elements.get(outcome.elementName)!.push(outcome);
+      plu.elements.get(elementName)!.push(outcome);
     });
     
     return groups;
   }, [filteredOutcomes]);
 
-  const togglePLU = (pluNumber: number) => {
+  const togglePLU = (pluCode: string) => {
     setExpandedPLUs((prev) => {
       const next = new Set(prev);
-      if (next.has(pluNumber)) {
-        next.delete(pluNumber);
+      if (next.has(pluCode)) {
+        next.delete(pluCode);
       } else {
-        next.add(pluNumber);
+        next.add(pluCode);
       }
       return next;
     });
   };
+
+  const expandAll = () => {
+    setExpandedPLUs(new Set(plus.map(([code]) => code)));
+  };
+
+  const collapseAll = () => {
+    setExpandedPLUs(new Set());
+  };
+
+  const totalOutcomes = outcomes?.length || 0;
+  const selectedProgramme = programmes?.find(p => p.id === programmeFilter);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -86,39 +116,79 @@ export default function LearningOutcomes() {
         <MobileHeader title="Learning Outcomes" />
 
         <div className="hidden md:flex items-center justify-between gap-4 p-6 border-b">
-          <h1 className="text-2xl font-semibold">L2LP Learning Outcomes</h1>
+          <h1 className="text-2xl font-semibold">Learning Outcomes</h1>
           <Badge variant="secondary" className="text-sm">
-            {outcomes?.length || 0} outcomes across 5 PLUs
+            {filteredOutcomes.length} of {totalOutcomes} outcomes
           </Badge>
         </div>
 
         <main className="flex-1 p-4 md:p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by code, description, or element..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-outcomes"
-              />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search by code, description, or element..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-outcomes"
+                />
+              </div>
+              <Select value={programmeFilter} onValueChange={(val) => {
+                setProgrammeFilter(val);
+                setPluFilter("all");
+              }}>
+                <SelectTrigger className="w-full sm:w-[200px]" data-testid="select-programme-filter">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Programme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Programmes</SelectItem>
+                  {programmes?.map((prog) => (
+                    <SelectItem key={prog.id} value={prog.id}>
+                      {prog.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={pluFilter} onValueChange={setPluFilter}>
-              <SelectTrigger className="w-full sm:w-[250px]" data-testid="select-plu-filter">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter by PLU" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority Learning Units</SelectItem>
-                {plus.map(([pluNumber, pluName]) => (
-                  <SelectItem key={pluNumber} value={pluNumber.toString()}>
-                    PLU {pluNumber}: {pluName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            {plus.length > 0 && (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Select value={pluFilter} onValueChange={setPluFilter}>
+                  <SelectTrigger className="w-full sm:w-[300px]" data-testid="select-plu-filter">
+                    <SelectValue placeholder="Filter by PLU/Module" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All PLUs/Modules</SelectItem>
+                    {plus.map(([code, name]) => (
+                      <SelectItem key={code} value={code}>
+                        {code}: {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={expandAll}
+                  >
+                    Expand All
+                  </button>
+                  <span className="text-muted-foreground">/</span>
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={collapseAll}
+                  >
+                    Collapse All
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {isLoading ? (
@@ -127,12 +197,12 @@ export default function LearningOutcomes() {
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">
-                {search || pluFilter !== "all"
+                {search || pluFilter !== "all" || programmeFilter !== "all"
                   ? "No outcomes found"
                   : "No learning outcomes yet"}
               </h3>
               <p className="text-muted-foreground">
-                {search || pluFilter !== "all"
+                {search || pluFilter !== "all" || programmeFilter !== "all"
                   ? "Try different search terms or filters"
                   : "Learning outcomes will appear here once imported"}
               </p>
@@ -140,22 +210,22 @@ export default function LearningOutcomes() {
           ) : (
             <div className="space-y-4">
               {Array.from(groupedOutcomes.entries())
-                .sort((a, b) => a[0] - b[0])
-                .map(([pluNumber, plu]) => (
-                  <Card key={pluNumber}>
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([pluCode, plu]) => (
+                  <Card key={pluCode}>
                     <button
                       type="button"
                       className="w-full p-4 flex items-center gap-3 text-left hover-elevate rounded-t-md"
-                      onClick={() => togglePLU(pluNumber)}
-                      data-testid={`button-toggle-plu-${pluNumber}`}
+                      onClick={() => togglePLU(pluCode)}
+                      data-testid={`button-toggle-plu-${pluCode}`}
                     >
-                      {expandedPLUs.has(pluNumber) ? (
+                      {expandedPLUs.has(pluCode) ? (
                         <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       ) : (
                         <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       )}
                       <Badge variant="default" className="font-mono flex-shrink-0">
-                        PLU {pluNumber}
+                        {plu.pluCode}
                       </Badge>
                       <h2 className="text-lg font-semibold flex-1">{plu.pluName}</h2>
                       <Badge variant="secondary">
@@ -163,7 +233,7 @@ export default function LearningOutcomes() {
                       </Badge>
                     </button>
 
-                    {expandedPLUs.has(pluNumber) && (
+                    {expandedPLUs.has(pluCode) && (
                       <CardContent className="pt-0 pb-4">
                         <div className="space-y-4 ml-8">
                           {Array.from(plu.elements.entries()).map(([elementName, elementOutcomes]) => (
@@ -179,15 +249,13 @@ export default function LearningOutcomes() {
                                 {elementOutcomes.map((outcome) => (
                                   <div
                                     key={outcome.id}
-                                    className="flex items-start gap-3 p-3 rounded-md bg-muted/50"
-                                    data-testid={`card-outcome-${outcome.outcomeCode}`}
+                                    className="flex gap-3 p-3 rounded-md bg-accent/30"
+                                    data-testid={`outcome-${outcome.outcomeCode}`}
                                   >
-                                    <Badge variant="outline" className="flex-shrink-0 font-mono text-xs">
+                                    <Badge variant="outline" className="font-mono text-xs flex-shrink-0">
                                       {outcome.outcomeCode}
                                     </Badge>
-                                    <p className="text-sm text-muted-foreground flex-1">
-                                      {outcome.outcomeText}
-                                    </p>
+                                    <p className="text-sm">{outcome.outcomeText}</p>
                                   </div>
                                 ))}
                               </div>

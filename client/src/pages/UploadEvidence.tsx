@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch, Link } from "wouter";
 import { format } from "date-fns";
@@ -105,7 +105,7 @@ export default function UploadEvidence() {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<Step>("student");
   const [outcomeSearch, setOutcomeSearch] = useState("");
-  const [expandedPLUs, setExpandedPLUs] = useState<Set<number>>(new Set([1, 2, 3, 4, 5]));
+  const [expandedPLUs, setExpandedPLUs] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState<FormData>({
     studentId: preSelectedStudent,
@@ -256,51 +256,77 @@ export default function UploadEvidence() {
     }));
   };
 
-  const togglePLU = (pluNumber: number) => {
+  const togglePLU = (pluCode: string) => {
     setExpandedPLUs((prev) => {
       const next = new Set(prev);
-      if (next.has(pluNumber)) {
-        next.delete(pluNumber);
+      if (next.has(pluCode)) {
+        next.delete(pluCode);
       } else {
-        next.add(pluNumber);
+        next.add(pluCode);
       }
       return next;
     });
   };
 
-  // Group outcomes by PLU and Element
-  type PLUGroup = { pluName: string; elements: Map<string, LearningOutcome[]> };
-  const groupedOutcomes = useMemo((): Map<number, PLUGroup> => {
-    if (!outcomes) return new Map<number, PLUGroup>();
+  const selectedStudent = students?.find((s) => s.id === formData.studentId);
+  
+  // Group outcomes by PLU/Module and Element (supports new multi-programme schema)
+  type PLUGroup = { pluName: string; pluCode: string; elements: Map<string, LearningOutcome[]> };
+  const groupedOutcomes = useMemo((): Map<string, PLUGroup> => {
+    if (!outcomes) return new Map<string, PLUGroup>();
     
-    const groups = new Map<number, PLUGroup>();
+    // Filter outcomes by selected student's programme if student has a programmeId
+    const studentProgrammeId = selectedStudent?.programmeId;
+    let filteredByProgramme = outcomes;
+    if (studentProgrammeId) {
+      filteredByProgramme = outcomes.filter(o => o.programmeId === studentProgrammeId);
+    }
     
-    outcomes
+    const groups = new Map<string, PLUGroup>();
+    
+    filteredByProgramme
       .filter((o) => {
         if (!outcomeSearch) return true;
         const search = outcomeSearch.toLowerCase();
+        const pluName = o.pluOrModuleTitle || o.pluName || "";
+        const elementName = o.elementName || "";
         return (
           o.outcomeCode.toLowerCase().includes(search) ||
           o.outcomeText.toLowerCase().includes(search) ||
-          o.pluName.toLowerCase().includes(search) ||
-          o.elementName.toLowerCase().includes(search)
+          pluName.toLowerCase().includes(search) ||
+          elementName.toLowerCase().includes(search)
         );
       })
       .forEach((outcome) => {
-        if (!groups.has(outcome.pluNumber)) {
-          groups.set(outcome.pluNumber, { pluName: outcome.pluName, elements: new Map() });
+        const pluCode = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
+        const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluCode;
+        const elementName = outcome.elementName || "General";
+        
+        if (!groups.has(pluCode)) {
+          groups.set(pluCode, { pluName, pluCode, elements: new Map() });
         }
-        const plu = groups.get(outcome.pluNumber)!;
-        if (!plu.elements.has(outcome.elementName)) {
-          plu.elements.set(outcome.elementName, []);
+        const plu = groups.get(pluCode)!;
+        if (!plu.elements.has(elementName)) {
+          plu.elements.set(elementName, []);
         }
-        plu.elements.get(outcome.elementName)!.push(outcome);
+        plu.elements.get(elementName)!.push(outcome);
       });
     
     return groups;
-  }, [outcomes, outcomeSearch]);
+  }, [outcomes, outcomeSearch, selectedStudent?.programmeId]);
 
-  const selectedStudent = students?.find((s) => s.id === formData.studentId);
+  // Track the last student ID for which we auto-expanded PLUs
+  const lastExpandedStudentRef = useRef<string | null>(null);
+  
+  // Auto-expand all PLUs only on initial load or when student changes
+  useEffect(() => {
+    const currentStudentId = formData.studentId || "no-student";
+    if (groupedOutcomes.size > 0 && lastExpandedStudentRef.current !== currentStudentId) {
+      setExpandedPLUs(new Set(Array.from(groupedOutcomes.keys())));
+      lastExpandedStudentRef.current = currentStudentId;
+    }
+  }, [groupedOutcomes, formData.studentId]);
+
   const selectedOutcomes = outcomes?.filter((o) => formData.outcomeIds.includes(o.id)) || [];
 
   const canProceed = () => {
@@ -569,23 +595,23 @@ export default function UploadEvidence() {
                 ) : (
                   <ScrollArea className="h-80 border rounded-md">
                     <div className="p-2">
-                      {Array.from(groupedOutcomes.entries()).map(([pluNumber, plu]) => (
-                        <div key={pluNumber} className="mb-4">
+                      {Array.from(groupedOutcomes.entries()).map(([pluCode, plu]) => (
+                        <div key={pluCode} className="mb-4">
                           <button
                             type="button"
                             className="flex items-center gap-2 w-full text-left p-2 hover-elevate rounded-md"
-                            onClick={() => togglePLU(pluNumber)}
+                            onClick={() => togglePLU(pluCode)}
                           >
-                            {expandedPLUs.has(pluNumber) ? (
+                            {expandedPLUs.has(pluCode) ? (
                               <ChevronDown className="h-4 w-4 text-muted-foreground" />
                             ) : (
                               <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             )}
-                            <Badge variant="outline" className="font-mono">PLU {pluNumber}</Badge>
+                            <Badge variant="outline" className="font-mono">{plu.pluCode}</Badge>
                             <span className="font-medium text-sm">{plu.pluName}</span>
                           </button>
                           
-                          {expandedPLUs.has(pluNumber) && (
+                          {expandedPLUs.has(pluCode) && (
                             <div className="ml-6 space-y-2 mt-2">
                               {Array.from(plu.elements.entries()).map(([elementName, elementOutcomes]) => (
                                 <div key={elementName}>

@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import {
   Dialog,
@@ -15,19 +15,29 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Student } from "@shared/schema";
+import type { Student, Programme } from "@shared/schema";
+import { useEffect } from "react";
 
 const studentFormSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
   classGroup: z.string().max(50).optional(),
-  year: z.string().max(20).optional(),
+  yearGroup: z.string().max(20).optional(),
+  programmeId: z.string().min(1, "Programme is required"),
   notes: z.string().optional(),
 });
 
@@ -47,16 +57,43 @@ export function StudentFormDialog({
   const { toast } = useToast();
   const isEditing = !!student;
 
+  const { data: programmes, isLoading: programmesLoading } = useQuery<Programme[]>({
+    queryKey: ["/api/programmes"],
+  });
+
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentFormSchema),
     defaultValues: {
-      firstName: student?.firstName || "",
-      lastName: student?.lastName || "",
-      classGroup: student?.classGroup || "",
-      year: student?.year || "",
-      notes: student?.notes || "",
+      firstName: "",
+      lastName: "",
+      classGroup: "",
+      yearGroup: "",
+      programmeId: "",
+      notes: "",
     },
   });
+
+  useEffect(() => {
+    if (student) {
+      form.reset({
+        firstName: student.firstName || "",
+        lastName: student.lastName || "",
+        classGroup: student.classGroup || "",
+        yearGroup: student.yearGroup || "",
+        programmeId: student.programmeId || "",
+        notes: student.notes || "",
+      });
+    } else {
+      form.reset({
+        firstName: "",
+        lastName: "",
+        classGroup: "",
+        yearGroup: "",
+        programmeId: "",
+        notes: "",
+      });
+    }
+  }, [student, form, open]);
 
   const createMutation = useMutation({
     mutationFn: async (data: StudentFormValues) => {
@@ -106,6 +143,13 @@ export function StudentFormDialog({
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  const groupedProgrammes = programmes?.reduce((acc, prog) => {
+    const cycle = prog.code.startsWith("JC_") ? "Junior Cycle" : "Senior Cycle";
+    if (!acc[cycle]) acc[cycle] = [];
+    acc[cycle].push(prog);
+    return acc;
+  }, {} as Record<string, Programme[]>);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -144,6 +188,45 @@ export function StudentFormDialog({
               />
             </div>
 
+            <FormField
+              control={form.control}
+              name="programmeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Programme</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                    disabled={programmesLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-programme">
+                        <SelectValue placeholder={programmesLoading ? "Loading..." : "Select programme"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {groupedProgrammes && Object.entries(groupedProgrammes).map(([cycle, progs]) => (
+                        <div key={cycle}>
+                          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                            {cycle}
+                          </div>
+                          {progs.map((prog) => (
+                            <SelectItem key={prog.id} value={prog.id}>
+                              {prog.title}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Select the primary learning programme for this student
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -160,12 +243,12 @@ export function StudentFormDialog({
               />
               <FormField
                 control={form.control}
-                name="year"
+                name="yearGroup"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Year</FormLabel>
+                    <FormLabel>Year Group</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., 2024" {...field} data-testid="input-year" />
+                      <Input placeholder="e.g., 3rd Year" {...field} data-testid="input-year-group" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -152,14 +152,19 @@ export default function OrganisationAdmin() {
 
   const resetOutcomesMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/admin/reset-outcomes");
+      const res = await apiRequest("POST", "/api/admin/reset-outcomes");
+      return res.json();
     },
     onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ["/api/outcomes"] });
-      const pluTotals = data.pluTotals || {};
+      qc.invalidateQueries({ queryKey: ["/api/programmes"] });
+      const programmeTotals = data.programmeTotals || {};
+      const programmeList = Object.entries(programmeTotals)
+        .map(([prog, count]) => `${prog}: ${count}`)
+        .join(", ");
       toast({ 
-        title: "Official L2LP Outcomes Imported",
-        description: `${data.imported} outcomes: PLU1=${pluTotals[1]||0}, PLU2=${pluTotals[2]||0}, PLU3=${pluTotals[3]||0}, PLU4=${pluTotals[4]||0}, PLU5=${pluTotals[5]||0}`,
+        title: "All Programme Outcomes Imported",
+        description: `${data.imported} total outcomes imported. ${programmeList}`,
       });
     },
     onError: () => {
@@ -470,10 +475,10 @@ export default function OrganisationAdmin() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">L2LP Learning Outcomes</span>
+                    <span className="font-medium">NCCA Learning Outcomes</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Reset and import the official NCCA L2LP outcomes dataset (196 outcomes across 5 PLUs)
+                    Import the official NCCA outcomes for all programmes: JC L1LP, JC L2LP, SC L1LP, SC L2LP (676+ outcomes)
                   </p>
                 </div>
                 <AlertDialog>
@@ -488,15 +493,15 @@ export default function OrganisationAdmin() {
                       ) : (
                         <RefreshCw className="h-4 w-4 mr-2" />
                       )}
-                      Reset & Import
+                      Import All Outcomes
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Reset Learning Outcomes?</AlertDialogTitle>
+                      <AlertDialogTitle>Import All Programme Outcomes?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will delete all existing L2LP outcomes and import the official NCCA dataset with 196 outcomes. 
-                        Existing evidence links to outcomes will be preserved if outcome codes match.
+                        This will clear all existing outcomes and import the official NCCA dataset with 676+ outcomes across all 4 programmes (JC L1LP, JC L2LP, SC L1LP, SC L2LP). 
+                        Existing evidence links will be preserved where outcome codes match.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -505,7 +510,7 @@ export default function OrganisationAdmin() {
                         onClick={() => resetOutcomesMutation.mutate()}
                         data-testid="button-confirm-reset-outcomes"
                       >
-                        Reset & Import
+                        Import All
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
