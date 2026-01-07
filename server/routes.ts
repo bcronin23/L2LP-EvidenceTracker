@@ -11,6 +11,7 @@ import { z } from "zod";
 // Load official learning outcomes from JSON file (all 4 programmes)
 function loadAllProgrammeOutcomes() {
   const filePath = join(process.cwd(), "data", "all_learning_outcomes_seed.json");
+  console.log("Loading outcomes from:", filePath);
   const data = readFileSync(filePath, "utf-8");
   return JSON.parse(data);
 }
@@ -55,7 +56,8 @@ async function seedOutcomesIfNeeded() {
         const outcomesToInsert = transformOutcomesForNewSchema(allOutcomes, programmeMap);
         await storage.createOutcomesBatch(outcomesToInsert);
         console.log(`Seeded ${outcomesToInsert.length} learning outcomes across all programmes`);
-      } catch (fileError) {
+      } catch (fileError: any) {
+        console.error("Seed file error:", fileError.message);
         console.log("No seed file found - outcomes will need to be imported via admin");
       }
     }

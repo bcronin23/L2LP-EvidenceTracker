@@ -1,0 +1,110 @@
+You are working inside my existing Replit project (“L2LP Tracker”). Do NOT rebuild the app from scratch. Extend what’s already there.
+
+PROBLEM
+The Outcomes page still shows “No outcomes found” for every programme. The changes were not actually applied to the data source the page uses.
+
+GOAL
+Make the Outcomes page show the full set of outcomes for:
+- Junior Cycle Level 1 Learning Programme
+- Junior Cycle Level 2 Learning Programme
+- Senior Cycle Level 1 Learning Programme
+- Senior Cycle Level 2 Learning Programme
+
+This must be done by using a real database table and a working import flow, and you must verify with real counts.
+
+CRITICAL NOTE ABOUT SEED FILES
+The seed files are NOT available at /mnt/data inside Replit unless they are uploaded into the Replit project.
+Therefore implement an Admin Import page where the admin uploads the CSV/JSON seed file directly in the browser.
+Also support importing from a local repo path if the admin places it in the project (e.g. /data/all_learning_outcomes_seed.csv).
+
+STEP 1 — DIAGNOSE (DO THIS FIRST)
+1) Inspect how the Outcomes page currently loads outcomes:
+   - What table/endpoint is it calling?
+   - Is it reading from an in-memory array?
+   - Is it filtering by a “programme label” rather than a code?
+2) Inspect the database:
+   - Does a learning_outcomes table exist?
+   - How many rows are in it?
+   - If it exists, list distinct programme identifiers stored.
+3) Identify the exact reason results are 0:
+   - empty table
+   - wrong programme filter mapping
+   - wrong query / wrong table
+   - tenant scoping (school_id)
+   - RLS blocking reads
+
+You must not proceed until you know exactly why it’s 0.
+
+STEP 2 — FIX THE DATA MODEL (MINIMUM REQUIRED)
+Ensure these exist:
+
+programmes:
+- id, code, title
+
+learning_outcomes:
+- id
+- programme_code (or programme_id)
+- plu_or_module_code
+- plu_or_module_title
+- element_title (nullable)
+- outcome_code
+- outcome_text
+- sort_order
+- uid unique
+
+IMPORTANT:
+- Outcomes must be queryable by programme_code (JC_L1LP, JC_L2LP, SC_L1LP, SC_L2LP).
+- If you use programme_id, ensure the programme records exist first and are linked correctly.
+
+TENANCY RULE:
+- Either (A) learning_outcomes is GLOBAL (no school_id) and readable by any authenticated user, OR
+- (B) learning_outcomes is per-school (has school_id) and imported per school.
+Choose ONE and make the code consistent.
+Given this is a national programme catalogue, prefer GLOBAL unless the existing codebase forces school_id scoping.
+If the existing Outcomes query currently filters by school_id and learning_outcomes has no school_id, remove that filter for outcomes.
+
+STEP 3 — ADMIN IMPORT (THIS IS WHY IT DIDN’T WORK)
+Build Admin → “Import Outcomes” page that works on mobile + desktop.
+
+Admin import must support:
+- Upload CSV or JSON from device
+- Preview first 50 rows + show totals per programme
+- On confirm: upsert by uid (no duplicates)
+- After import: show “Success” and exact counts inserted/updated
+
+If no file is uploaded:
+- Show clear instructions: “Upload the seed file (CSV/JSON) to import all outcomes.”
+
+STEP 4 — FIX PROGRAMME FILTER MAPPING (LIKELY CURRENT BUG)
+In the programme dropdown:
+- The label can be “Senior Cycle Level 2 Learning Programme”
+- BUT the selected VALUE used in queries must be a stable code:
+  - JC_L1LP
+  - JC_L2LP
+  - SC_L1LP
+  - SC_L2LP
+
+Ensure the Outcomes query uses programme.code (or programme_code), not the label.
+Also ensure “All Programmes” works (no programme filter).
+
+STEP 5 — OUTCOMES PAGE MUST RENDER HIERARCHY
+After import, the Outcomes page must display:
+Programme → PLU/module sections → (element subsections if present) → outcomes list
+- show correct counts (total outcomes per programme)
+- search works by outcome_code and outcome_text
+- ordering uses sort_order
+
+STEP 6 — VERIFICATION (MUST PROVE IT WORKS)
+After implementing:
+1) Run a database query/log (server-side) that prints:
+   - total outcomes
+   - totals per programme (JC_L1LP, JC_L2LP, SC_L1LP, SC_L2LP)
+2) Load the Outcomes page and confirm:
+   - selecting each programme shows a non-empty list
+   - “All Programmes” shows combined list
+3) If still empty, continue debugging until it works. Do NOT stop early.
+
+OUTPUT REQUIRED
+- A short summary of what was wrong (exact cause)
+- What you changed (files + tables)
+- The verification counts per programme
