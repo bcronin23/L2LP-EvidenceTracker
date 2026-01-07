@@ -87,7 +87,11 @@ export default function EvidenceLibrary() {
   const plus = useMemo(() => {
     if (!outcomes) return [];
     const pluMap = new Map<number, string>();
-    outcomes.forEach((o) => pluMap.set(o.pluNumber, o.pluName));
+    outcomes.forEach((o) => {
+      if (o.pluNumber !== null) {
+        pluMap.set(o.pluNumber, o.pluName || '');
+      }
+    });
     return Array.from(pluMap.entries()).sort((a, b) => a[0] - b[0]);
   }, [outcomes]);
 
@@ -107,7 +111,7 @@ export default function EvidenceLibrary() {
       const matchesSetting = settingFilter === "all" || item.setting === settingFilter;
       const matchesPlu =
         pluFilter === "all" ||
-        item.outcomes?.some((o) => o.pluNumber.toString() === pluFilter);
+        item.outcomes?.some((o) => o.pluNumber !== null && o.pluNumber.toString() === pluFilter);
 
       return matchesSearch && matchesStudent && matchesType && matchesSetting && matchesPlu;
     });

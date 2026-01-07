@@ -1,0 +1,237 @@
+You are working inside my existing Replit project (“L2LP Tracker”). Do NOT rebuild the app from scratch. Extend what’s already there.
+
+OBJECTIVE
+Finalise the app so it can be made public for school use. It must be secure and it must show each student ONLY the learning outcomes that belong to that student’s assigned learning programme (and any blended overrides).
+
+FILES PROVIDED
+Outcomes seed files:
+- /mnt/data/all_learning_outcomes_seed.csv
+- /mnt/data/all_learning_outcomes_seed.json
+
+Use one of these to import outcomes into the database.
+
+NON-NEGOTIABLE RULES
+- Do not rewrite the app. Inspect existing routes/components/db schema and extend.
+- Every query is scoped server-side to school_id.
+- Students can ONLY see outcomes from their own programme (plus blended overrides if enabled).
+- All uploads are PRIVATE. Access is via short-lived signed URLs only.
+- Implement role-based access and audit logging.
+
+========================
+A) SCHOOL MULTI-TENANT + ROLES + BRANDING
+========================
+School onboarding must be clean and secure.
+
+School registration page must capture (Admin only):
+- school_name (required)
+- school_roll_number (required)
+- admin_name (required)
+- admin_email (required)
+- optional: school_crest/logo upload (store privately, show in UI header)
+- optional: allowed_email_domain(s) or invite-only join
+
+Accounts/Roles:
+- ADMIN: manage school, staff, outcomes import, students, schemes
+- STAFF: manage students/evidence/ssp/planning/schemes within school
+- VIEWER: read-only
+
+Enforce:
+- Users belong to exactly one school_id
+- No cross-school access possible
+
+========================
+B) OUTCOMES CATALOGUE (ALL PROGRAMMES) + ADMIN IMPORT
+========================
+The database must store EVERY learning outcome across ALL programmes:
+- JC L1LP, JC L2LP, SC L1LP, SC L2LP
+
+DB tables (create or update to match):
+1) programmes
+- id uuid pk
+- code text unique not null   (JC_L1LP, JC_L2LP, SC_L1LP, SC_L2LP)
+- title text not null
+- created_at timestamptz default now()
+
+2) learning_outcomes
+- id uuid pk default gen_random_uuid()
+- programme_id uuid not null references programmes(id)
+- plu_or_module_code text not null
+- plu_or_module_title text not null
+- element_title text null
+- outcome_code text not null
+- outcome_text text not null
+- sort_order int not null
+- uid text unique not null
+
+Indexes:
+- (programme_id, plu_or_module_code)
+- (programme_id, outcome_code)
+- FTS/GIN on outcome_text (or ilike fallback)
+
+ADMIN “IMPORT OUTCOMES” PAGE (Admin only)
+- Upload CSV or JSON
+- Preview (first 50 rows + totals per programme)
+- Confirm import: UPSERT by uid (no duplicates)
+- Show summary: inserted/updated counts per programme
+- Provide shortcut button “Import from seed file path” using:
+  /mnt/data/all_learning_outcomes_seed.csv OR /mnt/data/all_learning_outcomes_seed.json
+
+Outcomes master page (catalogue) can show everything, BUT it must default to programme filtering.
+
+========================
+C) STUDENTS MUST BE ASSIGNED A PROGRAMME (AND ONLY SEE THOSE OUTCOMES)
+========================
+CRITICAL: The student profile MUST NOT show outcomes from other programmes.
+Right now the student PLU list is mixing/duplicating titles (e.g. “Personal care” + “Personal care and wellbeing” etc.). Fix this by filtering outcome sources properly.
+
+DB:
+students table must include:
+- programme_id uuid NOT NULL references programmes(id)
+
+Student Create/Edit UI:
+- Required dropdown: Programme (JC L1LP / JC L2LP / SC L1LP / SC L2LP)
+- Cannot save student without programme.
+- Show programme badge on student profile header.
+
+Student outcomes display rules:
+- Student profile (Overview / PLU Coverage Status) must ONLY use outcomes where programme_id == student.programme_id
+- Do NOT display PLUs/modules from other programmes on the student view.
+- Coverage/missing must be calculated ONLY against student programme outcomes.
+- Outcome code display should not show “PLU 0”; it should use the real codes from seeded data.
+
+Blended programmes (optional but supported):
+Some students may do L1 in one area and L2 in others.
+Implement per-area overrides so the student still only sees outcomes relevant to their own programme mix.
+
+DB:
+student_programme_overrides
+- id uuid pk
+- school_id uuid not null
+- student_id uuid not null references students(id)
+- area_code text not null
+- programme_id uuid not null references programmes(id)
+UNIQUE(student_id, area_code)
+
+If overrides exist:
+- For that area_code, use override programme outcomes
+- Otherwise use student.programme_id outcomes
+- Student still ONLY sees outcomes from their base programme + overrides (nothing else)
+
+========================
+D) EVIDENCE UPLOAD MUST WORK + OUTCOME TAGGING (FILTERED TO STUDENT PROGRAMME)
+========================
+Evidence upload must support selecting:
+- photos
+- videos
+- documents
+
+Rules:
+- User selects a student first.
+- Outcome picker MUST auto-filter to that student’s programme outcomes (and override outcomes if blended + area selected).
+- Evidence can be linked to one or more outcomes.
+- Files stored privately and accessed only via signed URLs.
+
+DB (if not already present):
+evidence
+- id uuid pk
+- school_id uuid not null
+- student_id uuid not null
+- uploaded_by uuid not null
+- file_storage_path text not null
+- file_name text not null
+- file_mime text not null
+- file_size int not null
+- created_at timestamptz default now()
+
+evidence_outcomes
+- id uuid pk
+- school_id uuid not null
+- evidence_id uuid not null references evidence(id)
+- learning_outcome_id uuid not null references learning_outcomes(id)
+UNIQUE(evidence_id, learning_outcome_id)
+
+========================
+E) SCHEMES OF WORK: FILE UPLOAD + ASSIGNMENT
+========================
+Add Scheme of Work upload as files (PDF/DOCX/PPTX/XLSX) and assign to students and/or class groups.
+
+DB:
+schemes_of_work
+- id uuid pk
+- school_id uuid not null
+- title text not null
+- description text null
+- term text null
+- programme_id uuid not null references programmes(id)
+- class_group text null
+- file_storage_path text not null
+- file_name text not null
+- file_mime text not null
+- file_size int not null
+- created_by uuid not null
+- created_at timestamptz default now()
+
+scheme_assignments
+- id uuid pk
+- school_id uuid not null
+- scheme_id uuid not null references schemes_of_work(id)
+- student_id uuid null references students(id)
+- class_group text null
+- assigned_by uuid not null
+- created_at timestamptz default now()
+Constraint: either student_id OR class_group required
+
+Rules:
+- Scheme programme is required when creating scheme.
+- When assigning scheme to a student:
+  - Must match student programme (or blended override if you implement area matching)
+  - If mismatch: warn and block unless ADMIN confirms override.
+
+UI:
+- Admin/Schemes page: upload + list + filters + assign
+- Student profile → Scheme tab:
+  - show schemes assigned directly + via class group
+  - “Open file” uses signed URL
+
+========================
+F) SSP / PLANNING / SCHEME BUTTONS MUST WORK (CRUD + ROUTING)
+========================
+The student tabs currently show buttons but some don’t function.
+Make them fully working with CRUD:
+
+SSP:
+- Create/edit/view student support plan stored as JSON or structured fields.
+
+Planning:
+- Create/edit/view weekly plans linked to student.
+- Plans can optionally link to outcomes (filtered to student programme only).
+
+Scheme:
+- View assigned schemes + assign scheme (role gated)
+
+========================
+G) SECURITY + AUDIT LOGGING
+========================
+Enforce:
+- school_id on every table and every query
+- RBAC on server endpoints
+- Private storage + signed URLs only
+
+Audit log:
+Log actions:
+- outcomes imported
+- student created/updated
+- evidence uploaded/linked/opened
+- scheme created/assigned/opened
+- SSP/planning created/updated
+
+========================
+QA CHECKLIST (MUST VERIFY)
+========================
+1) Import outcomes from seed file path and confirm totals per programme.
+2) Create a student WITHOUT selecting programme → must be blocked.
+3) Create a student WITH programme → student profile must show ONLY that programme’s PLUs/modules (no duplicates/mixed titles).
+4) Evidence upload → outcome picker shows ONLY student’s programme outcomes.
+5) Scheme upload → file stored privately; opens only via signed URL when logged in.
+6) Cross-school access attempt is blocked.
+7) SSP/Planning/Scheme tabs: buttons route correctly and CRUD works.

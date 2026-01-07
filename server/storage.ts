@@ -615,6 +615,12 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Student not found");
     }
 
+    // Filter outcomes to ONLY the student's programme (critical for multi-programme support)
+    const studentProgrammeId = student.programmeId;
+    const programmeOutcomes = studentProgrammeId 
+      ? allOutcomes.filter(o => o.programmeId === studentProgrammeId)
+      : allOutcomes; // Fallback for legacy students without programme
+
     // Get all evidenced outcome IDs for this student
     const evidencedOutcomes = await db
       .select({
@@ -633,7 +639,8 @@ export class DatabaseStorage implements IStorage {
     // Group outcomes by PLU and Element (using pluOrModuleCode or fallback to pluNumber)
     const pluMap = new Map<string, { pluName: string; pluNumber: number; elements: Map<string, LearningOutcome[]> }>();
     
-    allOutcomes.forEach((outcome) => {
+    // Use filtered programme outcomes, not all outcomes
+    programmeOutcomes.forEach((outcome) => {
       const pluKey = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
       const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluKey;
       const elementName = outcome.elementName || "General";
@@ -709,7 +716,8 @@ export class DatabaseStorage implements IStorage {
     // Sort by PLU number
     plusCoverage.sort((a, b) => a.pluNumber - b.pluNumber);
 
-    const totalOutcomes = allOutcomes.length;
+    // Use programme-filtered outcomes count for accurate percentage
+    const totalOutcomes = programmeOutcomes.length;
     const totalEvidenced = evidenceMap.size; // Count unique outcomes with evidence
     const overallPercentage = totalOutcomes > 0 ? Math.round((totalEvidenced / totalOutcomes) * 100) : 0;
 
@@ -758,6 +766,12 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Student not found");
     }
 
+    // Filter outcomes to ONLY the student's programme (critical for multi-programme support)
+    const studentProgrammeId = student.programmeId;
+    const programmeOutcomes = studentProgrammeId 
+      ? allOutcomes.filter(o => o.programmeId === studentProgrammeId)
+      : allOutcomes; // Fallback for legacy students without programme
+
     const evidencedOutcomes = await db
       .select({
         learningOutcomeId: evidenceOutcomes.learningOutcomeId,
@@ -774,7 +788,8 @@ export class DatabaseStorage implements IStorage {
 
     const pluMap = new Map<string, { pluName: string; pluNumber: number; elements: Map<string, LearningOutcome[]> }>();
     
-    allOutcomes.forEach((outcome) => {
+    // Use filtered programme outcomes, not all outcomes
+    programmeOutcomes.forEach((outcome) => {
       const pluKey = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
       const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluKey;
       const elementName = outcome.elementName || "General";
@@ -846,7 +861,8 @@ export class DatabaseStorage implements IStorage {
 
     plusCoverage.sort((a, b) => a.pluNumber - b.pluNumber);
 
-    const totalOutcomes = allOutcomes.length;
+    // Use programme-filtered outcomes count for accurate percentage
+    const totalOutcomes = programmeOutcomes.length;
     const totalEvidenced = evidenceMap.size;
     const overallPercentage = totalOutcomes > 0 ? Math.round((totalEvidenced / totalOutcomes) * 100) : 0;
 

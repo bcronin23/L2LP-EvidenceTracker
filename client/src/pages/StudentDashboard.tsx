@@ -732,7 +732,7 @@ function PlanFormDialog({ open, onOpenChange, studentId, existingPlan, outcomes,
     nextSteps: existingPlan?.nextSteps || "",
   });
 
-  const pluOptions = Array.from(new Set(outcomes.map(o => o.pluNumber))).sort((a, b) => a - b);
+  const pluOptions = Array.from(new Set(outcomes.map(o => o.pluNumber).filter((n): n is number => n !== null))).sort((a, b) => a - b);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
