@@ -136,6 +136,17 @@ export default function StudentDashboard() {
   const totalPlus = pluCoverage?.plusCoverage.length || 5;
   const activeSsp = ssps?.find(s => s.status === "active");
   const archivedSsps = ssps?.filter(s => s.status === "archived") || [];
+  
+  // Create lookup for module codes to titles for badge display
+  const moduleCodeToTitle = new Map(
+    (outcomes || [])
+      .filter(o => o.pluOrModuleCode && o.pluOrModuleTitle)
+      .map(o => [o.pluOrModuleCode!, o.pluOrModuleTitle!])
+  );
+  const getFocusLabel = (focusValue: string) => {
+    if (/^\d+$/.test(focusValue)) return `PLU ${focusValue}`;
+    return moduleCodeToTitle.get(focusValue) || focusValue;
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -217,19 +228,25 @@ export default function StudentDashboard() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Award className="h-5 w-5" />
-                    PLU Coverage Status
+                    Coverage Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {pluCoverage?.plusCoverage.map((plu) => (
-                      <div key={plu.pluNumber} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">PLU {plu.pluNumber}</span>
-                            <span className="text-sm text-muted-foreground truncate">{plu.pluName}</span>
+                      <div key={plu.pluCode} className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {plu.pluNumber > 0 ? (
+                              <>
+                                <span className="font-medium shrink-0">PLU {plu.pluNumber}</span>
+                                <span className="text-sm text-muted-foreground truncate">{plu.pluName}</span>
+                              </>
+                            ) : (
+                              <span className="font-medium truncate">{plu.pluName}</span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 shrink-0">
                             <span className="text-sm">{plu.percentage}%</span>
                             {plu.isOnTrackForJCPA ? (
                               <CheckCircle className="h-4 w-4 text-green-600" />
@@ -456,7 +473,9 @@ export default function StudentDashboard() {
                               <span className="font-medium">Week of {format(new Date(plan.weekStartDate), "dd MMM yyyy")}</span>
                             </div>
                             {plan.focusPlu && (
-                              <Badge variant="secondary" className="mb-2">PLU {plan.focusPlu}</Badge>
+                              <Badge variant="secondary" className="mb-2">
+                                {getFocusLabel(plan.focusPlu)}
+                              </Badge>
                             )}
                             {plan.planText && (
                               <p className="text-sm text-muted-foreground line-clamp-2">{plan.planText}</p>
@@ -732,7 +751,21 @@ function PlanFormDialog({ open, onOpenChange, studentId, existingPlan, outcomes,
     nextSteps: existingPlan?.nextSteps || "",
   });
 
-  const pluOptions = Array.from(new Set(outcomes.map(o => o.pluNumber).filter((n): n is number => n !== null))).sort((a, b) => a - b);
+  // Create focus options from both PLUs (Junior Cycle) and modules (Senior Cycle)
+  const pluNumbers = Array.from(new Set(outcomes.map(o => o.pluNumber).filter((n): n is number => n !== null && n > 0))).sort((a, b) => a - b);
+  // Get unique modules using pluOrModuleCode as stable identifier
+  const moduleOptions = Array.from(
+    new Map(
+      outcomes
+        .filter(o => !o.pluNumber || o.pluNumber === 0)
+        .filter(o => o.pluOrModuleCode && o.pluOrModuleTitle)
+        .map(o => [o.pluOrModuleCode!, { code: o.pluOrModuleCode!, title: o.pluOrModuleTitle! }])
+    ).values()
+  ).sort((a, b) => a.title.localeCompare(b.title));
+  const focusOptions = [
+    ...pluNumbers.map(n => ({ value: String(n), label: `PLU ${n}` })),
+    ...moduleOptions.map(m => ({ value: m.code, label: m.title })),
+  ];
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -784,15 +817,15 @@ function PlanFormDialog({ open, onOpenChange, studentId, existingPlan, outcomes,
             <Input type="date" id="weekStartDate" value={formData.weekStartDate} onChange={(e) => setFormData({ ...formData, weekStartDate: e.target.value })} data-testid="input-week-start" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="focusPlu">Focus PLU (optional)</Label>
-            <Select value={formData.focusPlu} onValueChange={(v) => setFormData({ ...formData, focusPlu: v })}>
+            <Label htmlFor="focusPlu">Focus Area (optional)</Label>
+            <Select value={formData.focusPlu || "none"} onValueChange={(v) => setFormData({ ...formData, focusPlu: v === "none" ? "" : v })}>
               <SelectTrigger data-testid="select-focus-plu">
-                <SelectValue placeholder="Select PLU focus" />
+                <SelectValue placeholder="Select focus area" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific focus</SelectItem>
-                {pluOptions.map((plu) => (
-                  <SelectItem key={plu} value={String(plu)}>PLU {plu}</SelectItem>
+                <SelectItem value="none">No specific focus</SelectItem>
+                {focusOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

@@ -705,6 +705,7 @@ export class DatabaseStorage implements IStorage {
       plusCoverage.push({
         pluNumber,
         pluName: pluData.pluName,
+        pluCode: pluKey, // Stable identifier for React keys and focus selection
         elements,
         totalOutcomes: pluTotalOutcomes,
         evidencedOutcomes: pluEvidencedOutcomes,
@@ -713,8 +714,15 @@ export class DatabaseStorage implements IStorage {
       });
     });
 
-    // Sort by PLU number
-    plusCoverage.sort((a, b) => a.pluNumber - b.pluNumber);
+    // Sort by PLU number (for PLUs) or alphabetically by name (for modules)
+    plusCoverage.sort((a, b) => {
+      if (a.pluNumber > 0 && b.pluNumber > 0) {
+        return a.pluNumber - b.pluNumber;
+      }
+      if (a.pluNumber > 0) return -1;
+      if (b.pluNumber > 0) return 1;
+      return a.pluName.localeCompare(b.pluName);
+    });
 
     // Use programme-filtered outcomes count for accurate percentage
     const totalOutcomes = programmeOutcomes.length;
@@ -851,6 +859,7 @@ export class DatabaseStorage implements IStorage {
       plusCoverage.push({
         pluNumber,
         pluName: pluData.pluName,
+        pluCode: pluKey, // Stable identifier for React keys and focus selection
         elements,
         totalOutcomes: pluTotalOutcomes,
         evidencedOutcomes: pluEvidencedOutcomes,
@@ -859,7 +868,15 @@ export class DatabaseStorage implements IStorage {
       });
     });
 
-    plusCoverage.sort((a, b) => a.pluNumber - b.pluNumber);
+    // Sort by PLU number (for PLUs) or alphabetically by code (for modules)
+    plusCoverage.sort((a, b) => {
+      if (a.pluNumber > 0 && b.pluNumber > 0) {
+        return a.pluNumber - b.pluNumber;
+      }
+      if (a.pluNumber > 0) return -1;
+      if (b.pluNumber > 0) return 1;
+      return a.pluCode.localeCompare(b.pluCode);
+    });
 
     // Use programme-filtered outcomes count for accurate percentage
     const totalOutcomes = programmeOutcomes.length;

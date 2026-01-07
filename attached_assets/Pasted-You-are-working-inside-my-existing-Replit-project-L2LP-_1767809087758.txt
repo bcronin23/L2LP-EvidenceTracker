@@ -1,0 +1,111 @@
+You are working inside my existing Replit project (“L2LP Tracker”). Do NOT rebuild the app from scratch. Extend what’s already there.
+
+URGENT: FIX MISSING SENIOR CYCLE AREAS
+Senior Cycle Level 1 and Level 2 MUST include:
+- Communication & Literacy
+- Numeracy
+Additionally, Senior Cycle Level 1 MUST include:
+- Looking after my Environment
+These areas are currently NOT showing (or not showing correctly). Fix the seeds/import and the UI filtering so these areas appear for SC_L1LP and SC_L2LP.
+
+Also: Schemes of Work must be FILE-ONLY uploads (no scheme builder inside the app).
+
+========================================================
+1) SEED / IMPORT MUST INCLUDE SC L1/L2 COMM & LIT + NUMERACY + SC L1 ENVIRONMENT
+========================================================
+First, diagnose WHY they’re missing:
+- Either the seed file does not contain these outcomes, OR
+- The import/upsert skipped them (bad mapping / programme_code mismatch / uid collisions), OR
+- The UI is filtering/grouping incorrectly and hiding them.
+
+A) Validate required Senior Cycle areas exist after import:
+For each programme:
+- SC_L1LP must contain module titles including:
+  1) “Communication & Literacy”
+  2) “Numeracy”
+  3) “Looking after my Environment”
+- SC_L2LP must contain module titles including:
+  1) “Communication & Literacy”
+  2) “Numeracy”
+
+If any are missing, fix by updating the seed content and re-importing.
+
+B) Sources available (use these PDFs if seed content is missing or incomplete):
+- /mnt/data/SC-L1-Communication-and-Literacy-EN (1).pdf
+- /mnt/data/SC-L1-Numeracy-EN.pdf
+- /mnt/data/SCL1-Looking-after-my-Env-ENG-2.pdf
+- /mnt/data/SC-L2-Communication-and-Literacy-EN.pdf
+- /mnt/data/SC-L2-Numeracy-ENG-INT.pdf
+
+If the provided seed files (/mnt/data/all_learning_outcomes_seed.json or .csv) do not include these modules, generate the missing outcome rows from the PDFs and append them into the canonical repo seed file.
+
+Canonical seed file inside repo:
+- server/seeds/all_learning_outcomes_seed.json
+
+C) Correct programme codes and titles
+Ensure these exact programme codes exist:
+- JC_L1LP, JC_L2LP, SC_L1LP, SC_L2LP
+
+And each learning_outcome row includes:
+programme_code, plu_or_module_code, plu_or_module_title, element_title (nullable),
+outcome_code, outcome_text, sort_order, uid (stable unique)
+
+D) UID rules to avoid collisions
+Ensure uid is stable and unique across ALL programmes, e.g.:
+uid = `${programme_code}::${plu_or_module_code}::${element_title||""}::${outcome_code}`
+
+E) Import must UPSERT by uid
+- Upsert programmes by programme_code
+- Upsert learning_outcomes by uid
+- No duplicates
+- Show inserted/updated totals per programme + totals per module
+
+Add “Import bundled seed” button (Admin only) that reads:
+server/seeds/all_learning_outcomes_seed.json
+and performs the import with preview.
+
+========================================================
+2) STUDENT MUST ONLY SEE THEIR PROGRAMME OUTCOMES (NO MIXING)
+========================================================
+Fix the student view issue where PLU/Module Coverage Status is mixing areas and showing duplicates / “PLU 0”.
+
+Rules:
+- Student profile must only query outcomes for the student’s allowed programme(s)
+- Default: students.programme_id only
+- If you support blended overrides, only include those override programme_ids for the relevant area
+- Never query outcomes across all programmes and then group; filter first, then group.
+
+Also fix labels:
+- Do NOT display “PLU 0”
+- Use the real module/plu codes and titles from the seed data
+- Deduplicate the area list by (programme_id, plu_or_module_code, plu_or_module_title)
+- Coverage per area must be calculated only using outcomes within that area.
+
+========================================================
+3) SCHEMES OF WORK = FILE UPLOAD ONLY (SIMPLIFY)
+========================================================
+Remove/avoid any “scheme builder” logic.
+
+A scheme of work is:
+- A file upload (PDF/DOCX/PPTX/XLSX)
+- Metadata (title, term optional, programme required, optional class group)
+- Assignment to student and/or class group
+- View/download via signed URL only
+
+Student Scheme tab should:
+- List assigned scheme files (direct + class group)
+- Provide “Open” button (signed URL)
+- No “create scheme inside the app”, only upload.
+
+========================================================
+4) QA CHECKS (MUST CONFIRM IN LOGS)
+========================================================
+After running import:
+- SC_L1LP module list includes Communication & Literacy + Numeracy + Looking after my Environment
+- SC_L2LP module list includes Communication & Literacy + Numeracy
+- Create SC_L1 student: student module list shows those areas (and only that programme)
+- No “PLU 0” labels
+- Scheme upload works and opens via signed URL
+
+Output:
+- Print console logs confirming module counts per programme and that the above SC modules are present.

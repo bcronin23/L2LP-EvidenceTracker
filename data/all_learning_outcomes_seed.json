@@ -6758,5 +6758,1915 @@
     "outcome_code": "w.",
     "outcome_text": "recognise how some styles and designs are associated with their cultural past and present",
     "sort_order": 23
+  },
+  {
+    "uid": "9578701a6a38",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "a.",
+    "outcome_text": "Demonstrate awareness of sensory stimuli in the learning environment",
+    "sort_order": 1
+  },
+  {
+    "uid": "7dda12a2bf49",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "b.",
+    "outcome_text": "Interact with familiar and unfamiliar people in their environment",
+    "sort_order": 2
+  },
+  {
+    "uid": "ccb40c7ec184",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "c.",
+    "outcome_text": "Respond to verbal and nonverbal cues relating to familiar communicative routines",
+    "sort_order": 3
+  },
+  {
+    "uid": "6003d00ab1d8",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "d.",
+    "outcome_text": "Respond to familiar questions and statements",
+    "sort_order": 4
+  },
+  {
+    "uid": "1c202296fc89",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "e.",
+    "outcome_text": "Express contentment, happiness, sadness or upset",
+    "sort_order": 5
+  },
+  {
+    "uid": "fcb18c7717ef",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "f.",
+    "outcome_text": "Communicate with a partner by using devices or other communicative means",
+    "sort_order": 6
+  },
+  {
+    "uid": "9110051ab59b",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "g.",
+    "outcome_text": "Communicate own interests, preferences, choices or opinions",
+    "sort_order": 7
+  },
+  {
+    "uid": "91775c207190",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "h.",
+    "outcome_text": "Communicate needs",
+    "sort_order": 8
+  },
+  {
+    "uid": "96fb44fd0617",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "i.",
+    "outcome_text": "Communicate to ask questions",
+    "sort_order": 9
+  },
+  {
+    "uid": "3bc54df26fd7",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "j.",
+    "outcome_text": "Demonstrate an understanding of the use of gestures, tone and volume of vocalisations",
+    "sort_order": 10
+  },
+  {
+    "uid": "7427e2f8368d",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "k.",
+    "outcome_text": "Maintain patterns of attending to stimuli, sensory stimuli, people and activities in their environment",
+    "sort_order": 11
+  },
+  {
+    "uid": "ad1c468bb09e",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communication",
+    "outcome_code": "l.",
+    "outcome_text": "Show signs of anticipation and prediction to familiar activity when presented with stimuli and sensory stimuli",
+    "sort_order": 12
+  },
+  {
+    "uid": "6e1d6ba4a5cc",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "a.",
+    "outcome_text": "Demonstrate choice to preferred activities and/or objects",
+    "sort_order": 13
+  },
+  {
+    "uid": "54515be71d9f",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "b.",
+    "outcome_text": "Request repetition, change of objects, activity",
+    "sort_order": 14
+  },
+  {
+    "uid": "93baba6d205a",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "c.",
+    "outcome_text": "Participate in turn taking with others",
+    "sort_order": 15
+  },
+  {
+    "uid": "09d35d95e6b7",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "d.",
+    "outcome_text": "Engage in a range of interactions and exchanges with others including in play",
+    "sort_order": 16
+  },
+  {
+    "uid": "ea87742ab84c",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "e.",
+    "outcome_text": "Respond to increased use of words and vocabulary, spoken and in text",
+    "sort_order": 17
+  },
+  {
+    "uid": "9acc664e6b4a",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "f.",
+    "outcome_text": "Show signs of engagement and enjoyment to a text being shared",
+    "sort_order": 18
+  },
+  {
+    "uid": "f4b52ef489f0",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "g.",
+    "outcome_text": "Demonstrate recognition of some familiar words, symbols, visuals, signs and objects of reference",
+    "sort_order": 19
+  },
+  {
+    "uid": "90a5b5778e78",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS",
+    "plu_or_module_title": "Communication and Literacy: Communicating with others",
+    "element_title": "Communicating with others",
+    "outcome_code": "h.",
+    "outcome_text": "Independently or with support, follow simple instructions, verbal and non-verbal",
+    "sort_order": 20
+  },
+  {
+    "uid": "0a1fbf2ca068",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "a.",
+    "outcome_text": "Engage with the mechanics of creating a text, appropriate to the student",
+    "sort_order": 21
+  },
+  {
+    "uid": "b5e90453f534",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "b.",
+    "outcome_text": "Indicate enjoyment or dislike while creating an appropriate form of text, verbally or non-verbally",
+    "sort_order": 22
+  },
+  {
+    "uid": "724ff8b662d9",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "c.",
+    "outcome_text": "Use a variety of materials and surfaces for creating texts",
+    "sort_order": 23
+  },
+  {
+    "uid": "0f092a46340f",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "d.",
+    "outcome_text": "Indicate or choose a material to create text",
+    "sort_order": 24
+  },
+  {
+    "uid": "b6cdd31a88c2",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "e.",
+    "outcome_text": "Indicate verbally or non-verbally the understanding that texts, symbols, visuals and music carry meaning",
+    "sort_order": 25
+  },
+  {
+    "uid": "9785f37f32b6",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "f.",
+    "outcome_text": "Show understanding of the left to right and top to bottom orientation of written text and page turning",
+    "sort_order": 26
+  },
+  {
+    "uid": "48ffc3affae3",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "g.",
+    "outcome_text": "Indicate awareness of important and familiar letters, words, sounds, music, smells or tastes",
+    "sort_order": 27
+  },
+  {
+    "uid": "8d280e5cf72c",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "h.",
+    "outcome_text": "Engage with the creation of letters of personal importance",
+    "sort_order": 28
+  },
+  {
+    "uid": "3aaa20d84e73",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "i.",
+    "outcome_text": "Progressively use signs, symbols or text to share experiences, thoughts, opinions, preferences with others",
+    "sort_order": 29
+  },
+  {
+    "uid": "1b85f282c59d",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Expression",
+    "element_title": "Expression",
+    "outcome_code": "j.",
+    "outcome_text": "Demonstrate an ability to engage with the process of drawing with some level of control and direction",
+    "sort_order": 30
+  },
+  {
+    "uid": "498854b607df",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "a.",
+    "outcome_text": "Explore, experience or participate in counting activities (concrete and non-concrete)",
+    "sort_order": 1
+  },
+  {
+    "uid": "69e1185b23f3",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "b.",
+    "outcome_text": "Demonstrate one on one correspondence when counting",
+    "sort_order": 2
+  },
+  {
+    "uid": "e12f6cd82711",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "c.",
+    "outcome_text": "Explore how counting can be used to solve problems relating to their everyday world",
+    "sort_order": 3
+  },
+  {
+    "uid": "80185a50ba6b",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "d.",
+    "outcome_text": "Demonstrate an awareness of more, less and many",
+    "sort_order": 4
+  },
+  {
+    "uid": "c19854d59189",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "e.",
+    "outcome_text": "Count forwards with verbal, concrete manipulatives, and pictorial support",
+    "sort_order": 5
+  },
+  {
+    "uid": "2627b16d8b5d",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "f.",
+    "outcome_text": "Count and quantify objects or people with support",
+    "sort_order": 6
+  },
+  {
+    "uid": "05bde669d1cf",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "g.",
+    "outcome_text": "Connect numbers to counted objects using supports",
+    "sort_order": 7
+  },
+  {
+    "uid": "3030302d4ae7",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "h.",
+    "outcome_text": "Demonstrate how numbers are used for quantifying sets",
+    "sort_order": 8
+  },
+  {
+    "uid": "7db7f4dabeba",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "i.",
+    "outcome_text": "Demonstrate that the last number in a counted group indicates the quantity of the set",
+    "sort_order": 9
+  },
+  {
+    "uid": "2e65e1c78351",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "j.",
+    "outcome_text": "Use number appropriately in play situations",
+    "sort_order": 10
+  },
+  {
+    "uid": "21977caf79a2",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "k.",
+    "outcome_text": "Demonstrate knowledge of number with the use of appropriate materials and supports",
+    "sort_order": 11
+  },
+  {
+    "uid": "f603daaf6ad1",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "l.",
+    "outcome_text": "Recognise numbers of personal significance",
+    "sort_order": 12
+  },
+  {
+    "uid": "d839b19f2392",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "m.",
+    "outcome_text": "Demonstrate a knowledge of one, more than one, some and a lot",
+    "sort_order": 13
+  },
+  {
+    "uid": "2cdcde61fd91",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "n.",
+    "outcome_text": "Demonstrate an understanding of the concept of none, zero and all gone",
+    "sort_order": 14
+  },
+  {
+    "uid": "80c097c93671",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "o.",
+    "outcome_text": "Recognise the number zero represents nothing/none in terms of quantity",
+    "sort_order": 15
+  },
+  {
+    "uid": "b9c032d68df5",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER",
+    "plu_or_module_title": "Numeracy: Demonstrating an awareness of number",
+    "element_title": "Demonstrating an awareness of number",
+    "outcome_code": "p.",
+    "outcome_text": "Represent data with objects of reference such as pictures or symbols",
+    "sort_order": 16
+  },
+  {
+    "uid": "f9be20317745",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "a.",
+    "outcome_text": "Demonstrate an awareness that coins and paper notes are both money",
+    "sort_order": 17
+  },
+  {
+    "uid": "795e02adcb90",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "b.",
+    "outcome_text": "Demonstrate an awareness that money has a purpose and value",
+    "sort_order": 18
+  },
+  {
+    "uid": "eeec814f10c9",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "c.",
+    "outcome_text": "Demonstrate an awareness that items can be bought using coins, paper notes or a card",
+    "sort_order": 19
+  },
+  {
+    "uid": "eeecd05600e8",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "d.",
+    "outcome_text": "Recognise the euro and cent symbols and that they represent money",
+    "sort_order": 20
+  },
+  {
+    "uid": "1e63dc737795",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "e.",
+    "outcome_text": "Recognise and use the language associated with money",
+    "sort_order": 21
+  },
+  {
+    "uid": "4b423564b785",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "f.",
+    "outcome_text": "Purchase items using money",
+    "sort_order": 22
+  },
+  {
+    "uid": "1e2ffb04ef41",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "g.",
+    "outcome_text": "Purchase items as part of a cashless transaction",
+    "sort_order": 23
+  },
+  {
+    "uid": "3673559f6464",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-UNDERSTANDING-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding money",
+    "element_title": "Understanding money",
+    "outcome_code": "h.",
+    "outcome_text": "Attend to and/or count money",
+    "sort_order": 24
+  },
+  {
+    "uid": "791747f67ee2",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "a.",
+    "outcome_text": "Experience the physical movement of the hands on an analogue clock in a clockwise direction to indicate the passing of time",
+    "sort_order": 25
+  },
+  {
+    "uid": "a6f08789c7cb",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "b.",
+    "outcome_text": "Demonstrate an awareness of the clock as a tool for the measurement of time",
+    "sort_order": 26
+  },
+  {
+    "uid": "325f7614c7a6",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "c.",
+    "outcome_text": "Engage with the order of daily routine (at home and at school)",
+    "sort_order": 27
+  },
+  {
+    "uid": "95a8313d50c5",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "d.",
+    "outcome_text": "Engage with key transitions throughout the day",
+    "sort_order": 28
+  },
+  {
+    "uid": "0412b11b3e18",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "e.",
+    "outcome_text": "Show an awareness of or recognise key times of the school day",
+    "sort_order": 29
+  },
+  {
+    "uid": "e6abd44614ae",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "f.",
+    "outcome_text": "Demonstrate awareness of the difference between nighttime and daytime, morning time and evening time",
+    "sort_order": 30
+  },
+  {
+    "uid": "c004ec741b72",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "g.",
+    "outcome_text": "Experience and attend to the language of time in relation to self, family and school events and activities",
+    "sort_order": 31
+  },
+  {
+    "uid": "26a2b2b9f8b3",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "h.",
+    "outcome_text": "Experience and attend to the language of days, months and key seasonal events",
+    "sort_order": 32
+  },
+  {
+    "uid": "7d4e3be52f36",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "i.",
+    "outcome_text": "With the use of appropriate aids, sequence events according to time",
+    "sort_order": 33
+  },
+  {
+    "uid": "5da1fb406c96",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME",
+    "plu_or_module_title": "Numeracy: Reading and measuring time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "j.",
+    "outcome_text": "Recognise a personally meaningful day of the week or month",
+    "sort_order": 34
+  },
+  {
+    "uid": "549a2c5c9d08",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "a.",
+    "outcome_text": "Explore everyday items and objects in relation to measurement or size",
+    "sort_order": 35
+  },
+  {
+    "uid": "b9298a797b5e",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "b.",
+    "outcome_text": "Engage with the language and real world activities associated with measurement",
+    "sort_order": 36
+  },
+  {
+    "uid": "cf54f03d4bc1",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "c.",
+    "outcome_text": "Engage in comparing items or objects in relation to measurement",
+    "sort_order": 37
+  },
+  {
+    "uid": "496cf1b590d5",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "d.",
+    "outcome_text": "Engage with using non-standard units for measurement",
+    "sort_order": 38
+  },
+  {
+    "uid": "c9c73c116d35",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "e.",
+    "outcome_text": "Demonstrate an awareness that length, weight, capacity and time can be measured",
+    "sort_order": 39
+  },
+  {
+    "uid": "ed7ee4f96234",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "f.",
+    "outcome_text": "Recognise and name instruments that are used for measuring",
+    "sort_order": 40
+  },
+  {
+    "uid": "0763f4d61389",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "g.",
+    "outcome_text": "Engage in measuring activities with support",
+    "sort_order": 41
+  },
+  {
+    "uid": "f83940122741",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Numeracy-MEASUREMENT",
+    "plu_or_module_title": "Numeracy: Measurement",
+    "element_title": "Measurement",
+    "outcome_code": "h.",
+    "outcome_text": "Recognise and sort coins and paper notes",
+    "sort_order": 42
+  },
+  {
+    "uid": "2043f4c264d7",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "a.",
+    "outcome_text": "Observe some of the distinctive natural features of their environments",
+    "sort_order": 1
+  },
+  {
+    "uid": "dbebd498daac",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "b.",
+    "outcome_text": "Observe some of the distinctive human-made features of their environments",
+    "sort_order": 2
+  },
+  {
+    "uid": "0bfdf0559df3",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "c.",
+    "outcome_text": "Observe different flora and fauna",
+    "sort_order": 3
+  },
+  {
+    "uid": "47d26f7209de",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "d.",
+    "outcome_text": "Identify people, occupations and organisations/groups who live and work in the locality and their roles in the community",
+    "sort_order": 4
+  },
+  {
+    "uid": "4731402e30fa",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "e.",
+    "outcome_text": "Recognise and record features encountered on routine journeys",
+    "sort_order": 5
+  },
+  {
+    "uid": "a4d358e8006b",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "f.",
+    "outcome_text": "Record and display simple weather observations by using charts and/or common meteorological symbols",
+    "sort_order": 6
+  },
+  {
+    "uid": "bc0a2c245a7a",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "g.",
+    "outcome_text": "Recognise different weather conditions and changes in weather",
+    "sort_order": 7
+  },
+  {
+    "uid": "22d58faf526f",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Their environment",
+    "outcome_code": "h.",
+    "outcome_text": "Identify and plan for the impact of weather on daily routines",
+    "sort_order": 8
+  },
+  {
+    "uid": "8e6621492630",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "i.",
+    "outcome_text": "Use appropriate tools and equipment safely while undertaking an environmental activity",
+    "sort_order": 9
+  },
+  {
+    "uid": "e8bbad8cecfb",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "j.",
+    "outcome_text": "Participate in the care of a plant or animal in their environment",
+    "sort_order": 10
+  },
+  {
+    "uid": "00d4012c9785",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "k.",
+    "outcome_text": "Recognise the importance of caring for plants or animals in their environment",
+    "sort_order": 11
+  },
+  {
+    "uid": "22e8feb540aa",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "l.",
+    "outcome_text": "Engage in activities that have a positive impact on the environment, such as reducing energy consumption, waste generation and water usage",
+    "sort_order": 12
+  },
+  {
+    "uid": "d36772a9839b",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "m.",
+    "outcome_text": "Use appropriate tools and equipment safely while undertaking an environmental activity",
+    "sort_order": 13
+  },
+  {
+    "uid": "9f2616debbc3",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "n.",
+    "outcome_text": "Demonstrate safe working practices while undertaking an environmental activity",
+    "sort_order": 14
+  },
+  {
+    "uid": "01ccec78f8de",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "o.",
+    "outcome_text": "Identify everyday items that can be reused",
+    "sort_order": 15
+  },
+  {
+    "uid": "dcbcd43d4811",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "p.",
+    "outcome_text": "Reuse a common household material or item",
+    "sort_order": 16
+  },
+  {
+    "uid": "8fa22766b4dc",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "q.",
+    "outcome_text": "Upcycle a common household item",
+    "sort_order": 17
+  },
+  {
+    "uid": "fefa9f3d3422",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "r.",
+    "outcome_text": "Recognise symbols and signs related to recycling",
+    "sort_order": 18
+  },
+  {
+    "uid": "1c7f8bd343ae",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT",
+    "plu_or_module_title": "Looking after my Environment: Looking after my Environment",
+    "element_title": "Individual and community responsibility",
+    "outcome_code": "s.",
+    "outcome_text": "Separate recyclable materials into categories (plastic, paper, metal, etc.)",
+    "sort_order": 19
+  },
+  {
+    "uid": "6e04dc3ddcb4",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Non-verbal communication",
+    "outcome_code": "a.",
+    "outcome_text": "Use a variety of non-verbal communication methods",
+    "sort_order": 1
+  },
+  {
+    "uid": "3be1650a7298",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Non-verbal communication",
+    "outcome_code": "b.",
+    "outcome_text": "Demonstrate understanding and ability to use and respond to non-verbal and non-written communication",
+    "sort_order": 2
+  },
+  {
+    "uid": "3f5ee3dc6b51",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Non-verbal communication",
+    "outcome_code": "c.",
+    "outcome_text": "Demonstrate the use of non-verbal communication to express and share feelings",
+    "sort_order": 3
+  },
+  {
+    "uid": "614d58c2c628",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Non-verbal communication",
+    "outcome_code": "d.",
+    "outcome_text": "Demonstrate the use of non-verbal communication to express understanding of the feelings of others",
+    "sort_order": 4
+  },
+  {
+    "uid": "edae5a1d81f4",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Non-verbal communication",
+    "outcome_code": "e.",
+    "outcome_text": "Follow non-verbal instructions and directions",
+    "sort_order": 5
+  },
+  {
+    "uid": "1a3afd55b7aa",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Non-verbal communication",
+    "outcome_code": "f.",
+    "outcome_text": "Initiate, engage or maintain eye contact when being spoken to or otherwise demonstrate attention",
+    "sort_order": 6
+  },
+  {
+    "uid": "0b90eb367ab9",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "g.",
+    "outcome_text": "Participate in pair work, group work and classroom discussion",
+    "sort_order": 7
+  },
+  {
+    "uid": "7247eb572a5a",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "h.",
+    "outcome_text": "Ask questions to progress a task and make suggestions to progress a task when working collaboratively",
+    "sort_order": 8
+  },
+  {
+    "uid": "57bd957bc72c",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "i.",
+    "outcome_text": "Increase awareness of appropriate social conventions in all interactions",
+    "sort_order": 9
+  },
+  {
+    "uid": "14967e791ac0",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "j.",
+    "outcome_text": "Demonstrate understanding by responding to the stories of others",
+    "sort_order": 10
+  },
+  {
+    "uid": "cfafd49ec704",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "k.",
+    "outcome_text": "Identify changes in language styles and tone dependent upon relationship and audience",
+    "sort_order": 11
+  },
+  {
+    "uid": "1726b75d8bdc",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "l.",
+    "outcome_text": "Distinguish between formal and informal language",
+    "sort_order": 12
+  },
+  {
+    "uid": "f0766eaa7b64",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "m.",
+    "outcome_text": "Show understanding by following instructions, requests, and explanations",
+    "sort_order": 13
+  },
+  {
+    "uid": "694172aade7d",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION",
+    "plu_or_module_title": "Communication and Literacy: Exploring Communication",
+    "element_title": "Communicating with others",
+    "outcome_code": "n.",
+    "outcome_text": "Present a story to a group using sequencing and/or oral vocabulary and/or visual supports",
+    "sort_order": 14
+  },
+  {
+    "uid": "f5e814c81b9b",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "a.",
+    "outcome_text": "Listen to others and demonstrate attention by responding",
+    "sort_order": 15
+  },
+  {
+    "uid": "de5583997a39",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "b.",
+    "outcome_text": "Ask for, seek clarification or challenge the views and opinions of another",
+    "sort_order": 16
+  },
+  {
+    "uid": "315d1bef9fcd",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "c.",
+    "outcome_text": "Build upon what has already been said",
+    "sort_order": 17
+  },
+  {
+    "uid": "6d4a991bc457",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "d.",
+    "outcome_text": "Provide an appropriate response to a comment or question",
+    "sort_order": 18
+  },
+  {
+    "uid": "63c1af13db51",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "e.",
+    "outcome_text": "Extract meaning from a conversation and provide a response",
+    "sort_order": 19
+  },
+  {
+    "uid": "85b4cfd9a081",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "f.",
+    "outcome_text": "Ask question(s) to extend own understanding and knowledge",
+    "sort_order": 20
+  },
+  {
+    "uid": "33be21118cbc",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Engaging with intent",
+    "outcome_code": "g.",
+    "outcome_text": "Present to peers on a topic of interest or address an audience",
+    "sort_order": 21
+  },
+  {
+    "uid": "997da5fa7740",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "h.",
+    "outcome_text": "Communicate personal needs, emotions and make requests",
+    "sort_order": 22
+  },
+  {
+    "uid": "ea4764c25721",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "i.",
+    "outcome_text": "Communicate hobbies or interests in a formal and an informal setting",
+    "sort_order": 23
+  },
+  {
+    "uid": "812074a291b2",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "j.",
+    "outcome_text": "Communicate feelings and opinions in pair or group discussions",
+    "sort_order": 24
+  },
+  {
+    "uid": "1347798d65f9",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "k.",
+    "outcome_text": "Communicate a personal preference and give a rationale for that opinion",
+    "sort_order": 25
+  },
+  {
+    "uid": "100bd90f4547",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "l.",
+    "outcome_text": "Give an informed opinion or make a point on others' work",
+    "sort_order": 26
+  },
+  {
+    "uid": "ae33821507ad",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "m.",
+    "outcome_text": "Actively attend to and respond to the feelings and opinions of others",
+    "sort_order": 27
+  },
+  {
+    "uid": "9360bf099936",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT",
+    "plu_or_module_title": "Communication and Literacy: Promoting Engagement",
+    "element_title": "Self-expression",
+    "outcome_code": "n.",
+    "outcome_text": "Know how to ask for help, advice or make a complaint in person or via online appropriately and with confidence",
+    "sort_order": 28
+  },
+  {
+    "uid": "24e135b02ad9",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "a.",
+    "outcome_text": "Identify themselves as a reader",
+    "sort_order": 29
+  },
+  {
+    "uid": "a23fc35d144e",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "b.",
+    "outcome_text": "Recognise that reading can be for pleasure and to gain information",
+    "sort_order": 30
+  },
+  {
+    "uid": "2a437266bad5",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "c.",
+    "outcome_text": "Independently choose a piece of reading",
+    "sort_order": 31
+  },
+  {
+    "uid": "027e26a3a0cb",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "d.",
+    "outcome_text": "Share opinions on a piece of reading and listen to others' opinions",
+    "sort_order": 32
+  },
+  {
+    "uid": "eb7a00f0e2b0",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "e.",
+    "outcome_text": "Identify accompanying images and use them to aid comprehension and enjoyment of text",
+    "sort_order": 33
+  },
+  {
+    "uid": "ff1bcf936fe2",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "f.",
+    "outcome_text": "Identify new vocabulary from reading and relate it to known vocabulary",
+    "sort_order": 34
+  },
+  {
+    "uid": "2dcd00a00e1f",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "g.",
+    "outcome_text": "Build upon functional reading fluidity",
+    "sort_order": 35
+  },
+  {
+    "uid": "d750be2e252f",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "h.",
+    "outcome_text": "Seek clarification and ask questions about a piece of text",
+    "sort_order": 36
+  },
+  {
+    "uid": "30aaef93b424",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "i.",
+    "outcome_text": "Identify characters and events in a story",
+    "sort_order": 37
+  },
+  {
+    "uid": "ea24ef65c5f9",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "j.",
+    "outcome_text": "Make predictions about what will happen next in a story",
+    "sort_order": 38
+  },
+  {
+    "uid": "05fb03473d34",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "k.",
+    "outcome_text": "Use context clues to determine the meaning of unfamiliar words",
+    "sort_order": 39
+  },
+  {
+    "uid": "9b5b9956c6b6",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPLORING-READING",
+    "plu_or_module_title": "Communication and Literacy: Exploring Reading",
+    "element_title": "Reading for pleasure",
+    "outcome_code": "l.",
+    "outcome_text": "Summarise the main points of a piece of text",
+    "sort_order": 40
+  },
+  {
+    "uid": "0e7493dd1987",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "a.",
+    "outcome_text": "Demonstrate an understanding that writing is a form of communication",
+    "sort_order": 41
+  },
+  {
+    "uid": "f5e5b182913c",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "b.",
+    "outcome_text": "Write for a range of purposes",
+    "sort_order": 42
+  },
+  {
+    "uid": "0b8cb4a070da",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "c.",
+    "outcome_text": "Plan and organise ideas before writing",
+    "sort_order": 43
+  },
+  {
+    "uid": "b26cc987e08b",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "d.",
+    "outcome_text": "Use appropriate vocabulary in writing",
+    "sort_order": 44
+  },
+  {
+    "uid": "a26659d98596",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "e.",
+    "outcome_text": "Use correct grammar and punctuation in writing",
+    "sort_order": 45
+  },
+  {
+    "uid": "0dbf421b55b8",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "f.",
+    "outcome_text": "Edit and revise own writing",
+    "sort_order": 46
+  },
+  {
+    "uid": "2d4797f92141",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "g.",
+    "outcome_text": "Present written work neatly and clearly",
+    "sort_order": 47
+  },
+  {
+    "uid": "98b68e2e238d",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING",
+    "plu_or_module_title": "Communication and Literacy: Expression through Writing",
+    "element_title": "Writing for purpose",
+    "outcome_code": "h.",
+    "outcome_text": "Use digital tools for writing when appropriate",
+    "sort_order": 48
+  },
+  {
+    "uid": "d85ab64e39de",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "a.",
+    "outcome_text": "Identify how many zeros for tens, hundreds thousands and millions",
+    "sort_order": 1
+  },
+  {
+    "uid": "b45aa4fa2ced",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "b.",
+    "outcome_text": "Estimate quantities to the nearest value in real world contexts in 10s, 100s or 1000s",
+    "sort_order": 2
+  },
+  {
+    "uid": "efe13b127526",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "c.",
+    "outcome_text": "Use numbers to designate an amount or quantity",
+    "sort_order": 3
+  },
+  {
+    "uid": "71b627eccb2c",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "d.",
+    "outcome_text": "Identify situations where it is appropriate to add or subtract numbers and complete the operation",
+    "sort_order": 4
+  },
+  {
+    "uid": "a6104547be72",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "e.",
+    "outcome_text": "Identify, recognise and use symbols for addition and subtraction",
+    "sort_order": 5
+  },
+  {
+    "uid": "ad2adbc93db7",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "f.",
+    "outcome_text": "Identify natural numbers from 0 to 1000",
+    "sort_order": 6
+  },
+  {
+    "uid": "b5065d126782",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "g.",
+    "outcome_text": "Identify situations where one would multiply or divide and engage in the multiplication or division operation in real world contexts",
+    "sort_order": 7
+  },
+  {
+    "uid": "06099c7b1577",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "h.",
+    "outcome_text": "Construct any sentence using + - / = x or words",
+    "sort_order": 8
+  },
+  {
+    "uid": "e29d77bec002",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "i.",
+    "outcome_text": "Recognise and name equal parts of a whole such as halves, quarters, thirds",
+    "sort_order": 9
+  },
+  {
+    "uid": "0f876ab2258c",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "j.",
+    "outcome_text": "Connect halves and quarters to equal sharing and to groups",
+    "sort_order": 10
+  },
+  {
+    "uid": "a9ae2822efdb",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "k.",
+    "outcome_text": "Identify, name and express fractions of a quantity such as length, weight and capacity",
+    "sort_order": 11
+  },
+  {
+    "uid": "43ee252dca60",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "l.",
+    "outcome_text": "Identify, name and express fractions of a quantity such as time, an amount or a shape",
+    "sort_order": 12
+  },
+  {
+    "uid": "9ff7daa81b82",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "m.",
+    "outcome_text": "Engage with a fraction chart and identify equal fractions",
+    "sort_order": 13
+  },
+  {
+    "uid": "625bdcc9d5c2",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "n.",
+    "outcome_text": "Demonstrate the rules of equal sharing in real world scenarios",
+    "sort_order": 14
+  },
+  {
+    "uid": "2a8b3ccdb529",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Numbers",
+    "outcome_code": "o.",
+    "outcome_text": "Use ratio to describe the relationship between two quantities",
+    "sort_order": 15
+  },
+  {
+    "uid": "b54b174a8008",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "p.",
+    "outcome_text": "Sort coins and paper notes into groups to create a total amount",
+    "sort_order": 16
+  },
+  {
+    "uid": "090cab58c297",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "q.",
+    "outcome_text": "Recognise that different coins and paper notes have different values in a shopping experience",
+    "sort_order": 17
+  },
+  {
+    "uid": "39f2f2b9d180",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "r.",
+    "outcome_text": "Undertake transactions using money",
+    "sort_order": 18
+  },
+  {
+    "uid": "52dc0e1deda9",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "s.",
+    "outcome_text": "Calculate the total cost of a list of items",
+    "sort_order": 19
+  },
+  {
+    "uid": "76ac5c3a96b7",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "t.",
+    "outcome_text": "Round off prices to nearest one, ten, fifty, hundred euro",
+    "sort_order": 20
+  },
+  {
+    "uid": "9f8578425d76",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "u.",
+    "outcome_text": "Estimate a bill or a receipt and estimate change due",
+    "sort_order": 21
+  },
+  {
+    "uid": "aaeb21ceac12",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "v.",
+    "outcome_text": "Interpret a bill or a receipt",
+    "sort_order": 22
+  },
+  {
+    "uid": "b53861eb48a8",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "w.",
+    "outcome_text": "Recognise that money is received and spent in different ways",
+    "sort_order": 23
+  },
+  {
+    "uid": "82b4cd13302e",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "x.",
+    "outcome_text": "Plan and estimate the cost and savings required to attend an event or purchase an item",
+    "sort_order": 24
+  },
+  {
+    "uid": "697a964ac0f4",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY",
+    "plu_or_module_title": "Numeracy: Understanding number and money",
+    "element_title": "Money",
+    "outcome_code": "y.",
+    "outcome_text": "Make a payment or transfer money online/using a device",
+    "sort_order": 25
+  },
+  {
+    "uid": "8ccde68977dd",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "a.",
+    "outcome_text": "Recognise different instruments for telling the time",
+    "sort_order": 26
+  },
+  {
+    "uid": "26f27a230638",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "b.",
+    "outcome_text": "Identify times on an analogue clock",
+    "sort_order": 27
+  },
+  {
+    "uid": "deadbf156652",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "c.",
+    "outcome_text": "Read the time from a digital clock",
+    "sort_order": 28
+  },
+  {
+    "uid": "c0e99742f56a",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "d.",
+    "outcome_text": "Examine time in 12 hour and 24-hour formats",
+    "sort_order": 29
+  },
+  {
+    "uid": "93ed55558259",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "e.",
+    "outcome_text": "Recognise or identify the difference between a.m. and p.m.",
+    "sort_order": 30
+  },
+  {
+    "uid": "aacf8345cc42",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "f.",
+    "outcome_text": "Use language related to time in different settings",
+    "sort_order": 31
+  },
+  {
+    "uid": "5e47b8ac9ee5",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "g.",
+    "outcome_text": "Recognise key times of the day on a clock",
+    "sort_order": 32
+  },
+  {
+    "uid": "0976738d6d58",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "h.",
+    "outcome_text": "Recognise how many seconds in a minute, minutes in an hour, hours in a day, days in a week, weeks in a month, months in a year",
+    "sort_order": 33
+  },
+  {
+    "uid": "42e3cc1f33b4",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "i.",
+    "outcome_text": "Interpret and use a timeline",
+    "sort_order": 34
+  },
+  {
+    "uid": "4a4137fa39a0",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "j.",
+    "outcome_text": "Interpret and use a timetable",
+    "sort_order": 35
+  },
+  {
+    "uid": "71dfedeb8800",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "k.",
+    "outcome_text": "Demonstrate the ability to calculate and interpret the passage of time",
+    "sort_order": 36
+  },
+  {
+    "uid": "3ec75a107e7c",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Reading and measuring time",
+    "outcome_code": "l.",
+    "outcome_text": "Relate a difference in time to different places/regions",
+    "sort_order": 37
+  },
+  {
+    "uid": "ef0896935c0c",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Time management",
+    "outcome_code": "m.",
+    "outcome_text": "Identify and use time management skills such as: adapt to be ready on time, prepare before a given time, allow time to clear up",
+    "sort_order": 38
+  },
+  {
+    "uid": "52f7da60a0c9",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Time management",
+    "outcome_code": "n.",
+    "outcome_text": "Identify and sequence events in their daily routine using associated language and aid",
+    "sort_order": 39
+  },
+  {
+    "uid": "84be79f49b2b",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Time management",
+    "outcome_code": "o.",
+    "outcome_text": "Identify the importance of time management for everyday activities",
+    "sort_order": 40
+  },
+  {
+    "uid": "a184c8686809",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME",
+    "plu_or_module_title": "Numeracy: Understanding and managing time",
+    "element_title": "Time management",
+    "outcome_code": "p.",
+    "outcome_text": "Use calendars and schedules to plan activities",
+    "sort_order": 41
+  },
+  {
+    "uid": "2750d4fa7396",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Measurement",
+    "outcome_code": "a.",
+    "outcome_text": "Estimate, compare and measure length using appropriate measuring instruments",
+    "sort_order": 42
+  },
+  {
+    "uid": "dbc5787f87b5",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Measurement",
+    "outcome_code": "b.",
+    "outcome_text": "Estimate, compare and measure weight using appropriate measuring instruments",
+    "sort_order": 43
+  },
+  {
+    "uid": "f801d4cb2047",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Measurement",
+    "outcome_code": "c.",
+    "outcome_text": "Estimate, compare and measure capacity using appropriate measuring instruments",
+    "sort_order": 44
+  },
+  {
+    "uid": "5912a2a11da5",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Measurement",
+    "outcome_code": "d.",
+    "outcome_text": "Recognise and use standard units of measurement",
+    "sort_order": 45
+  },
+  {
+    "uid": "6870f90a4832",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Measurement",
+    "outcome_code": "e.",
+    "outcome_text": "Apply measurement skills in real world contexts",
+    "sort_order": 46
+  },
+  {
+    "uid": "2d368870ea35",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Measurement",
+    "outcome_code": "f.",
+    "outcome_text": "Calculate perimeter and area of simple shapes",
+    "sort_order": 47
+  },
+  {
+    "uid": "203f428797c8",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Location and position",
+    "outcome_code": "g.",
+    "outcome_text": "Use positional language to describe location",
+    "sort_order": 48
+  },
+  {
+    "uid": "af7d9559fda3",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Location and position",
+    "outcome_code": "h.",
+    "outcome_text": "Follow and give directions",
+    "sort_order": 49
+  },
+  {
+    "uid": "c3892479bbda",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Location and position",
+    "outcome_code": "i.",
+    "outcome_text": "Read and interpret simple maps",
+    "sort_order": 50
+  },
+  {
+    "uid": "6ecd958b0c7e",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Location and position",
+    "outcome_code": "j.",
+    "outcome_text": "Use grid references to locate places",
+    "sort_order": 51
+  },
+  {
+    "uid": "dfbe525b9ca5",
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION",
+    "plu_or_module_title": "Numeracy: Understanding measurement, location and position",
+    "element_title": "Location and position",
+    "outcome_code": "k.",
+    "outcome_text": "Understand the concept of scale on maps",
+    "sort_order": 52
   }
 ]

@@ -182,7 +182,7 @@ export const learningOutcomes = pgTable("learning_outcomes", {
   uid: varchar("uid", { length: 20 }).unique(),
   programmeId: varchar("programme_id").references(() => programmes.id),
   programmeCode: varchar("programme_code", { length: 20 }),
-  pluOrModuleCode: varchar("plu_or_module_code", { length: 50 }),
+  pluOrModuleCode: varchar("plu_or_module_code", { length: 100 }),
   pluOrModuleTitle: varchar("plu_or_module_title", { length: 150 }),
   elementName: varchar("element_name", { length: 150 }),
   outcomeCode: varchar("outcome_code", { length: 20 }).notNull(),
@@ -605,6 +605,7 @@ export type ElementCoverage = {
 export type PLUCoverage = {
   pluNumber: number;
   pluName: string;
+  pluCode: string; // Stable identifier: PLU number for Junior Cycle, pluOrModuleCode for Senior Cycle
   elements: ElementCoverage[];
   totalOutcomes: number;
   evidencedOutcomes: number;
