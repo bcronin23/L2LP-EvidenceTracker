@@ -505,16 +505,20 @@ export type PlanEvidenceLink = typeof planEvidenceLinks.$inferSelect;
 export const schemesOfWork = pgTable("schemes_of_work", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   organisationId: varchar("organisation_id").notNull().references(() => organisations.id, { onDelete: "cascade" }),
+  programmeId: varchar("programme_id").references(() => programmes.id, { onDelete: "set null" }),
   classGroup: varchar("class_group", { length: 50 }),
   term: varchar("term", { length: 50 }),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   storagePath: text("storage_path"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  fileSize: integer("file_size"),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_sow_organisation_id").on(table.organisationId),
+  index("idx_sow_programme_id").on(table.programmeId),
   index("idx_sow_class_group").on(table.classGroup),
   index("idx_sow_term").on(table.term),
 ]);
@@ -523,6 +527,10 @@ export const schemesOfWorkRelations = relations(schemesOfWork, ({ one, many }) =
   organisation: one(organisations, {
     fields: [schemesOfWork.organisationId],
     references: [organisations.id],
+  }),
+  programme: one(programmes, {
+    fields: [schemesOfWork.programmeId],
+    references: [programmes.id],
   }),
   studentLinks: many(schemeStudentLinks),
 }));
