@@ -148,6 +148,10 @@ export const students = pgTable("students", {
   cycle: varchar("cycle", { length: 10 }).default("junior"),
   programmeType: varchar("programme_type", { length: 10 }).default("l2lp"),
   notes: text("notes"),
+  photoStoragePath: text("photo_storage_path"),
+  photoFileName: text("photo_file_name"),
+  photoMime: varchar("photo_mime", { length: 100 }),
+  photoUpdatedAt: timestamp("photo_updated_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_students_user_id").on(table.userId),
@@ -167,6 +171,10 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
+  photoStoragePath: true,
+  photoFileName: true,
+  photoMime: true,
+  photoUpdatedAt: true,
 }).extend({
   organisationId: z.string().min(1, "Organisation ID is required"),
 });

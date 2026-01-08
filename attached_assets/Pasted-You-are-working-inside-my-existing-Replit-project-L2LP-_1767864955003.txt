@@ -1,0 +1,162 @@
+You are working inside my existing Replit project (“L2LP Tracker”). Do NOT rebuild the app from scratch. Extend what’s already there.
+
+OBJECTIVE
+Finalise the app so it can be made public for school use. It must be secure and each student must ONLY see the outcomes that belong to their assigned learning programme (plus any blended overrides).
+
+FILES PROVIDED
+Outcomes seed files:
+- /mnt/data/all_learning_outcomes_seed.csv
+- /mnt/data/all_learning_outcomes_seed.json
+Canonical repo seed file (must exist and be used by “Import bundled seed”):
+- server/seeds/all_learning_outcomes_seed.json
+
+NON-NEGOTIABLE RULES
+- Extend the current app; do not rewrite.
+- Scope all data server-side by school_id (multi-tenant).
+- Students only see outcomes from their own programme (plus overrides if used).
+- All uploads are PRIVATE (student photos, evidence, scheme files). Access via signed URLs only.
+- RBAC: ADMIN / STAFF / VIEWER + audit logging for sensitive actions.
+
+========================================================
+1) OUTCOMES: MUST BE COMPLETE + FIX MISSING / MIS-SHAPED MODULES
+========================================================
+A) Ensure SC L1 and SC L2 include the missing areas
+After import, these MUST appear as programme areas/modules:
+- SC_L1LP: Communication & Literacy, Numeracy, Looking after my Environment
+- SC_L2LP: Communication & Literacy, Numeracy
+
+If not present, fix seed content by generating missing rows from PDFs and appending to:
+server/seeds/all_learning_outcomes_seed.json
+(then re-import via the Admin “Import bundled seed” button)
+
+B) Split SC Personal Care into THREE modules (NOT one big module)
+Currently SC Personal Care is showing as one large module; it must be split into 3 modules.
+
+Implementation requirement:
+- Update the seed + programme structure so SC personal care outcomes are grouped under THREE distinct module/component records (component_code + component_title).
+- Move the relevant outcomes into each of the 3 modules by updating their component metadata in the seed.
+- Re-import with UPSERT (uid) so the database updates without duplicates.
+
+NOTE: Use whatever the official module titles are in the SC Personal Care documents. The key requirement is the UI displays three separate modules, each with its own outcomes count and coverage.
+
+C) Fix JC L2LP Preparing for Work outcome count
+Preparing for Work is currently showing 23 outcomes but must show 32.
+It is missing outcomes 5.24–5.32. Add these outcomes to the seed and ensure they import correctly under JC_L2LP → Preparing for Work.
+
+Add the following outcomes (verbatim) to JC_L2LP Preparing for Work in the seed:
+5.24 Gather background information to help plan and participate in the activity
+5.25 Sequence a number of steps to be taken to successfully complete the activity
+5.26 Assume a role in the activity and identify tasks linked with the role
+5.27 Use key words associated with the activity correctly
+5.28 Identify safety procedures and/or permissions required for the activity
+5.29 Learn how to use tools or equipment associated with the activity safely and correctly
+5.30 Participate in the activity
+5.31 Review the activity to evaluate its success
+5.32 Assess effectiveness of own role in the activity
+
+After import, JC_L2LP → Preparing for Work must show 32 outcomes and coverage must compute using that full set.
+
+D) Import/upsert rules (critical)
+- Outcomes must UPSERT by uid (never duplicate).
+- uid must be stable and unique across all programmes, e.g.:
+  uid = `${programme_code}::${plu_or_module_code}::${element_title||""}::${outcome_code}`
+- Show import summary totals per programme and per module.
+
+Admin tooling (must implement):
+- Admin page “Import Outcomes”
+  - upload CSV/JSON OR “Import bundled seed”
+  - preview first 50 rows + totals per programme + totals per module
+  - on confirm: upsert by uid
+- Admin page “Outcomes QA”
+  - show totals per programme/module
+  - flag anomalies (e.g. Preparing for Work < 32, SC Personal Care module count != 3)
+
+========================================================
+2) STUDENTS: MUST ASSIGN PROGRAMME + ONLY SHOW THAT PROGRAMME’S OUTCOMES
+========================================================
+DB:
+- students.programme_id is REQUIRED
+
+UI:
+- Student create/edit form MUST have required Programme dropdown (JC_L1LP, JC_L2LP, SC_L1LP, SC_L2LP)
+- Block save if no programme selected
+- Student profile header shows programme badge
+
+Student outcome visibility rules:
+- Any Student Coverage / PLU or Module list must ONLY be generated from:
+  learning_outcomes where programme_id == student.programme_id (plus overrides if enabled)
+- Do not query outcomes across all programmes then group.
+- No “PLU 0” labels; use the actual codes/titles from seeded data.
+- Deduplicate by (programme_id, plu_or_module_code, plu_or_module_title).
+
+(Optional) Blended overrides (if already included in your build):
+- Allow per-area overrides, but student still only sees outcomes from:
+  base programme + override programmes for specific areas (nothing else).
+
+========================================================
+3) NEW FEATURE: STUDENT PHOTO ON PROFILE (PRIVATE + SECURE)
+========================================================
+Add the ability to upload a student photo and show it on the student profile.
+
+DB (students table):
+Add fields:
+- photo_storage_path text null
+- photo_file_name text null
+- photo_mime text null
+- photo_updated_at timestamptz null
+
+Storage:
+- Student photos must be stored in PRIVATE storage.
+- Display photo using a signed URL endpoint that checks:
+  - user authenticated
+  - user.school_id == student.school_id
+  - role allowed (ADMIN/STAFF/VIEWER read; ADMIN/STAFF write)
+
+UI:
+- Student create/edit form:
+  - “Upload student photo” button (accept images jpg/png/heic if supported)
+  - preview thumbnail after upload
+  - “Remove photo” option (ADMIN/STAFF only)
+- Student profile header shows photo avatar (fallback initials)
+
+Audit:
+- Log student photo upload/remove events.
+
+========================================================
+4) SCHEMES OF WORK = FILE UPLOAD ONLY (SIMPLIFY)
+========================================================
+Schemes of work must NOT be created in the website. They are file-only uploads.
+
+A scheme of work is:
+- file upload (PDF/DOCX/PPTX/XLSX)
+- metadata (title required, programme required, optional term/class group)
+- assignment to student and/or class group
+- view via signed URL
+
+Student Scheme tab:
+- list assigned scheme files (direct + class group)
+- “Open” button (signed URL)
+- no scheme builder UI
+
+========================================================
+5) EVIDENCE UPLOAD + OUTCOME TAGGING (FILTERED TO STUDENT PROGRAMME)
+========================================================
+Evidence upload must:
+- allow photo/video/document selection
+- store privately
+- link evidence to one/more outcomes
+- outcome picker ONLY shows outcomes for the student’s effective programme set (base + overrides if used)
+
+========================================================
+6) QA CHECKLIST (MUST CONFIRM IN LOGS/UI)
+========================================================
+After completing changes:
+1) Import bundled seed succeeds and shows totals per programme/module
+2) SC_L1LP includes Communication & Literacy + Numeracy + Looking after my Environment
+3) SC Personal Care displays as 3 modules (not 1)
+4) JC_L2LP Preparing for Work shows 32 outcomes including 5.24–5.32
+5) Student cannot be created without programme
+6) Student coverage list shows ONLY their programme outcomes (no mixed duplicates, no PLU 0)
+7) Student photo upload works; photo is private; displays via signed URL
+8) Scheme upload works; file opens via signed URL
+9) Cross-school access attempts are blocked

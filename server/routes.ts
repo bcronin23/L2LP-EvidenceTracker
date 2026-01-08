@@ -457,6 +457,131 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== Student Photo Upload ====================
+  // Get signed URL for student photo upload (admin/staff only)
+  app.get("/api/students/:id/photo-upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+      
+      if (membership.role !== "admin" && membership.role !== "staff") {
+        return res.status(403).json({ message: "Admin or staff access required" });
+      }
+      
+      // Verify student belongs to this organisation
+      const student = await storage.getStudentByOrganisation(req.params.id, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      const uploadUrl = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadUrl });
+    } catch (error) {
+      console.error("Error getting student photo upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Update student photo metadata after upload
+  app.patch("/api/students/:id/photo", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+      
+      if (membership.role !== "admin" && membership.role !== "staff") {
+        return res.status(403).json({ message: "Admin or staff access required" });
+      }
+      
+      const { storagePath, fileName, mimeType } = req.body;
+      if (!storagePath) {
+        return res.status(400).json({ message: "Storage path is required" });
+      }
+      
+      const student = await storage.updateStudentByOrganisation(req.params.id, membership.organisation.id, {
+        photoStoragePath: storagePath,
+        photoFileName: fileName || null,
+        photoMime: mimeType || null,
+        photoUpdatedAt: new Date(),
+      } as any);
+      
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      res.json(student);
+    } catch (error) {
+      console.error("Error updating student photo:", error);
+      res.status(500).json({ message: "Failed to update student photo" });
+    }
+  });
+
+  // Remove student photo (admin/staff only)
+  app.delete("/api/students/:id/photo", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+      
+      if (membership.role !== "admin" && membership.role !== "staff") {
+        return res.status(403).json({ message: "Admin or staff access required" });
+      }
+      
+      const student = await storage.updateStudentByOrganisation(req.params.id, membership.organisation.id, {
+        photoStoragePath: null,
+        photoFileName: null,
+        photoMime: null,
+        photoUpdatedAt: null,
+      } as any);
+      
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      res.json(student);
+    } catch (error) {
+      console.error("Error removing student photo:", error);
+      res.status(500).json({ message: "Failed to remove student photo" });
+    }
+  });
+
+  // Get signed URL for reading student photo (private storage)
+  app.get("/api/students/:id/photo-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+      
+      const student = await storage.getStudentByOrganisation(req.params.id, membership.organisation.id);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      if (!student.photoStoragePath) {
+        return res.status(404).json({ message: "No photo configured" });
+      }
+      
+      const signedUrl = await objectStorageService.getSignedReadUrl(student.photoStoragePath, 3600);
+      res.json({ signedUrl, expiresIn: 3600 });
+    } catch (error) {
+      console.error("Error getting student photo URL:", error);
+      res.status(500).json({ message: "Failed to get photo URL" });
+    }
+  });
+
   // ==================== Student Evidence & Coverage ====================
   app.get("/api/students/:id/evidence", isAuthenticated, async (req: any, res) => {
     try {
@@ -664,6 +789,93 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching outcomes by programme:", error);
       res.status(500).json({ message: "Failed to fetch outcomes" });
+    }
+  });
+
+  // Admin QA endpoint - get outcome statistics and anomalies
+  app.get("/api/admin/outcomes-qa", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const outcomes = await storage.getOutcomes();
+      
+      // Calculate totals by programme
+      const programmeTotals: Record<string, number> = {};
+      outcomes.forEach(o => {
+        const prog = o.programmeCode || "Unknown";
+        programmeTotals[prog] = (programmeTotals[prog] || 0) + 1;
+      });
+
+      // Calculate totals by module
+      const moduleTotals: Record<string, Record<string, number>> = {};
+      outcomes.forEach(o => {
+        const prog = o.programmeCode || "Unknown";
+        const module = o.pluOrModuleTitle || o.pluOrModuleCode || "Unknown";
+        if (!moduleTotals[prog]) moduleTotals[prog] = {};
+        moduleTotals[prog][module] = (moduleTotals[prog][module] || 0) + 1;
+      });
+
+      // Check for anomalies
+      const anomalies: { type: string; message: string; severity: string }[] = [];
+
+      // Check JC_L2LP Preparing for Work should have 32 outcomes
+      const jcL2Plu5Count = outcomes.filter(o => 
+        o.programmeCode === "JC_L2LP" && o.pluOrModuleCode === "JC-L2-PLU5"
+      ).length;
+      if (jcL2Plu5Count < 32) {
+        anomalies.push({
+          type: "missing_outcomes",
+          message: `JC_L2LP Preparing for Work has ${jcL2Plu5Count} outcomes (expected 32)`,
+          severity: "error",
+        });
+      }
+
+      // Check SC Personal Care should have 3 modules each
+      for (const prog of ["SC_L1LP", "SC_L2LP"]) {
+        const personalCareModules = new Set(
+          outcomes
+            .filter(o => 
+              o.programmeCode === prog && 
+              (o.pluOrModuleTitle?.includes("Wellbeing") ||
+               o.pluOrModuleTitle?.includes("Relationships") ||
+               o.pluOrModuleTitle?.includes("Safety"))
+            )
+            .map(o => o.pluOrModuleCode)
+        );
+        if (personalCareModules.size !== 3) {
+          anomalies.push({
+            type: "module_count",
+            message: `${prog} Personal Care has ${personalCareModules.size} modules (expected 3)`,
+            severity: personalCareModules.size < 3 ? "error" : "warning",
+          });
+        }
+      }
+
+      // Check for programmes with very low outcome counts
+      for (const [prog, count] of Object.entries(programmeTotals)) {
+        if (count < 50 && prog !== "Unknown") {
+          anomalies.push({
+            type: "low_count",
+            message: `${prog} has only ${count} outcomes (may be incomplete)`,
+            severity: "warning",
+          });
+        }
+      }
+
+      res.json({
+        totalOutcomes: outcomes.length,
+        programmeTotals,
+        moduleTotals,
+        anomalies,
+      });
+    } catch (error) {
+      console.error("Error fetching outcomes QA data:", error);
+      res.status(500).json({ message: "Failed to fetch QA data" });
     }
   });
 

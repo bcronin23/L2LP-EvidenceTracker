@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen, Palette, Upload, Image } from "lucide-react";
+import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen, Palette, Upload, Image, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,13 @@ interface OrganisationMember {
   userId: string;
   role: "admin" | "staff";
   joinedAt: string;
+}
+
+interface OutcomesQAData {
+  totalOutcomes: number;
+  programmeTotals: Record<string, number>;
+  moduleTotals: Record<string, Record<string, number>>;
+  anomalies: { type: string; message: string; severity: string }[];
 }
 
 const PRESET_COLORS = [
@@ -46,6 +53,11 @@ export default function OrganisationAdmin() {
 
   const { data: members, isLoading: membersLoading } = useQuery<OrganisationMember[]>({
     queryKey: ["/api/organisation/members"],
+    enabled: isAdmin,
+  });
+
+  const { data: outcomesQA, isLoading: qaLoading } = useQuery<OutcomesQAData>({
+    queryKey: ["/api/admin/outcomes-qa"],
     enabled: isAdmin,
   });
 
@@ -158,6 +170,7 @@ export default function OrganisationAdmin() {
     onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ["/api/outcomes"] });
       qc.invalidateQueries({ queryKey: ["/api/programmes"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/outcomes-qa"] });
       const programmeTotals = data.programmeTotals || {};
       const programmeList = Object.entries(programmeTotals)
         .map(([prog, count]) => `${prog}: ${count}`)
@@ -516,6 +529,62 @@ export default function OrganisationAdmin() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
+
+              {/* Outcomes QA Section */}
+              {qaLoading ? (
+                <div className="flex items-center justify-center p-4">
+                  <LoadingSpinner />
+                </div>
+              ) : outcomesQA && (
+                <div className="space-y-4 mt-4 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Outcomes Quality Check</span>
+                    {outcomesQA.anomalies.length === 0 ? (
+                      <Badge variant="outline" className="ml-2 gap-1">
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        All checks passed
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="ml-2 gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {outcomesQA.anomalies.length} issue{outcomesQA.anomalies.length > 1 ? "s" : ""}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                    {Object.entries(outcomesQA.programmeTotals).sort().map(([prog, count]) => (
+                      <div key={prog} className="p-2 border rounded-md">
+                        <div className="font-medium">{prog.replace("_", " ")}</div>
+                        <div className="text-muted-foreground">{count} outcomes</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {outcomesQA.anomalies.length > 0 && (
+                    <div className="space-y-2">
+                      {outcomesQA.anomalies.map((anomaly, idx) => (
+                        <div 
+                          key={idx}
+                          className={`p-2 rounded-md text-sm flex items-center gap-2 ${
+                            anomaly.severity === "error" 
+                              ? "bg-destructive/10 text-destructive" 
+                              : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
+                          }`}
+                        >
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          {anomaly.message}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    Total: {outcomesQA.totalOutcomes} outcomes across {Object.keys(outcomesQA.programmeTotals).length} programmes
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </main>
