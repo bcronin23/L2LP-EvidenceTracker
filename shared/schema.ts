@@ -314,6 +314,7 @@ export const evidenceRelations = relations(evidence, ({ one, many }) => ({
     references: [students.id],
   }),
   evidenceOutcomes: many(evidenceOutcomes),
+  files: many(evidenceFiles),
 }));
 
 export const insertEvidenceSchema = createInsertSchema(evidence).omit({
@@ -355,6 +356,37 @@ export const insertEvidenceOutcomeSchema = createInsertSchema(evidenceOutcomes).
 
 export type InsertEvidenceOutcome = z.infer<typeof insertEvidenceOutcomeSchema>;
 export type EvidenceOutcome = typeof evidenceOutcomes.$inferSelect;
+
+// ============================================
+// EVIDENCE FILES TABLE (multi-file support)
+// ============================================
+export const evidenceFiles = pgTable("evidence_files", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  evidenceId: varchar("evidence_id").notNull().references(() => evidence.id, { onDelete: "cascade" }),
+  storagePath: text("storage_path").notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }),
+  fileSize: integer("file_size"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_evidence_files_evidence").on(table.evidenceId),
+]);
+
+export const evidenceFilesRelations = relations(evidenceFiles, ({ one }) => ({
+  evidence: one(evidence, {
+    fields: [evidenceFiles.evidenceId],
+    references: [evidence.id],
+  }),
+}));
+
+export const insertEvidenceFileSchema = createInsertSchema(evidenceFiles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEvidenceFile = z.infer<typeof insertEvidenceFileSchema>;
+export type EvidenceFile = typeof evidenceFiles.$inferSelect;
 
 // ============================================
 // STUDENT SUPPORT PLANS TABLE

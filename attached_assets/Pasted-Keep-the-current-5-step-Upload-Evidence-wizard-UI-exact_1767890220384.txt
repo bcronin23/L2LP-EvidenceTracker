@@ -1,0 +1,47 @@
+Keep the current 5-step “Upload Evidence” wizard UI exactly as-is (same layout, cards, buttons). Do NOT redesign it.
+
+CHANGE REQUEST (Step 2: Upload File)
+I want the “Choose File” option to allow selecting MULTIPLE files at once while keeping the same style.
+
+UI REQUIREMENTS
+1) “Choose File” must open the device picker with multi-select enabled.
+   - Accept: images, videos, audio, PDF, Word, PowerPoint, Excel
+   - Max 50MB per file (same as now)
+2) After selection, show a clean list below the cards:
+   - Each row: file icon + filename + size + remove (X)
+   - Show a small summary line: “3 files selected”
+3) The “Next” button should proceed with multiple files attached.
+4) Users must be able to remove individual files before moving on.
+5) If user selects files again, append them (do not overwrite), unless they hit “Clear all”.
+
+IMPLEMENTATION DETAILS (Frontend)
+- Update the file input used by “Choose File” to include:
+  - multiple
+  - accept set to the same supported list
+- Store selected files in state as an array: File[]
+- Validation:
+  - block files > 50MB with a friendly message
+  - optionally block total > 200MB (if needed) but keep per-file 50MB rule
+- When clicking Next: pass the array of files to the backend upload step.
+
+IMPLEMENTATION DETAILS (Backend + DB)
+- A single Evidence entry must support multiple files.
+- Ensure database supports multi-file evidence:
+  - evidence table holds metadata (student_id, notes, uploaded_by, created_at)
+  - evidence_files table stores each uploaded file (evidence_id FK, storage_path, file_name, mime, size)
+- On submit:
+  1) create evidence record once
+  2) upload each file to PRIVATE storage
+  3) insert a row into evidence_files for each file
+  4) link evidence to selected outcomes via evidence_outcomes (existing)
+
+SECURITY
+- Files stored privately
+- Access only via signed URLs
+- school_id scoped server-side
+
+QA
+- Test: select 3 files (photo+video+pdf) in Step 2 and confirm:
+  - all 3 show in the list with remove buttons
+  - evidence saves as ONE entry with 3 files
+  - library/evidence detail shows 3 files
