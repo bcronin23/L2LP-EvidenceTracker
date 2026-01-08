@@ -388,18 +388,22 @@ export default function UploadEvidence() {
 
   const selectedOutcomes = outcomes?.filter((o) => formData.outcomeIds.includes(o.id)) || [];
 
+  // Check if all files are fully uploaded (not uploading AND have storagePath)
+  const allFilesUploaded = formData.files.length === 0 || 
+    formData.files.every(f => !f.isUploading && f.storagePath);
+
   const canProceed = () => {
     switch (currentStep) {
       case "student":
         return !!formData.studentId;
       case "file":
-        return !formData.files.some(f => f.isUploading);
+        return allFilesUploaded;
       case "outcomes":
         return formData.outcomeIds.length > 0;
       case "details":
         return !!formData.dateOfActivity && !!formData.evidenceType && !!formData.setting;
       case "review":
-        return true;
+        return allFilesUploaded;
       default:
         return false;
     }

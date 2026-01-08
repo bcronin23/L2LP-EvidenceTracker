@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -20,17 +21,44 @@ const evidenceTypeIcons: Record<string, typeof Camera> = {
   other: File,
 };
 
+interface SignedUrlFile {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  signedUrl: string;
+}
+
 interface EvidenceDetailDialogProps {
   evidence: EvidenceWithOutcomes | null;
   onClose: () => void;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileIcon(mimeType: string | null | undefined) {
+  if (!mimeType) return File;
+  if (mimeType.startsWith("image/")) return Camera;
+  if (mimeType.startsWith("video/")) return Video;
+  if (mimeType.startsWith("audio/")) return Mic;
+  return FileText;
+}
+
 export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialogProps) {
+  const { data: signedUrlsData } = useQuery<SignedUrlFile[]>({
+    queryKey: ["/api/evidence", evidence?.id, "files-signed-urls"],
+    enabled: !!evidence?.id && (evidence?.files?.length ?? 0) > 0,
+  });
+
   if (!evidence) return null;
 
   const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
-  const isImage = evidence.fileType?.startsWith("image/");
-  const isVideo = evidence.fileType?.startsWith("video/");
+  const files = signedUrlsData || [];
+  const hasFiles = files.length > 0;
 
   return (
     <Dialog open={!!evidence} onOpenChange={(open) => !open && onClose()}>
@@ -44,29 +72,68 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
 
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4">
-            {evidence.fileUrl && (
-              <div className="rounded-md overflow-hidden bg-muted">
-                {isImage ? (
-                  <img
-                    src={evidence.fileUrl}
-                    alt={evidence.fileName || "Evidence"}
-                    className="w-full h-auto max-h-64 object-contain"
-                  />
-                ) : isVideo ? (
-                  <video
-                    src={evidence.fileUrl}
-                    controls
-                    className="w-full h-auto max-h-64"
-                  />
-                ) : (
-                  <div className="p-8 text-center">
-                    <File className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium">{evidence.fileName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {evidence.fileSize ? `${Math.round(evidence.fileSize / 1024)} KB` : "File"}
-                    </p>
-                  </div>
-                )}
+            {hasFiles && (
+              <div className="space-y-3">
+                {files.map((file, index) => {
+                  const isImage = file.mimeType?.startsWith("image/");
+                  const isVideo = file.mimeType?.startsWith("video/");
+                  const FileIcon = getFileIcon(file.mimeType);
+
+                  return (
+                    <div key={file.id || index} className="rounded-md overflow-hidden bg-muted">
+                      {isImage ? (
+                        <img
+                          src={file.signedUrl}
+                          alt={file.fileName || "Evidence"}
+                          className="w-full h-auto max-h-64 object-contain"
+                        />
+                      ) : isVideo ? (
+                        <video
+                          src={file.signedUrl}
+                          controls
+                          className="w-full h-auto max-h-64"
+                        />
+                      ) : (
+                        <div className="p-4 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
+                            <FileIcon className="h-5 w-5 text-accent-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{file.fileName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(file.fileSize)}
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="icon" asChild>
+                            <a href={file.signedUrl} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </div>
+                      )}
+                      {(isImage || isVideo) && (
+                        <div className="p-2 flex items-center justify-between gap-2 border-t bg-background/50">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground truncate">{file.fileName}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                              <a href={file.signedUrl} target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                              <a href={file.signedUrl} download={file.fileName}>
+                                <Download className="h-3 w-3" />
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -179,23 +246,6 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
             )}
           </div>
         </ScrollArea>
-
-        {evidence.fileUrl && (
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" asChild>
-              <a href={evidence.fileUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open
-              </a>
-            </Button>
-            <Button variant="outline" asChild>
-              <a href={evidence.fileUrl} download={evidence.fileName || "evidence"}>
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </a>
-            </Button>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
