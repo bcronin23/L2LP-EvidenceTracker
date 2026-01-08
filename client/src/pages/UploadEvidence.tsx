@@ -76,13 +76,20 @@ const steps: { key: Step; label: string; icon: typeof User }[] = [
   { key: "review", label: "Review", icon: Check },
 ];
 
+interface UploadedFile {
+  file: File;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  previewUrl?: string;
+  isUploading: boolean;
+  uploadProgress: number;
+}
+
 interface FormData {
   studentId: string;
-  file: File | null;
-  fileUrl: string;
-  fileName: string;
-  fileType: string;
-  fileSize: number;
+  files: UploadedFile[];
   outcomeIds: string[];
   dateOfActivity: string;
   evidenceType: string;
@@ -109,11 +116,7 @@ export default function UploadEvidence() {
 
   const [formData, setFormData] = useState<FormData>({
     studentId: preSelectedStudent,
-    file: null,
-    fileUrl: "",
-    fileName: "",
-    fileType: "",
-    fileSize: 0,
+    files: [],
     outcomeIds: preSelectedOutcome ? [preSelectedOutcome] : [],
     dateOfActivity: format(new Date(), "yyyy-MM-dd"),
     evidenceType: "photo",
@@ -126,16 +129,12 @@ export default function UploadEvidence() {
     independenceLevel: "independent",
   });
 
-  const { uploadFile, isUploading, progress } = useUpload({
-    onSuccess: (response) => {
-      setFormData((prev) => ({
-        ...prev,
-        fileUrl: response.objectPath,
-      }));
-    },
-    onError: () => {
-      toast({ title: "Failed to upload file", variant: "destructive" });
-    },
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const { uploadFile } = useUpload({
+    onSuccess: () => {},
+    onError: () => {},
   });
 
   const { data: students, isLoading: studentsLoading } = useQuery<Student[]>({
@@ -148,6 +147,16 @@ export default function UploadEvidence() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      // Build files array from uploaded files
+      const uploadedFiles = formData.files
+        .filter(f => f.storagePath && !f.isUploading)
+        .map(f => ({
+          storagePath: f.storagePath,
+          fileName: f.fileName,
+          mimeType: f.mimeType,
+          fileSize: f.fileSize,
+        }));
+
       const res = await apiRequest("POST", "/api/evidence", {
         studentId: formData.studentId,
         dateOfActivity: formData.dateOfActivity,
@@ -159,15 +168,16 @@ export default function UploadEvidence() {
         nextSteps: formData.nextSteps || null,
         staffInitials: formData.staffInitials || null,
         independenceLevel: formData.independenceLevel,
-        fileUrl: formData.fileUrl || null,
-        fileName: formData.fileName || null,
-        fileType: formData.fileType || null,
-        fileSize: formData.fileSize || null,
         outcomeIds: formData.outcomeIds,
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
       });
       return res.json();
     },
     onSuccess: () => {
+      // Clean up preview URLs
+      formData.files.forEach(f => {
+        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       queryClient.invalidateQueries({ queryKey: ["/api/evidence"] });
       queryClient.invalidateQueries({ queryKey: ["/api/students", formData.studentId] });
@@ -189,55 +199,104 @@ export default function UploadEvidence() {
     "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ];
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
-    if (file.size > MAX_FILE_SIZE) {
-      toast({ title: "File too large", description: "Maximum file size is 50MB", variant: "destructive" });
-      return;
+    const filesToAdd: UploadedFile[] = [];
+    const errors: string[] = [];
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: File too large (max 50MB)`);
+        continue;
+      }
+
+      if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
+        errors.push(`${file.name}: Unsupported file type`);
+        continue;
+      }
+
+      const previewUrl = (file.type.startsWith("image/") || file.type.startsWith("video/"))
+        ? URL.createObjectURL(file)
+        : undefined;
+
+      filesToAdd.push({
+        file,
+        storagePath: "",
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        previewUrl,
+        isUploading: true,
+        uploadProgress: 0,
+      });
     }
 
-    if (ALLOWED_TYPES.length > 0 && !ALLOWED_TYPES.includes(file.type) && file.type !== "") {
-      toast({ title: "Unsupported file type", description: "Please upload an image, video, audio, or document file", variant: "destructive" });
-      return;
+    if (errors.length > 0) {
+      toast({ 
+        title: "Some files could not be added", 
+        description: errors.slice(0, 3).join("; ") + (errors.length > 3 ? `... and ${errors.length - 3} more` : ""),
+        variant: "destructive" 
+      });
     }
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+    if (filesToAdd.length === 0) return;
 
-    if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else {
-      setPreviewUrl(null);
-    }
-
+    // Add files to state
     setFormData((prev) => ({
       ...prev,
-      file,
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
+      files: [...prev.files, ...filesToAdd],
     }));
 
-    await uploadFile(file);
+    // Upload each file
+    for (const uploadedFile of filesToAdd) {
+      try {
+        const response = await uploadFile(uploadedFile.file);
+        if (response?.objectPath) {
+          setFormData((prev) => ({
+            ...prev,
+            files: prev.files.map(f => 
+              f.file === uploadedFile.file 
+                ? { ...f, storagePath: response.objectPath, isUploading: false, uploadProgress: 100 }
+                : f
+            ),
+          }));
+        } else {
+          throw new Error("Upload failed");
+        }
+      } catch {
+        setFormData((prev) => ({
+          ...prev,
+          files: prev.files.filter(f => f.file !== uploadedFile.file),
+        }));
+        toast({ title: `Failed to upload ${uploadedFile.fileName}`, variant: "destructive" });
+      }
+    }
+
+    // Reset the input so the same files can be selected again if needed
+    e.target.value = "";
   };
 
-  const clearFile = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
+  const removeFile = (fileToRemove: UploadedFile) => {
+    if (fileToRemove.previewUrl) {
+      URL.revokeObjectURL(fileToRemove.previewUrl);
     }
     setFormData((prev) => ({
       ...prev,
-      file: null,
-      fileUrl: "",
-      fileName: "",
-      fileType: "",
-      fileSize: 0,
+      files: prev.files.filter(f => f !== fileToRemove),
+    }));
+  };
+
+  const clearAllFiles = () => {
+    formData.files.forEach(f => {
+      if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+    });
+    setFormData((prev) => ({
+      ...prev,
+      files: [],
     }));
   };
 
@@ -334,7 +393,7 @@ export default function UploadEvidence() {
       case "student":
         return !!formData.studentId;
       case "file":
-        return !isUploading;
+        return !formData.files.some(f => f.isUploading);
       case "outcomes":
         return formData.outcomeIds.length > 0;
       case "details":
@@ -449,112 +508,118 @@ export default function UploadEvidence() {
 
             {currentStep === "file" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Upload File (Optional)</h2>
+                <h2 className="text-lg font-semibold">Upload Files (Optional)</h2>
                 <p className="text-sm text-muted-foreground">
-                  Upload a photo, video, or document as evidence. You can skip this step for observations.
+                  Upload photos, videos, or documents as evidence. You can select multiple files or skip this step for observations.
                 </p>
 
-                {formData.file ? (
-                  <Card>
-                    <CardContent className="p-4">
-                      {previewUrl && formData.fileType?.startsWith("image/") && (
-                        <div className="mb-4">
-                          <img
-                            src={previewUrl}
-                            alt="Preview"
-                            className="w-full max-h-48 object-contain rounded-md bg-muted"
-                          />
-                        </div>
-                      )}
-                      {previewUrl && formData.fileType?.startsWith("video/") && (
-                        <div className="mb-4">
-                          <video
-                            src={previewUrl}
-                            className="w-full max-h-48 rounded-md bg-muted"
-                            controls
-                          />
-                        </div>
-                      )}
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
-                          {formData.fileType?.startsWith("image/") ? (
-                            <Camera className="h-6 w-6 text-accent-foreground" />
-                          ) : formData.fileType?.startsWith("video/") ? (
-                            <Video className="h-6 w-6 text-accent-foreground" />
-                          ) : formData.fileType?.startsWith("audio/") ? (
-                            <Mic className="h-6 w-6 text-accent-foreground" />
-                          ) : (
-                            <FileText className="h-6 w-6 text-accent-foreground" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{formData.fileName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatFileSize(formData.fileSize)}
-                          </p>
-                        </div>
-                        {isUploading ? (
-                          <div className="w-24">
-                            <Progress value={progress} className="h-2" />
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <Card className="cursor-pointer hover-elevate transition-colors h-full">
+                      <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
+                        <Camera className="h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="font-medium text-sm">Take Photo</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Use camera
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleFileSelect}
+                      data-testid="input-camera-capture"
+                    />
+                  </label>
+                  <label className="block">
+                    <Card className="cursor-pointer hover-elevate transition-colors h-full">
+                      <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
+                        <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="font-medium text-sm">Choose Files</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Select multiple
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                      multiple
+                      onChange={handleFileSelect}
+                      data-testid="input-file-upload"
+                    />
+                  </label>
+                </div>
+
+                {formData.files.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">
+                        {formData.files.length} file{formData.files.length !== 1 ? "s" : ""} selected
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearAllFiles}
+                        data-testid="button-clear-all-files"
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                    <Card>
+                      <CardContent className="p-2 space-y-1">
+                        {formData.files.map((f, index) => (
+                          <div
+                            key={`${f.fileName}-${index}`}
+                            className="flex items-center gap-3 p-2 rounded-md hover-elevate"
+                          >
+                            <div className="w-8 h-8 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
+                              {f.mimeType?.startsWith("image/") ? (
+                                <Camera className="h-4 w-4 text-accent-foreground" />
+                              ) : f.mimeType?.startsWith("video/") ? (
+                                <Video className="h-4 w-4 text-accent-foreground" />
+                              ) : f.mimeType?.startsWith("audio/") ? (
+                                <Mic className="h-4 w-4 text-accent-foreground" />
+                              ) : (
+                                <FileText className="h-4 w-4 text-accent-foreground" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{f.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatFileSize(f.fileSize)}
+                              </p>
+                            </div>
+                            {f.isUploading ? (
+                              <div className="w-16">
+                                <Progress value={f.uploadProgress} className="h-2" />
+                              </div>
+                            ) : f.storagePath ? (
+                              <Badge variant="secondary" className="text-xs">Uploaded</Badge>
+                            ) : null}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFile(f)}
+                              disabled={f.isUploading}
+                              data-testid={`button-remove-file-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
                           </div>
-                        ) : formData.fileUrl ? (
-                          <Badge variant="secondary">Uploaded</Badge>
-                        ) : null}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={clearFile}
-                          data-testid="button-clear-file"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="block">
-                      <Card className="cursor-pointer hover-elevate transition-colors h-full">
-                        <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
-                          <Camera className="h-10 w-10 text-muted-foreground mb-3" />
-                          <p className="font-medium text-sm">Take Photo</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Use camera
-                          </p>
-                        </CardContent>
-                      </Card>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileSelect}
-                        data-testid="input-camera-capture"
-                      />
-                    </label>
-                    <label className="block">
-                      <Card className="cursor-pointer hover-elevate transition-colors h-full">
-                        <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
-                          <Upload className="h-10 w-10 text-muted-foreground mb-3" />
-                          <p className="font-medium text-sm">Choose File</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Photo, video, doc
-                          </p>
-                        </CardContent>
-                      </Card>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                        onChange={handleFileSelect}
-                        data-testid="input-file-upload"
-                      />
-                    </label>
+                        ))}
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Supported: images, videos, audio, PDF, Word, PowerPoint, Excel (max 50MB)
+                  Supported: images, videos, audio, PDF, Word, PowerPoint, Excel (max 50MB per file)
                 </p>
               </div>
             )}
@@ -832,14 +897,21 @@ export default function UploadEvidence() {
                       </div>
                     </div>
 
-                    {formData.fileName && (
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-md bg-accent flex items-center justify-center">
-                          <File className="h-5 w-5 text-accent-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">File</p>
-                          <p className="font-medium truncate max-w-xs">{formData.fileName}</p>
+                    {formData.files.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Files ({formData.files.length})
+                        </p>
+                        <div className="space-y-1">
+                          {formData.files.map((f, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <File className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span className="text-sm truncate">{f.fileName}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ({formatFileSize(f.fileSize)})
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
