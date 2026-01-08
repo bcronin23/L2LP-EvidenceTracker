@@ -620,6 +620,7 @@ export type SchemeStudentLink = typeof schemeStudentLinks.$inferSelect;
 export type EvidenceWithOutcomes = Evidence & {
   outcomes: LearningOutcome[];
   student?: Student;
+  files?: EvidenceFile[];
 };
 
 export type OutcomeCoverage = {

@@ -3,6 +3,7 @@ import {
   learningOutcomes,
   evidence,
   evidenceOutcomes,
+  evidenceFiles,
   organisations,
   organisationMembers,
   staffProfiles,
@@ -52,6 +53,8 @@ import {
   type SchemeStudentLink,
   type InsertSchemeStudentLink,
   type SchemeOfWorkWithStudents,
+  type EvidenceFile,
+  type InsertEvidenceFile,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, count, or, isNull } from "drizzle-orm";
@@ -101,8 +104,13 @@ export interface IStorage {
   getEvidenceByOrganisation(organisationId: string): Promise<EvidenceWithOutcomes[]>;
   getStudentEvidenceByOrganisation(studentId: string, organisationId: string): Promise<EvidenceWithOutcomes[]>;
   getEvidenceByOrgAndId(id: string, organisationId: string): Promise<EvidenceWithOutcomes | undefined>;
-  createEvidence(data: InsertEvidence, outcomeIds: string[]): Promise<Evidence>;
+  createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[]): Promise<Evidence>;
   deleteEvidenceByOrganisation(id: string, organisationId: string): Promise<boolean>;
+  
+  // Evidence Files (multi-file support)
+  getEvidenceFiles(evidenceId: string): Promise<EvidenceFile[]>;
+  addEvidenceFile(data: InsertEvidenceFile): Promise<EvidenceFile>;
+  deleteEvidenceFile(fileId: string): Promise<boolean>;
 
   // Coverage (scoped by organisation)
   getStudentCoverageByOrganisation(studentId: string, organisationId: string): Promise<OutcomeCoverage[]>;
@@ -508,7 +516,7 @@ export class DatabaseStorage implements IStorage {
     return enriched[0];
   }
 
-  async createEvidence(data: InsertEvidence, outcomeIds: string[]): Promise<Evidence> {
+  async createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[]): Promise<Evidence> {
     if (!data.organisationId) {
       throw new Error("Organisation ID is required to create evidence");
     }
@@ -523,7 +531,36 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    // Insert multiple files if provided
+    if (files && files.length > 0) {
+      await db.insert(evidenceFiles).values(
+        files.map((file, index) => ({
+          ...file,
+          evidenceId: evidenceItem.id,
+          sortOrder: file.sortOrder ?? index,
+        }))
+      );
+    }
+
     return evidenceItem;
+  }
+  
+  async getEvidenceFiles(evidenceId: string): Promise<EvidenceFile[]> {
+    return db
+      .select()
+      .from(evidenceFiles)
+      .where(eq(evidenceFiles.evidenceId, evidenceId))
+      .orderBy(evidenceFiles.sortOrder);
+  }
+  
+  async addEvidenceFile(data: InsertEvidenceFile): Promise<EvidenceFile> {
+    const [file] = await db.insert(evidenceFiles).values(data).returning();
+    return file;
+  }
+  
+  async deleteEvidenceFile(fileId: string): Promise<boolean> {
+    const result = await db.delete(evidenceFiles).where(eq(evidenceFiles.id, fileId));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async deleteEvidence(id: string, userId: string): Promise<boolean> {
@@ -561,6 +598,13 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(students)
       .where(sql`${students.id} = ANY(${studentIds})`);
+    
+    // Get all related files
+    const fileList = await db
+      .select()
+      .from(evidenceFiles)
+      .where(sql`${evidenceFiles.evidenceId} = ANY(${evidenceIds})`)
+      .orderBy(evidenceFiles.sortOrder);
 
     const outcomesByEvidence = new Map<string, LearningOutcome[]>();
     outcomeLinks.forEach((link) => {
@@ -570,11 +614,19 @@ export class DatabaseStorage implements IStorage {
     });
 
     const studentsById = new Map(studentList.map((s) => [s.id, s]));
+    
+    const filesByEvidence = new Map<string, typeof fileList>();
+    fileList.forEach((file) => {
+      const existing = filesByEvidence.get(file.evidenceId) || [];
+      existing.push(file);
+      filesByEvidence.set(file.evidenceId, existing);
+    });
 
     return evidenceList.map((e) => ({
       ...e,
       outcomes: outcomesByEvidence.get(e.id) || [],
       student: studentsById.get(e.studentId),
+      files: filesByEvidence.get(e.id) || [],
     }));
   }
 
