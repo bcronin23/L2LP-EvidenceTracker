@@ -1004,6 +1004,13 @@ export async function registerRoutes(
     }
   });
 
+  const evidenceFileSchema = z.object({
+    storagePath: z.string(),
+    fileName: z.string(),
+    mimeType: z.string().nullable().optional(),
+    fileSize: z.number().nullable().optional(),
+  });
+  
   const createEvidenceSchema = z.object({
     studentId: z.string(),
     dateOfActivity: z.string(),
@@ -1020,6 +1027,7 @@ export async function registerRoutes(
     fileType: z.string().nullable().optional(),
     fileSize: z.number().nullable().optional(),
     outcomeIds: z.array(z.string()),
+    files: z.array(evidenceFileSchema).optional(),
   });
 
   app.post("/api/evidence", isAuthenticated, async (req: any, res) => {
@@ -1031,11 +1039,22 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
       }
       
-      const { outcomeIds, ...data } = createEvidenceSchema.parse(req.body);
+      const { outcomeIds, files, ...data } = createEvidenceSchema.parse(req.body);
+
+      // Convert files to InsertEvidenceFile format (evidenceId will be added by storage)
+      const evidenceFiles = files?.map((f, index) => ({
+        evidenceId: "", // Placeholder, will be set by storage
+        storagePath: f.storagePath,
+        fileName: f.fileName,
+        mimeType: f.mimeType || null,
+        fileSize: f.fileSize || null,
+        sortOrder: index,
+      }));
 
       const evidence = await storage.createEvidence(
         { ...data, userId, organisationId: membership.organisation.id },
-        outcomeIds
+        outcomeIds,
+        evidenceFiles
       );
       res.status(201).json(evidence);
     } catch (error) {
@@ -1073,7 +1092,7 @@ export async function registerRoutes(
     }
   });
 
-  // Get signed URL for evidence file (private storage access)
+  // Get signed URL for evidence file (private storage access) - legacy single file
   app.get("/api/evidence/:id/signed-url", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1098,6 +1117,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error generating signed URL:", error);
       res.status(500).json({ message: "Failed to generate signed URL" });
+    }
+  });
+
+  // Get signed URLs for all files attached to evidence (multi-file support)
+  app.get("/api/evidence/:id/files-signed-urls", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const evidence = await storage.getEvidenceByOrgAndId(req.params.id, membership.organisation.id);
+      if (!evidence) {
+        return res.status(404).json({ message: "Evidence not found" });
+      }
+      
+      const files = await storage.getEvidenceFiles(req.params.id);
+      
+      // Generate signed URLs for all files
+      const filesWithUrls = await Promise.all(
+        files.map(async (file) => ({
+          ...file,
+          signedUrl: await objectStorageService.getSignedReadUrl(file.storagePath, 3600),
+        }))
+      );
+      
+      res.json({ files: filesWithUrls, expiresIn: 3600 });
+    } catch (error) {
+      console.error("Error generating file signed URLs:", error);
+      res.status(500).json({ message: "Failed to generate file URLs" });
     }
   });
 
