@@ -685,6 +685,35 @@ export type StudentSupportPlanWithAttachments = StudentSupportPlan & {
   attachments: SupportPlanAttachment[];
 };
 
+// ============================================
+// AUDIT LOGS TABLE (Security)
+// ============================================
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
+  organisationId: varchar("organisation_id"),
+  action: varchar("action", { length: 100 }).notNull(),
+  resourceType: varchar("resource_type", { length: 50 }),
+  resourceId: varchar("resource_id"),
+  details: text("details"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_audit_logs_user").on(table.userId),
+  index("idx_audit_logs_org").on(table.organisationId),
+  index("idx_audit_logs_action").on(table.action),
+  index("idx_audit_logs_created").on(table.createdAt),
+]);
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type AuditLog = typeof auditLogs.$inferSelect;
+
 // Student Plan types
 export type StudentPlanWithEvidence = StudentPlan & {
   linkedEvidence: Evidence[];

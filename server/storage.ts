@@ -15,6 +15,7 @@ import {
   planEvidenceLinks,
   schemesOfWork,
   schemeStudentLinks,
+  auditLogs,
   type Student,
   type InsertStudent,
   type LearningOutcome,
@@ -55,6 +56,8 @@ import {
   type SchemeOfWorkWithStudents,
   type EvidenceFile,
   type InsertEvidenceFile,
+  type AuditLog,
+  type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, count, or, isNull } from "drizzle-orm";
@@ -165,6 +168,9 @@ export interface IStorage {
   getOutcomesByProgrammeCode(programmeCode: string): Promise<LearningOutcome[]>;
   clearAllOutcomes(): Promise<number>;
   upsertOutcomeByUid(outcome: InsertLearningOutcome): Promise<LearningOutcome>;
+  
+  // Audit Logging
+  createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1345,6 +1351,12 @@ export class DatabaseStorage implements IStorage {
     
     const [created] = await db.insert(learningOutcomes).values(outcome).returning();
     return created;
+  }
+
+  // ==================== Audit Logging ====================
+  async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {
+    const [log] = await db.insert(auditLogs).values(data).returning();
+    return log;
   }
 }
 

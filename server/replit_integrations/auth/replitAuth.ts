@@ -19,12 +19,14 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  // Session expires after 30 minutes of inactivity (rolling session)
+  const sessionIdleTimeout = 30 * 60 * 1000; // 30 minutes
+  const sessionMaxAge = 24 * 60 * 60 * 1000; // 24 hours absolute max
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: sessionMaxAge / 1000, // TTL in seconds for store
     tableName: "sessions",
   });
   return session({
@@ -32,10 +34,12 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset session expiry on each request (idle timeout)
     cookie: {
       httpOnly: true,
       secure: true,
-      maxAge: sessionTtl,
+      sameSite: "lax",
+      maxAge: sessionIdleTimeout, // Cookie expires after 30 min inactivity
     },
   });
 }

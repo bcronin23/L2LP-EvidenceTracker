@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -7,6 +7,32 @@ import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integra
 import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
+
+// Audit logging helper for security-sensitive actions
+async function logAudit(
+  req: Request,
+  action: string,
+  resourceType?: string,
+  resourceId?: string,
+  details?: string
+) {
+  try {
+    const userId = (req as any).user?.claims?.sub || null;
+    const organisationId = (req as any).organisationId || null;
+    await storage.createAuditLog({
+      userId,
+      organisationId,
+      action,
+      resourceType,
+      resourceId,
+      details,
+      ipAddress: req.ip || req.socket.remoteAddress || null,
+      userAgent: req.get("user-agent") || null,
+    });
+  } catch (error) {
+    console.error("Failed to create audit log:", error);
+  }
+}
 
 // Load official learning outcomes from JSON file (all 4 programmes)
 function loadAllProgrammeOutcomes() {
@@ -274,8 +300,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "No logo configured" });
       }
 
-      const signedUrl = await objectStorageService.getSignedReadUrl(logoPath, 3600);
-      res.json({ signedUrl, expiresIn: 3600 });
+      const signedUrl = await objectStorageService.getSignedReadUrl(logoPath, 900);
+      res.json({ signedUrl, expiresIn: 900 });
     } catch (error) {
       console.error("Error getting logo URL:", error);
       res.status(500).json({ message: "Failed to get logo URL" });
@@ -574,8 +600,12 @@ export async function registerRoutes(
         return res.status(404).json({ message: "No photo configured" });
       }
       
-      const signedUrl = await objectStorageService.getSignedReadUrl(student.photoStoragePath, 3600);
-      res.json({ signedUrl, expiresIn: 3600 });
+      const signedUrl = await objectStorageService.getSignedReadUrl(student.photoStoragePath, 900);
+      
+      // Audit log student photo access
+      await logAudit(req, "photo_accessed", "student", req.params.id, student.firstName + " " + student.lastName);
+      
+      res.json({ signedUrl, expiresIn: 900 });
     } catch (error) {
       console.error("Error getting student photo URL:", error);
       res.status(500).json({ message: "Failed to get photo URL" });
@@ -1056,6 +1086,10 @@ export async function registerRoutes(
         outcomeIds,
         evidenceFiles
       );
+      
+      // Audit log evidence creation
+      await logAudit(req, "evidence_created", "evidence", evidence.id, `For student ${data.studentId}`);
+      
       res.status(201).json(evidence);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1111,9 +1145,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Evidence has no associated file" });
       }
       
-      // Generate signed URL with 1 hour expiry
-      const signedUrl = await objectStorageService.getSignedReadUrl(evidence.storagePath, 3600);
-      res.json({ signedUrl, expiresIn: 3600 });
+      // Generate signed URL with 15 minute expiry for security
+      const signedUrl = await objectStorageService.getSignedReadUrl(evidence.storagePath, 900);
+      res.json({ signedUrl, expiresIn: 900 });
     } catch (error) {
       console.error("Error generating signed URL:", error);
       res.status(500).json({ message: "Failed to generate signed URL" });
@@ -1141,11 +1175,14 @@ export async function registerRoutes(
       const filesWithUrls = await Promise.all(
         files.map(async (file) => ({
           ...file,
-          signedUrl: await objectStorageService.getSignedReadUrl(file.storagePath, 3600),
+          signedUrl: await objectStorageService.getSignedReadUrl(file.storagePath, 900),
         }))
       );
       
-      res.json({ files: filesWithUrls, expiresIn: 3600 });
+      // Audit log file access
+      await logAudit(req, "file_download", "evidence", req.params.id, `Accessed ${files.length} file(s)`);
+      
+      res.json({ files: filesWithUrls, expiresIn: 900 });
     } catch (error) {
       console.error("Error generating file signed URLs:", error);
       res.status(500).json({ message: "Failed to generate file URLs" });
@@ -1716,8 +1753,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Scheme has no associated file" });
       }
       
-      const signedUrl = await objectStorageService.getSignedReadUrl(scheme.storagePath, 3600);
-      res.json({ signedUrl, expiresIn: 3600 });
+      const signedUrl = await objectStorageService.getSignedReadUrl(scheme.storagePath, 900);
+      res.json({ signedUrl, expiresIn: 900 });
     } catch (error) {
       console.error("Error generating signed URL:", error);
       res.status(500).json({ message: "Failed to generate signed URL" });
