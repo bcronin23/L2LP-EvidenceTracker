@@ -5,6 +5,7 @@ import { join } from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
+import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected } from "./googleDrive";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -993,6 +994,64 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching effective programme:", error);
       res.status(500).json({ message: "Failed to fetch effective programme" });
+    }
+  });
+
+  // ==================== Google Drive Integration ====================
+  app.get("/api/google-drive/status", isAuthenticated, async (req: any, res) => {
+    res.json({ connected: isGoogleDriveConnected() });
+  });
+
+  app.get("/api/google-drive/files", isAuthenticated, async (req: any, res) => {
+    try {
+      const query = req.query.q as string | undefined;
+      const pageToken = req.query.pageToken as string | undefined;
+      
+      const result = await listDriveFiles(query, pageToken);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error listing Google Drive files:", error);
+      if (error.message?.includes('not connected')) {
+        return res.status(400).json({ message: "Google Drive not connected" });
+      }
+      res.status(500).json({ message: "Failed to list files from Google Drive" });
+    }
+  });
+
+  app.get("/api/google-drive/files/:fileId/download", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+      
+      const { buffer, mimeType, fileName } = await getDriveFileContent(req.params.fileId);
+      
+      // Upload to object storage
+      const storagePath = `.private/evidence/${membership.organisation.id}/${Date.now()}_${fileName}`;
+      await objectStorageService.uploadFile(storagePath, buffer, mimeType);
+      
+      // Get a signed URL for the uploaded file
+      const signedUrl = await objectStorageService.getSignedReadUrl(storagePath, 900);
+      
+      // Audit log the import
+      await logAudit(req, "google_drive_import", "file", req.params.fileId, fileName);
+      
+      res.json({
+        storagePath,
+        fileName,
+        mimeType,
+        fileSize: buffer.length,
+        signedUrl,
+      });
+    } catch (error: any) {
+      console.error("Error downloading Google Drive file:", error);
+      if (error.message?.includes('not connected')) {
+        return res.status(400).json({ message: "Google Drive not connected" });
+      }
+      res.status(500).json({ message: "Failed to download file from Google Drive" });
     }
   });
 

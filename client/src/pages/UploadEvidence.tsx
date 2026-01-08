@@ -40,6 +40,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { MobileHeader } from "@/components/MobileHeader";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { GoogleDrivePicker } from "@/components/GoogleDrivePicker";
 import { useUpload } from "@/hooks/use-upload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -558,6 +559,27 @@ export default function UploadEvidence() {
                       data-testid="input-file-upload"
                     />
                   </label>
+                </div>
+
+                <div className="flex justify-center">
+                  <GoogleDrivePicker
+                    onFilesSelected={(files) => {
+                      const newFiles: UploadedFile[] = files.map((f) => ({
+                        file: null as any,
+                        storagePath: f.storagePath,
+                        fileName: f.fileName,
+                        mimeType: f.mimeType,
+                        fileSize: f.fileSize,
+                        isUploading: false,
+                        uploadProgress: 100,
+                      }));
+                      setFormData(prev => ({
+                        ...prev,
+                        files: [...prev.files, ...newFiles],
+                      }));
+                      toast({ title: `Imported ${files.length} file(s) from Google Drive` });
+                    }}
+                  />
                 </div>
 
                 {formData.files.length > 0 && (

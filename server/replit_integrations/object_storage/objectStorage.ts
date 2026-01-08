@@ -263,6 +263,31 @@ export class ObjectStorageService {
       ttlSec,
     });
   }
+
+  // Uploads a file directly to object storage (for server-side uploads like Google Drive imports)
+  async uploadFile(storagePath: string, buffer: Buffer, contentType: string): Promise<void> {
+    if (!storagePath) {
+      throw new Error("Storage path is required");
+    }
+
+    let fullPath = storagePath;
+    if (!fullPath.startsWith("/")) {
+      let entityDir = this.getPrivateObjectDir();
+      if (!entityDir.endsWith("/")) {
+        entityDir = `${entityDir}/`;
+      }
+      fullPath = `${entityDir}${storagePath}`;
+    }
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+
+    await file.save(buffer, {
+      contentType,
+      resumable: false,
+    });
+  }
 }
 
 function parseObjectPath(path: string): {
