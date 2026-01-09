@@ -86,13 +86,15 @@ export default function EvidenceLibrary() {
 
   const plus = useMemo(() => {
     if (!outcomes) return [];
-    const pluMap = new Map<number, string>();
+    const pluMap = new Map<string, string>();
     outcomes.forEach((o) => {
-      if (o.pluNumber !== null) {
-        pluMap.set(o.pluNumber, o.pluName || '');
+      const code = o.pluOrModuleCode || (o.pluNumber !== null ? String(o.pluNumber) : null);
+      const title = o.pluOrModuleTitle || o.pluName || '';
+      if (code) {
+        pluMap.set(code, title);
       }
     });
-    return Array.from(pluMap.entries()).sort((a, b) => a[0] - b[0]);
+    return Array.from(pluMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [outcomes]);
 
   const filteredEvidence = useMemo(() => {
@@ -111,7 +113,10 @@ export default function EvidenceLibrary() {
       const matchesSetting = settingFilter === "all" || item.setting === settingFilter;
       const matchesPlu =
         pluFilter === "all" ||
-        item.outcomes?.some((o) => o.pluNumber !== null && o.pluNumber.toString() === pluFilter);
+        item.outcomes?.some((o) => {
+          const code = o.pluOrModuleCode || (o.pluNumber !== null ? String(o.pluNumber) : null);
+          return code === pluFilter;
+        });
 
       return matchesSearch && matchesStudent && matchesType && matchesSetting && matchesPlu;
     });
@@ -190,9 +195,9 @@ export default function EvidenceLibrary() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All PLUs</SelectItem>
-            {plus.map(([pluNumber, pluName]) => (
-              <SelectItem key={pluNumber} value={pluNumber.toString()}>
-                PLU {pluNumber}: {pluName}
+            {plus.map(([pluCode, pluTitle]) => (
+              <SelectItem key={pluCode} value={pluCode}>
+                {pluTitle || pluCode}
               </SelectItem>
             ))}
           </SelectContent>

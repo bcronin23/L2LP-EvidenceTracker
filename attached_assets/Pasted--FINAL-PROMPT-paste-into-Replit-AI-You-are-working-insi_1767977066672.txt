@@ -1,0 +1,335 @@
+✅ FINAL PROMPT (paste into Replit AI)
+
+You are working inside my existing Replit project (“L2LP Tracker”). DO NOT rebuild from scratch. Extend and fix what’s already there.
+
+OBJECTIVE
+
+Finalise the app so it is ready to publish for real school use. It must be secure, multi-tenant (school-based), role-based, and correctly aligned to the correct learning outcomes.
+
+⸻
+
+1) OUTCOMES CATALOGUE MUST BE COMPLETE + CORRECT
+
+Programmes we must support (full catalogue):
+	•	JC L1LP
+	•	JC L2LP
+	•	SC L1LP
+	•	SC L2LP
+
+Critical fixes needed immediately
+	1.	SC L1LP + SC L2LP Communication & Literacy and Numeracy must appear (they’re currently missing from the Outcomes and Coverage views).
+	2.	Add SC L1LP “Looking after my Environment” as a programme/module area (this is missing).
+	3.	Split SC Personal Care into 3 modules instead of one large module (use the headings/structure from the official SC Personal Care PDF to create 3 clear modules).
+	4.	JC L2LP Preparing for Work must have 32 outcomes, not 23. It is missing 5.24–5.32. Add these exactly:
+
+	•	5.24 Gather background information to help plan and participate in the activity
+	•	5.25 Sequence a number of steps to be taken to successfully complete the activity
+	•	5.26 Assume a role in the activity and identify tasks linked with the role
+	•	5.27 Use key words associated with the activity correctly
+	•	5.28 Identify safety procedures and/or permissions required for the activity
+	•	5.29 Learn how to use tools or equipment associated with the activity safely and correctly
+	•	5.30 Participate in the activity
+	•	5.31 Review the activity to evaluate its success
+	•	5.32 Assess effectiveness of own role in the activity
+
+Seed files
+
+Update the seed data so the system “knows” the outcomes to add and they appear correctly in the UI hierarchy.
+
+I previously provided seed files:
+	•	/mnt/data/all_learning_outcomes_seed.csv
+	•	/mnt/data/all_learning_outcomes_seed.json
+
+BUT these seeds are currently missing/incorrect for:
+	•	SC C&L, SC Numeracy visibility/grouping
+	•	SC L1 Looking after my Environment
+	•	SC Personal Care should be split into 3 modules
+	•	JC L2LP Preparing for Work missing 5.24–5.32
+
+✅ You must either:
+	•	regenerate the seed from the official PDFs I uploaded, OR
+	•	patch the existing seed so it matches the PDFs exactly.
+
+Expected Outcomes UI behaviour
+	•	Outcomes must be displayed as a real hierarchy:
+Programme → PLU/Module → Element (if used) → Outcomes
+	•	No fake placeholder labels like “PLU 0”.
+	•	Correct titles (e.g., “Communication, language and literacy”, “Numeracy”, etc.)
+	•	Search by outcome code and text.
+	•	Counts per PLU/Module must match what’s in the seed.
+
+Data model (minimum)
+
+Maintain/extend tables as needed, but outcomes must have:
+	•	programme_id
+	•	plu_or_module_code + title
+	•	element_title (optional)
+	•	outcome_code
+	•	outcome_text
+	•	sort_order
+	•	uid (stable unique key for upsert)
+
+Add an Admin-only “Import/Sync Outcomes” tool:
+	•	Upload CSV/JSON OR “Sync from seed file in repo”
+	•	Preview counts per programme and per PLU/module
+	•	Upsert by uid (no duplicates)
+	•	Show summary: inserted/updated totals
+
+⸻
+
+2) STUDENT MUST ONLY SEE OUTCOMES ON THEIR PROGRAMME (INCLUDING BLENDED PROGRAMMES)
+
+REQUIRED: student must be assigned a programme at creation
+
+When creating a student you MUST assign programme coverage. No student can be created without it.
+
+IMPORTANT: blended programmes must be possible
+
+A student may do L1 in one subject/module area and L2 in the rest.
+Example: SC student doing SC L1 Numeracy but SC L2 in other curriculum areas.
+
+Implement this properly using a student-programme mapping model:
+
+Recommended approach (do this):
+
+Create a join table like:
+
+student_programme_assignments
+	•	id uuid pk
+	•	student_id uuid fk
+	•	programme_id uuid fk
+	•	scope_code text null   (optional: e.g., “NUMERACY”, “COMM_LIT”, “PERSONAL_CARE”, “LOOKING_AFTER_MY_ENV”, etc.)
+	•	created_at timestamptz default now()
+
+Rules:
+	•	Each student must have at least one assignment.
+	•	If a row has scope_code = null, it means “this programme applies to everything by default”.
+	•	If rows exist with a specific scope_code, those override the default programme for that area.
+
+UI requirement
+
+Student create/edit form:
+	•	Required: Default programme dropdown (JC L1LP / JC L2LP / SC L1LP / SC L2LP)
+	•	Optional: “Overrides” section where staff can set:
+	•	Comm & Lit → L1 or L2
+	•	Numeracy → L1 or L2
+	•	Other modules → L1 or L2 (only show modules that exist for that programme)
+
+Student profile should display:
+	•	Programme badge:
+	•	“JC L2LP” or “SC L1LP”
+	•	If overrides exist → show “Mixed Programme” + list overrides
+
+Outcome filtering behaviour (non-negotiable)
+
+Everywhere in the app, outcome lists must be filtered to what the student is actually doing:
+	•	Student coverage view
+	•	Evidence outcome picker
+	•	Outcomes-on-student page
+	•	Reporting/export later
+
+So if student is Mixed:
+	•	Numeracy outcomes come from Numeracy assignment programme
+	•	Everything else comes from default programme
+
+⸻
+
+3) SCHEMES OF WORK = FILE UPLOAD ONLY (NOT BUILT INSIDE APP)
+
+We are NOT writing schemes in the site. A scheme is a file upload.
+
+Scheme requirements
+	•	Upload a file (PDF/DOCX/PPTX/XLSX)
+	•	Add title + programme scope
+	•	Assign to student and/or class group
+	•	View/download via secure signed URL (private storage)
+
+DB tables:
+schemes_of_work
+	•	id, school_id
+	•	title, description, term
+	•	programme_id
+	•	scope_code (optional: module/area)
+	•	class_group (optional)
+	•	file_storage_path, file_name, mime, size
+	•	created_by, created_at
+
+scheme_assignments
+	•	id, school_id
+	•	scheme_id
+	•	student_id nullable
+	•	class_group nullable
+	•	assigned_by, created_at
+Constraint: must have student_id OR class_group.
+
+Student Scheme tab must work
+	•	“View Assigned Schemes” must show:
+A) assigned directly to that student
+B) assigned to the student’s class group
+	•	Each scheme: show title + programme/scope + “Open file” (signed URL)
+
+⸻
+
+4) STUDENT PROFILE PHOTO
+
+Add ability to upload a student photo:
+	•	Stored privately
+	•	Only accessible to users in same school
+	•	Show on student profile header (small avatar)
+	•	Replace default initials icon if a photo exists
+
+DB fields (either in students or separate table):
+	•	student_photo_path
+	•	student_photo_mime
+	•	student_photo_updated_at
+
+Use signed URLs.
+
+⸻
+
+5) EVIDENCE UPLOAD MUST SAVE + EVIDENCE LIBRARY MUST POPULATE
+
+Current issue
+
+Evidence appears not to save consistently, and Evidence Library shows “No evidence yet”.
+
+This is NOT a “publish will fix it” situation — fix it now.
+You must investigate and correct:
+	•	the evidence insert transaction
+	•	file upload storage path + DB record creation
+	•	school_id scoping
+	•	RLS/policies (if used)
+	•	evidence→student link table
+	•	evidence→outcome tagging table
+	•	library queries (filters + joins)
+
+Multi-file evidence (new requirement)
+
+One evidence “entry” must support uploading multiple files at once (photo + video + doc, etc.)
+Keep the current step-based UI style, but allow multi-select.
+
+Implementation:
+	•	evidence_entries table (one record per activity)
+	•	evidence_files table (many files per evidence entry)
+	•	evidence_outcomes table (many outcomes per evidence entry)
+
+Also allow multiple “evidence types” per entry:
+	•	Photo / Video / Work Sample / Audio / Other
+Store as:
+	•	text[] array OR evidence_types join table
+
+Evidence outcome tagging rules
+
+Outcome picker must only show outcomes the student is enrolled in (based on programme + overrides).
+Allow tagging one or multiple outcomes.
+
+Evidence must appear:
+	•	Student Evidence tab
+	•	Evidence Library (filters work)
+	•	Coverage calculations update immediately
+
+⸻
+
+6) SECURITY + SCHOOL BRANDING
+
+Multi-tenant school security
+
+Everything is scoped by school_id server-side.
+No user can access another school’s data.
+
+Roles
+	•	ADMIN: school setup, staff accounts, outcomes import, student management
+	•	STAFF: student/evidence/ssp/planning/schemes within school
+	•	VIEWER: read-only
+
+Private file storage
+
+All uploaded files (evidence, schemes, student photos) must be PRIVATE.
+Access only via signed URLs (short-lived).
+Signed URLs must validate:
+	•	user is authenticated
+	•	user’s school_id matches the file’s school_id
+
+School branding / personalisation
+
+Add ability for school admin to upload:
+	•	school crest/logo
+Store as:
+	•	schools.logo_path (can be public OR private with signed access)
+Display in:
+	•	sidebar header
+	•	login/landing
+
+Clean up school registration page
+
+Registration should capture:
+	•	School name
+	•	Roll number
+	•	Admin name
+	•	Admin email
+	•	(Optional) crest/logo upload
+The flow must create:
+	•	school record
+	•	first admin user record
+	•	staff can then join via invite or domain-based allowlist (e.g., *@phcol.ie)
+
+⸻
+
+7) STUDENT TABS BUTTONS MUST WORK (SSP / PLANNING / SCHEME)
+
+The buttons currently do nothing in places.
+Ensure all these routes are implemented and CRUD works:
+	•	SSP: create/edit/view student support plan
+	•	Planning: create/edit/view weekly plans
+	•	Scheme: view assigned schemes + upload/assign scheme files
+
+⸻
+
+8) QA CHECKLIST (must run before finishing)
+
+Provide console logs or visible admin summaries verifying:
+	1.	Outcomes Import:
+
+	•	totals per programme
+	•	totals per module area
+	•	no PLU 0 placeholders
+	•	SC C&L + SC Numeracy appear
+	•	SC L1 Looking after my Environment appears
+	•	JC L2LP Preparing for Work includes 5.24–5.32
+
+	2.	Student creation:
+
+	•	cannot save without a programme/default programme
+	•	mixed programme overrides work
+	•	student only sees outcomes they’re enrolled in
+
+	3.	Evidence:
+
+	•	upload works
+	•	multi-file evidence works
+	•	evidence appears in Evidence Library
+	•	evidence appears on student profile
+	•	coverage updates
+
+	4.	Schemes:
+
+	•	file upload works
+	•	assignment works
+	•	signed URL open works
+
+	5.	Security:
+
+	•	school_id enforced everywhere
+	•	private file access enforced
+	•	roles enforced
+
+⸻
+
+DELIVERABLES
+	•	DB migrations
+	•	Seed update tool (and updated seed file inside project)
+	•	Working UI for outcomes, students, upload, library, schemes, admin tools
+	•	Evidence saving fixed
+	•	Mobile-first UX retained
+
+DO NOT rebuild from scratch. Fix and extend what is already in the repo.

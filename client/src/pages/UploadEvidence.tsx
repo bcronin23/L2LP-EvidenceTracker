@@ -96,7 +96,6 @@ interface FormData {
   evidenceType: string;
   setting: string;
   assessmentActivity: string;
-  successCriteria: string;
   observations: string;
   nextSteps: string;
   staffInitials: string;
@@ -123,7 +122,6 @@ export default function UploadEvidence() {
     evidenceType: "photo",
     setting: "classroom",
     assessmentActivity: "",
-    successCriteria: "",
     observations: "",
     nextSteps: "",
     staffInitials: "",
@@ -164,7 +162,6 @@ export default function UploadEvidence() {
         evidenceType: formData.evidenceType,
         setting: formData.setting,
         assessmentActivity: formData.assessmentActivity || null,
-        successCriteria: formData.successCriteria || null,
         observations: formData.observations || null,
         nextSteps: formData.nextSteps || null,
         staffInitials: formData.staffInitials || null,
