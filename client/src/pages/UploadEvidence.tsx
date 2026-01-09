@@ -862,20 +862,6 @@ export default function UploadEvidence() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Success Criteria</Label>
-                  <Textarea
-                    placeholder="What were the success criteria for this activity? (one per line)"
-                    value={formData.successCriteria}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, successCriteria: e.target.value }))
-                    }
-                    rows={3}
-                    className="resize-none"
-                    data-testid="textarea-success-criteria"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label>Observations</Label>
                   <Textarea
                     placeholder="There is evidence of... (describe what you observed)"
