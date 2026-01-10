@@ -60,7 +60,7 @@ import {
   type InsertAuditLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and, count, or, isNull } from "drizzle-orm";
+import { eq, desc, sql, and, count, or, isNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Organisations
@@ -597,19 +597,19 @@ export class DatabaseStorage implements IStorage {
       })
       .from(evidenceOutcomes)
       .innerJoin(learningOutcomes, eq(learningOutcomes.id, evidenceOutcomes.learningOutcomeId))
-      .where(sql`${evidenceOutcomes.evidenceId} = ANY(${evidenceIds})`);
+      .where(inArray(evidenceOutcomes.evidenceId, evidenceIds));
 
     // Get all related students
     const studentList = await db
       .select()
       .from(students)
-      .where(sql`${students.id} = ANY(${studentIds})`);
+      .where(inArray(students.id, studentIds));
     
     // Get all related files
     const fileList = await db
       .select()
       .from(evidenceFiles)
-      .where(sql`${evidenceFiles.evidenceId} = ANY(${evidenceIds})`)
+      .where(inArray(evidenceFiles.evidenceId, evidenceIds))
       .orderBy(evidenceFiles.sortOrder);
 
     const outcomesByEvidence = new Map<string, LearningOutcome[]>();
@@ -1158,19 +1158,32 @@ export class DatabaseStorage implements IStorage {
 
     let schemes: SchemeOfWork[];
     if (classGroup) {
-      schemes = await db
-        .select()
-        .from(schemesOfWork)
-        .where(
-          and(
-            eq(schemesOfWork.organisationId, organisationId),
-            or(
-              sql`${schemesOfWork.id} = ANY(${directIds})`,
+      if (directIds.length > 0) {
+        schemes = await db
+          .select()
+          .from(schemesOfWork)
+          .where(
+            and(
+              eq(schemesOfWork.organisationId, organisationId),
+              or(
+                inArray(schemesOfWork.id, directIds),
+                eq(schemesOfWork.classGroup, classGroup)
+              )
+            )
+          )
+          .orderBy(desc(schemesOfWork.createdAt));
+      } else {
+        schemes = await db
+          .select()
+          .from(schemesOfWork)
+          .where(
+            and(
+              eq(schemesOfWork.organisationId, organisationId),
               eq(schemesOfWork.classGroup, classGroup)
             )
           )
-        )
-        .orderBy(desc(schemesOfWork.createdAt));
+          .orderBy(desc(schemesOfWork.createdAt));
+      }
     } else if (directIds.length > 0) {
       schemes = await db
         .select()
@@ -1178,7 +1191,7 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(schemesOfWork.organisationId, organisationId),
-            sql`${schemesOfWork.id} = ANY(${directIds})`
+            inArray(schemesOfWork.id, directIds)
           )
         )
         .orderBy(desc(schemesOfWork.createdAt));
