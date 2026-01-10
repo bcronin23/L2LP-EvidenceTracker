@@ -43,7 +43,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Student, EvidenceWithOutcomes, StudentPLUCoverage, StudentSupportPlanWithAttachments, StudentPlanWithEvidence, SchemeOfWorkWithStudents, LearningOutcome } from "@shared/schema";
+import type { Student, EvidenceWithOutcomes, StudentPLUCoverage, StudentSupportPlanWithAttachments, StudentPlanWithEvidence, SchemeOfWorkWithStudents, LearningOutcome, Programme } from "@shared/schema";
+import { ProgrammeOverridesManager } from "@/components/ProgrammeOverridesManager";
 import { cn } from "@/lib/utils";
 
 const evidenceTypeIcons: Record<string, typeof Camera> = {
@@ -322,6 +323,8 @@ export default function StudentDashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              <ProgrammeOverridesManager student={student} />
             </TabsContent>
 
             <TabsContent value="evidence" className="space-y-4">
