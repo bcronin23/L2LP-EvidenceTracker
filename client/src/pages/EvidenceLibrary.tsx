@@ -14,6 +14,7 @@ import {
   X,
   Building,
   MapPin,
+  User,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -339,33 +340,42 @@ export default function EvidenceLibrary() {
                     return (
                       <Card
                         key={item.id}
-                        className="hover-elevate cursor-pointer transition-colors"
+                        className="hover-elevate cursor-pointer"
                         onClick={() => setSelectedEvidence(item)}
                         data-testid={`card-library-evidence-${item.id}`}
                       >
                         <CardContent className="p-4">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
-                              <Icon className="h-6 w-6 text-accent-foreground" />
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                              <Icon className="h-5 w-5 text-muted-foreground" />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-sm">
-                                  {item.student?.firstName} {item.student?.lastName}
-                                </span>
-                                <Badge variant="secondary" className="capitalize text-xs flex items-center gap-1">
+                            <div className="flex-1 min-w-0 space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div>
+                                  <p className="font-medium text-sm leading-tight">
+                                    {item.student?.firstName} {item.student?.lastName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                                    {item.assessmentActivity || item.observations || "No description"}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(item.dateOfActivity), "dd MMM")}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Badge variant="outline" className="text-xs capitalize">
                                   {item.setting === "classroom" ? (
-                                    <Building className="h-3 w-3" />
+                                    <Building className="h-3 w-3 mr-1" />
                                   ) : (
-                                    <MapPin className="h-3 w-3" />
+                                    <MapPin className="h-3 w-3 mr-1" />
                                   )}
                                   {item.setting}
                                 </Badge>
-                              </div>
-                              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                                {item.assessmentActivity || item.observations || "No description"}
-                              </p>
-                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {item.independenceLevel}
+                                </Badge>
                                 {item.outcomes?.slice(0, 2).map((outcome) => (
                                   <Badge key={outcome.id} variant="secondary" className="text-xs font-mono">
                                     {outcome.outcomeCode}
@@ -377,15 +387,12 @@ export default function EvidenceLibrary() {
                                   </Badge>
                                 )}
                               </div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {format(new Date(item.dateOfActivity), "dd MMM")}
-                              </p>
-                              <Badge variant="outline" className="text-xs mt-1 capitalize">
-                                {item.independenceLevel}
-                              </Badge>
+                              {item.uploaderName && (
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  Uploaded by {item.uploaderName}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </CardContent>

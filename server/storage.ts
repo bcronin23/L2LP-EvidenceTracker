@@ -61,6 +61,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and, count, or, isNull, inArray } from "drizzle-orm";
+import { users } from "@shared/models/auth";
 
 export interface IStorage {
   // Organisations
@@ -588,6 +589,7 @@ export class DatabaseStorage implements IStorage {
 
     const evidenceIds = evidenceList.map((e) => e.id);
     const studentIds = Array.from(new Set(evidenceList.map((e) => e.studentId)));
+    const userIds = Array.from(new Set(evidenceList.map((e) => e.userId).filter(Boolean)));
 
     // Get all related outcomes
     const outcomeLinks = await db
@@ -612,6 +614,14 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(evidenceFiles.evidenceId, evidenceIds))
       .orderBy(evidenceFiles.sortOrder);
 
+    // Get uploader names
+    const uploaderList = userIds.length > 0
+      ? await db
+          .select({ id: users.id, firstName: users.firstName, lastName: users.lastName })
+          .from(users)
+          .where(inArray(users.id, userIds))
+      : [];
+
     const outcomesByEvidence = new Map<string, LearningOutcome[]>();
     outcomeLinks.forEach((link) => {
       const existing = outcomesByEvidence.get(link.evidenceId) || [];
@@ -620,6 +630,7 @@ export class DatabaseStorage implements IStorage {
     });
 
     const studentsById = new Map(studentList.map((s) => [s.id, s]));
+    const uploadersById = new Map(uploaderList.map((u) => [u.id, [u.firstName, u.lastName].filter(Boolean).join(' ') || undefined]));
     
     const filesByEvidence = new Map<string, typeof fileList>();
     fileList.forEach((file) => {
@@ -633,6 +644,7 @@ export class DatabaseStorage implements IStorage {
       outcomes: outcomesByEvidence.get(e.id) || [],
       student: studentsById.get(e.studentId),
       files: filesByEvidence.get(e.id) || [],
+      uploaderName: uploadersById.get(e.userId) || undefined,
     }));
   }
 

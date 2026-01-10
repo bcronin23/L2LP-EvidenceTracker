@@ -621,6 +621,7 @@ export type EvidenceWithOutcomes = Evidence & {
   outcomes: LearningOutcome[];
   student?: Student;
   files?: EvidenceFile[];
+  uploaderName?: string;
 };
 
 export type OutcomeCoverage = {
