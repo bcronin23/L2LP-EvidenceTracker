@@ -156,6 +156,7 @@ export interface IStorage {
   // Programmes
   getProgrammes(): Promise<Programme[]>;
   getProgrammeByCode(code: string): Promise<Programme | undefined>;
+  createProgramme(data: InsertProgramme): Promise<Programme>;
   
   // Student Programme Overrides
   getStudentProgrammeOverrides(studentId: string): Promise<StudentProgrammeOverride[]>;
@@ -1281,6 +1282,11 @@ export class DatabaseStorage implements IStorage {
   async getProgrammeByCode(code: string): Promise<Programme | undefined> {
     const [programme] = await db.select().from(programmes).where(eq(programmes.code, code));
     return programme || undefined;
+  }
+
+  async createProgramme(data: InsertProgramme): Promise<Programme> {
+    const [programme] = await db.insert(programmes).values(data).returning();
+    return programme;
   }
 
   // ==================== Student Programme Overrides ====================

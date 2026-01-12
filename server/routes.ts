@@ -70,6 +70,29 @@ function transformOutcomesForDb(jsonOutcomes: any[]) {
   }));
 }
 
+// Seed the four NCCA programmes if they don't exist
+async function seedProgrammesIfNeeded() {
+  try {
+    const existing = await storage.getProgrammes();
+    if (existing.length === 0) {
+      console.log("Seeding NCCA programmes...");
+      const programmesToSeed = [
+        { code: "JC_L1LP", title: "Junior Cycle Level 1 Learning Programme" },
+        { code: "JC_L2LP", title: "Junior Cycle Level 2 Learning Programme" },
+        { code: "SC_L1LP", title: "Senior Cycle Level 1 Learning Programme" },
+        { code: "SC_L2LP", title: "Senior Cycle Level 2 Learning Programme" },
+      ];
+      
+      for (const prog of programmesToSeed) {
+        await storage.createProgramme(prog);
+      }
+      console.log(`Seeded ${programmesToSeed.length} NCCA programmes`);
+    }
+  } catch (error) {
+    console.error("Error seeding programmes:", error);
+  }
+}
+
 async function seedOutcomesIfNeeded() {
   try {
     const existing = await storage.getOutcomes();
@@ -104,7 +127,8 @@ export async function registerRoutes(
   // Setup object storage routes
   registerObjectStorageRoutes(app);
 
-  // Seed learning outcomes on startup
+  // Seed programmes and learning outcomes on startup
+  await seedProgrammesIfNeeded();
   await seedOutcomesIfNeeded();
 
   // ==================== Organisation API ====================
