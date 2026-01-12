@@ -43,6 +43,61 @@ function loadAllProgrammeOutcomes() {
   return JSON.parse(data);
 }
 
+// Canonical mapping from plu_or_module_code to area code for programme overrides
+const PLU_TO_AREA_CODE: Record<string, string> = {
+  // JC L1LP PLUs
+  "JC-L1-PLU1": "COMM_LIT",
+  "JC-L1-PLU2": "NUMERACY",
+  "JC-L1-PLU3": "PERSONAL_CARE",
+  "JC-L1-PLU4": "COMMUNITY",
+  "JC-L1-PLU5": "ARTS_VISUAL",
+  "JC-L1-PLU6": "PE",
+  // JC L2LP PLUs
+  "JC-L2-PLU1": "COMM_LIT",
+  "JC-L2-PLU2": "NUMERACY",
+  "JC-L2-PLU3": "PERSONAL_CARE",
+  "JC-L2-PLU4": "COMMUNITY",
+  "JC-L2-PLU5": "PREP_FOR_WORK",
+  // SC L1LP modules
+  "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS": "COMM_LIT",
+  "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION": "COMM_LIT",
+  "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION": "COMM_LIT",
+  "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER": "NUMERACY",
+  "SC_L1LP-Numeracy-MEASUREMENT": "NUMERACY",
+  "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME": "NUMERACY",
+  "SC_L1LP-Numeracy-UNDERSTANDING-MONEY": "NUMERACY",
+  "SC_L1LP-LOOKING-AFTER-MY-WELLBEING": "PERSONAL_CARE",
+  "SC_L1LP-PERSONAL-SAFETY": "PERSONAL_CARE",
+  "SC_L1LP-RELATIONSHIPS": "COMMUNITY",
+  "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT": "LOOKING_AFTER_MY_ENV",
+  "SC_L1LP-VISUAL-ART": "ARTS_VISUAL",
+  "SC_L1LP-DRAMA": "ARTS_DRAMA",
+  "SC_L1LP-PHYSICAL-EDUCATION": "PE",
+  // SC L2LP modules
+  "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION": "COMM_LIT",
+  "SC_L2LP-Communication and Literacy-EXPLORING-READING": "COMM_LIT",
+  "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING": "COMM_LIT",
+  "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT": "COMM_LIT",
+  "SC_L2LP-LITERATURE": "COMM_LIT",
+  "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME": "NUMERACY",
+  "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION": "NUMERACY",
+  "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY": "NUMERACY",
+  "SC_L2LP-LOOKING-AFTER-MY-WELLBEING": "PERSONAL_CARE",
+  "SC_L2LP-PERSONAL-SAFETY": "PERSONAL_CARE",
+  "SC_L2LP-RELATIONSHIPS": "COMMUNITY",
+  "SC_L2LP-LOOKING-AFTER-MY-ENVIRONMENT": "LOOKING_AFTER_MY_ENV",
+  "SC_L2LP-VISUAL-ART": "ARTS_VISUAL",
+  "SC_L2LP-DRAMA": "ARTS_DRAMA",
+  "SC_L2LP-PHYSICAL-EDUCATION": "PE",
+  "SC_L2LP-COOKERY": "COOKERY",
+  "SC_L2LP-MY-LIFE-MY-FINANCE": "MY_LIFE_MY_FINANCE",
+};
+
+function getAreaCodeForPluCode(pluOrModuleCode: string | null): string | null {
+  if (!pluOrModuleCode) return null;
+  return PLU_TO_AREA_CODE[pluOrModuleCode] || null;
+}
+
 // Transform JSON outcomes to database format for new schema
 function transformOutcomesForNewSchema(jsonOutcomes: any[], programmeMap: Map<string, string>) {
   return jsonOutcomes.map((o: any) => ({
@@ -55,6 +110,7 @@ function transformOutcomesForNewSchema(jsonOutcomes: any[], programmeMap: Map<st
     outcomeCode: o.outcome_code,
     outcomeText: o.outcome_text,
     sortOrder: o.sort_order || 0,
+    areaCode: getAreaCodeForPluCode(o.plu_or_module_code),
   }));
 }
 
@@ -116,6 +172,29 @@ async function seedOutcomesIfNeeded() {
   }
 }
 
+// Backfill area_code for existing outcomes that don't have it (for existing deployments)
+async function backfillAreaCodesIfNeeded() {
+  try {
+    const outcomes = await storage.getOutcomes();
+    const outcomesMissingAreaCode = outcomes.filter(o => !o.areaCode && o.pluOrModuleCode);
+    
+    if (outcomesMissingAreaCode.length > 0) {
+      console.log(`Backfilling area_code for ${outcomesMissingAreaCode.length} learning outcomes...`);
+      
+      for (const outcome of outcomesMissingAreaCode) {
+        const areaCode = getAreaCodeForPluCode(outcome.pluOrModuleCode || null);
+        if (areaCode) {
+          await storage.updateOutcomeAreaCode(outcome.id, areaCode);
+        }
+      }
+      
+      console.log(`Backfilled area_code for ${outcomesMissingAreaCode.length} outcomes`);
+    }
+  } catch (error) {
+    console.error("Error backfilling area codes:", error);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -130,6 +209,7 @@ export async function registerRoutes(
   // Seed programmes and learning outcomes on startup
   await seedProgrammesIfNeeded();
   await seedOutcomesIfNeeded();
+  await backfillAreaCodesIfNeeded();
 
   // ==================== Organisation API ====================
   // Get current user's organisation membership (alias for /api/organisation for semantic clarity)

@@ -168,6 +168,7 @@ export interface IStorage {
   // Outcomes by programme
   getOutcomesByProgrammeId(programmeId: string): Promise<LearningOutcome[]>;
   getOutcomesByProgrammeCode(programmeCode: string): Promise<LearningOutcome[]>;
+  updateOutcomeAreaCode(id: string, areaCode: string): Promise<void>;
   clearAllOutcomes(): Promise<number>;
   upsertOutcomeByUid(outcome: InsertLearningOutcome): Promise<LearningOutcome>;
   
@@ -845,11 +846,23 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Student not found");
     }
 
-    // Filter outcomes to ONLY the student's programme (critical for multi-programme support)
+    // Fetch programme overrides for this student
+    const overrides = await this.getStudentProgrammeOverrides(studentId);
+    const overrideMap = new Map(overrides.map(o => [o.areaCode, o.programmeId]));
+
+    // Filter outcomes based on student's default programme AND overrides
+    // Uses the canonical area_code column for deterministic matching
     const studentProgrammeId = student.programmeId;
-    const programmeOutcomes = studentProgrammeId 
-      ? allOutcomes.filter(o => o.programmeId === studentProgrammeId)
-      : allOutcomes; // Fallback for legacy students without programme
+    const programmeOutcomes = allOutcomes.filter(outcome => {
+      // Check if this outcome's area has an override (using the area_code column)
+      const areaCode = outcome.areaCode;
+      if (areaCode && overrideMap.has(areaCode)) {
+        // Use override programme for this area
+        return outcome.programmeId === overrideMap.get(areaCode);
+      }
+      // Use student's default programme
+      return studentProgrammeId ? outcome.programmeId === studentProgrammeId : true;
+    });
 
     const evidencedOutcomes = await db
       .select({
@@ -1353,6 +1366,13 @@ export class DatabaseStorage implements IStorage {
       .from(learningOutcomes)
       .where(eq(learningOutcomes.programmeCode, programmeCode))
       .orderBy(learningOutcomes.pluOrModuleCode, learningOutcomes.sortOrder);
+  }
+
+  async updateOutcomeAreaCode(id: string, areaCode: string): Promise<void> {
+    await db
+      .update(learningOutcomes)
+      .set({ areaCode })
+      .where(eq(learningOutcomes.id, id));
   }
 
   async clearAllOutcomes(): Promise<number> {

@@ -201,6 +201,7 @@ export const learningOutcomes = pgTable("learning_outcomes", {
   programmeName: varchar("programme_name", { length: 50 }),
   pluNumber: integer("plu_number"),
   pluName: varchar("plu_name", { length: 100 }),
+  areaCode: varchar("area_code", { length: 30 }),
 }, (table) => [
   index("idx_learning_outcomes_plu").on(table.pluNumber),
   index("idx_learning_outcomes_code").on(table.outcomeCode),
@@ -208,6 +209,7 @@ export const learningOutcomes = pgTable("learning_outcomes", {
   index("idx_learning_outcomes_programme_id").on(table.programmeId),
   index("idx_learning_outcomes_programme_code").on(table.programmeCode),
   index("idx_learning_outcomes_uid").on(table.uid),
+  index("idx_learning_outcomes_area_code").on(table.areaCode),
 ]);
 
 export const learningOutcomesRelations = relations(learningOutcomes, ({ one, many }) => ({

@@ -19,6 +19,7 @@ import {
   MapPin,
   ChevronDown,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,7 @@ interface UploadedFile {
 }
 
 interface FormData {
-  studentId: string;
+  studentIds: string[];
   files: UploadedFile[];
   outcomeIds: string[];
   dateOfActivity: string;
@@ -115,7 +116,7 @@ export default function UploadEvidence() {
   const [expandedPLUs, setExpandedPLUs] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState<FormData>({
-    studentId: preSelectedStudent,
+    studentIds: preSelectedStudent ? [preSelectedStudent] : [],
     files: [],
     outcomeIds: preSelectedOutcome ? [preSelectedOutcome] : [],
     dateOfActivity: format(new Date(), "yyyy-MM-dd"),
@@ -156,20 +157,25 @@ export default function UploadEvidence() {
           fileSize: f.fileSize,
         }));
 
-      const res = await apiRequest("POST", "/api/evidence", {
-        studentId: formData.studentId,
-        dateOfActivity: formData.dateOfActivity,
-        evidenceType: formData.evidenceType,
-        setting: formData.setting,
-        assessmentActivity: formData.assessmentActivity || null,
-        observations: formData.observations || null,
-        nextSteps: formData.nextSteps || null,
-        staffInitials: formData.staffInitials || null,
-        independenceLevel: formData.independenceLevel,
-        outcomeIds: formData.outcomeIds,
-        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-      });
-      return res.json();
+      // Create evidence for each selected student
+      const results = [];
+      for (const studentId of formData.studentIds) {
+        const res = await apiRequest("POST", "/api/evidence", {
+          studentId,
+          dateOfActivity: formData.dateOfActivity,
+          evidenceType: formData.evidenceType,
+          setting: formData.setting,
+          assessmentActivity: formData.assessmentActivity || null,
+          observations: formData.observations || null,
+          nextSteps: formData.nextSteps || null,
+          staffInitials: formData.staffInitials || null,
+          independenceLevel: formData.independenceLevel,
+          outcomeIds: formData.outcomeIds,
+          files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+        });
+        results.push(await res.json());
+      }
+      return results;
     },
     onSuccess: () => {
       // Clean up preview URLs
@@ -178,9 +184,16 @@ export default function UploadEvidence() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
       queryClient.invalidateQueries({ queryKey: ["/api/evidence"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/students", formData.studentId] });
-      toast({ title: "Evidence uploaded successfully!" });
-      navigate(`/students/${formData.studentId}`);
+      formData.studentIds.forEach(id => {
+        queryClient.invalidateQueries({ queryKey: ["/api/students", id] });
+      });
+      const studentCount = formData.studentIds.length;
+      toast({ 
+        title: studentCount > 1 
+          ? `Evidence uploaded for ${studentCount} students!` 
+          : "Evidence uploaded successfully!" 
+      });
+      navigate(studentCount === 1 ? `/students/${formData.studentIds[0]}` : "/students");
     },
     onError: () => {
       toast({ title: "Failed to save evidence", variant: "destructive" });
@@ -325,15 +338,16 @@ export default function UploadEvidence() {
     });
   };
 
-  const selectedStudent = students?.find((s) => s.id === formData.studentId);
+  const selectedStudents = students?.filter((s) => formData.studentIds.includes(s.id)) || [];
   
   // Group outcomes by PLU/Module and Element (supports new multi-programme schema)
   type PLUGroup = { pluName: string; pluCode: string; elements: Map<string, LearningOutcome[]> };
   const groupedOutcomes = useMemo((): Map<string, PLUGroup> => {
     if (!outcomes) return new Map<string, PLUGroup>();
     
-    // Filter outcomes by selected student's programme if student has a programmeId
-    const studentProgrammeId = selectedStudent?.programmeId;
+    // Filter outcomes by first selected student's programme if student has a programmeId
+    const firstStudent = selectedStudents[0];
+    const studentProgrammeId = firstStudent?.programmeId;
     let filteredByProgramme = outcomes;
     if (studentProgrammeId) {
       filteredByProgramme = outcomes.filter(o => o.programmeId === studentProgrammeId);
@@ -370,19 +384,19 @@ export default function UploadEvidence() {
       });
     
     return groups;
-  }, [outcomes, outcomeSearch, selectedStudent?.programmeId]);
+  }, [outcomes, outcomeSearch, selectedStudents]);
 
   // Track the last student ID for which we auto-expanded PLUs
   const lastExpandedStudentRef = useRef<string | null>(null);
   
   // Auto-expand all PLUs only on initial load or when student changes
   useEffect(() => {
-    const currentStudentId = formData.studentId || "no-student";
+    const currentStudentId = formData.studentIds[0] || "no-student";
     if (groupedOutcomes.size > 0 && lastExpandedStudentRef.current !== currentStudentId) {
       setExpandedPLUs(new Set(Array.from(groupedOutcomes.keys())));
       lastExpandedStudentRef.current = currentStudentId;
     }
-  }, [groupedOutcomes, formData.studentId]);
+  }, [groupedOutcomes, formData.studentIds]);
 
   const selectedOutcomes = outcomes?.filter((o) => formData.outcomeIds.includes(o.id)) || [];
 
@@ -393,7 +407,13 @@ export default function UploadEvidence() {
   const canProceed = () => {
     switch (currentStep) {
       case "student":
-        return !!formData.studentId;
+        if (formData.studentIds.length === 0) return false;
+        // Block proceeding if multiple students have different programmes
+        if (selectedStudents.length > 1) {
+          const programmes = new Set(selectedStudents.map(s => s.programmeId).filter(Boolean));
+          if (programmes.size > 1) return false;
+        }
+        return true;
       case "file":
         return allFilesUploaded;
       case "outcomes":
@@ -468,43 +488,83 @@ export default function UploadEvidence() {
           <div className="max-w-2xl mx-auto">
             {currentStep === "student" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Select Student</h2>
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-lg font-semibold">Select Students</h2>
+                  {formData.studentIds.length > 0 && (
+                    <Badge variant="secondary">
+                      {formData.studentIds.length} selected
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Select one or more students to attach this evidence to
+                </p>
                 {studentsLoading ? (
                   <LoadingSpinner />
                 ) : (
                   <div className="grid gap-3">
-                    {students?.map((student) => (
-                      <Card
-                        key={student.id}
-                        className={cn(
-                          "cursor-pointer transition-colors hover-elevate",
-                          formData.studentId === student.id && "ring-2 ring-primary"
-                        )}
-                        onClick={() => setFormData((prev) => ({ ...prev, studentId: student.id }))}
-                        data-testid={`card-select-student-${student.id}`}
-                      >
-                        <CardContent className="p-4 flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
-                            <span className="font-medium text-accent-foreground">
-                              {student.firstName[0]}{student.lastName[0]}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{student.firstName} {student.lastName}</p>
-                            {student.classGroup && (
-                              <Badge variant="secondary" className="text-xs mt-1">
-                                {student.classGroup}
-                              </Badge>
-                            )}
-                          </div>
-                          {formData.studentId === student.id && (
-                            <Check className="h-5 w-5 text-primary" />
+                    {students?.map((student) => {
+                      const isSelected = formData.studentIds.includes(student.id);
+                      return (
+                        <Card
+                          key={student.id}
+                          className={cn(
+                            "cursor-pointer transition-colors hover-elevate",
+                            isSelected && "ring-2 ring-primary"
                           )}
-                        </CardContent>
-                      </Card>
-                    ))}
+                          onClick={() => setFormData((prev) => ({
+                            ...prev,
+                            studentIds: isSelected
+                              ? prev.studentIds.filter(id => id !== student.id)
+                              : [...prev.studentIds, student.id]
+                          }))}
+                          data-testid={`card-select-student-${student.id}`}
+                        >
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
+                              <span className="font-medium text-accent-foreground">
+                                {student.firstName[0]}{student.lastName[0]}
+                              </span>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">{student.firstName} {student.lastName}</p>
+                              {student.classGroup && (
+                                <Badge variant="secondary" className="text-xs mt-1">
+                                  {student.classGroup}
+                                </Badge>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <Check className="h-5 w-5 text-primary" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
+                
+                {selectedStudents.length > 1 && (() => {
+                  const programmes = new Set(selectedStudents.map(s => s.programmeId).filter(Boolean));
+                  if (programmes.size > 1) {
+                    return (
+                      <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
+                        <CardContent className="p-3 flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                              Cannot Continue - Different Programmes
+                            </p>
+                            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                              Selected students are on different programmes. Please select only students on the same programme to ensure learning outcomes are correctly matched.
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
 
@@ -898,11 +958,17 @@ export default function UploadEvidence() {
                       <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
                         <User className="h-5 w-5 text-accent-foreground" />
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Student</p>
-                        <p className="font-medium">
-                          {selectedStudent?.firstName} {selectedStudent?.lastName}
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground">
+                          {selectedStudents.length > 1 ? `Students (${selectedStudents.length})` : "Student"}
                         </p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {selectedStudents.map((s) => (
+                            <Badge key={s.id} variant="secondary">
+                              {s.firstName} {s.lastName}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
