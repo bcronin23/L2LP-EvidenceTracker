@@ -45,7 +45,7 @@ import { GoogleDrivePicker } from "@/components/GoogleDrivePicker";
 import { useUpload } from "@/hooks/use-upload";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Student, LearningOutcome } from "@shared/schema";
+import type { Student, LearningOutcome, StudentProgrammeOverride } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 const evidenceTypes = [
@@ -143,6 +143,12 @@ export default function UploadEvidence() {
 
   const { data: outcomes, isLoading: outcomesLoading } = useQuery<LearningOutcome[]>({
     queryKey: ["/api/outcomes"],
+  });
+
+  const firstStudentId = formData.studentIds[0];
+  const { data: programmeOverrides } = useQuery<StudentProgrammeOverride[]>({
+    queryKey: ["/api/students", firstStudentId, "programme-overrides"],
+    enabled: !!firstStudentId,
   });
 
   const createMutation = useMutation({
@@ -345,12 +351,31 @@ export default function UploadEvidence() {
   const groupedOutcomes = useMemo((): Map<string, PLUGroup> => {
     if (!outcomes) return new Map<string, PLUGroup>();
     
-    // Filter outcomes by first selected student's programme if student has a programmeId
+    // Filter outcomes by first selected student's programme(s), including overrides
     const firstStudent = selectedStudents[0];
-    const studentProgrammeId = firstStudent?.programmeId;
+    const baseProgrammeId = firstStudent?.programmeId;
+    
+    // Build a map of areaCode -> effective programmeId (override takes precedence)
+    const overridesByArea = new Map<string, string>();
+    if (programmeOverrides) {
+      for (const override of programmeOverrides) {
+        overridesByArea.set(override.areaCode, override.programmeId);
+      }
+    }
+    
+    // Filter outcomes: include if outcome's programme matches effective programme for its area
     let filteredByProgramme = outcomes;
-    if (studentProgrammeId) {
-      filteredByProgramme = outcomes.filter(o => o.programmeId === studentProgrammeId);
+    if (baseProgrammeId) {
+      filteredByProgramme = outcomes.filter(o => {
+        const outcomeAreaCode = o.areaCode;
+        if (!outcomeAreaCode) {
+          // If no area code, fall back to base programme check
+          return o.programmeId === baseProgrammeId;
+        }
+        // Get effective programme for this area (override or base)
+        const effectiveProgrammeId = overridesByArea.get(outcomeAreaCode) ?? baseProgrammeId;
+        return o.programmeId === effectiveProgrammeId;
+      });
     }
     
     const groups = new Map<string, PLUGroup>();
@@ -384,7 +409,7 @@ export default function UploadEvidence() {
       });
     
     return groups;
-  }, [outcomes, outcomeSearch, selectedStudents]);
+  }, [outcomes, outcomeSearch, selectedStudents, programmeOverrides]);
 
   // Track the last student ID for which we auto-expanded PLUs
   const lastExpandedStudentRef = useRef<string | null>(null);
