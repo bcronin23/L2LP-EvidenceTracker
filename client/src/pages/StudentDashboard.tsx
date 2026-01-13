@@ -234,31 +234,43 @@ export default function StudentDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {pluCoverage?.plusCoverage.map((plu) => (
-                      <div key={plu.pluCode} className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {plu.pluNumber > 0 ? (
-                              <>
-                                <span className="font-medium shrink-0">PLU {plu.pluNumber}</span>
-                                <span className="text-sm text-muted-foreground truncate">{plu.pluName}</span>
-                              </>
-                            ) : (
-                              <span className="font-medium truncate">{plu.pluName}</span>
-                            )}
+                    {pluCoverage?.plusCoverage.map((plu) => {
+                      const isComplete = plu.percentage === 100;
+                      const hasReached50 = plu.isOnTrackForJCPA;
+                      
+                      return (
+                        <div key={plu.pluCode} className="space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {plu.pluNumber > 0 ? (
+                                <>
+                                  <span className="font-medium shrink-0">PLU {plu.pluNumber}</span>
+                                  <span className="text-sm text-muted-foreground truncate">{plu.pluName}</span>
+                                </>
+                              ) : (
+                                <span className="font-medium truncate">{plu.pluName}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isComplete ? (
+                                <Badge variant="default" className="bg-green-600 text-xs">Complete</Badge>
+                              ) : hasReached50 ? (
+                                <Badge variant="secondary" className="text-xs">50% Threshold</Badge>
+                              ) : null}
+                              <span className="text-sm">{plu.percentage}%</span>
+                              {isComplete ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : hasReached50 ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4 text-amber-500" />
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm">{plu.percentage}%</span>
-                            {plu.isOnTrackForJCPA ? (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <AlertCircle className="h-4 w-4 text-amber-500" />
-                            )}
-                          </div>
+                          <Progress value={plu.percentage} className="h-2" />
                         </div>
-                        <Progress value={plu.percentage} className="h-2" />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
