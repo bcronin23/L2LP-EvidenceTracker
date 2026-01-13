@@ -206,7 +206,7 @@ export default function UploadEvidence() {
     },
   });
 
-  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+  const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB for videos
   const ALLOWED_TYPES = [
     "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif",
     "video/mp4", "video/quicktime", "video/webm", "video/x-msvideo",
@@ -227,7 +227,7 @@ export default function UploadEvidence() {
       const file = selectedFiles[i];
       
       if (file.size > MAX_FILE_SIZE) {
-        errors.push(`${file.name}: File too large (max 50MB)`);
+        errors.push(`${file.name}: File too large (max 200MB)`);
         continue;
       }
 
@@ -727,7 +727,7 @@ export default function UploadEvidence() {
                 )}
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Supported: images, videos, audio, PDF, Word, PowerPoint, Excel (max 50MB per file)
+                  Supported: images, videos, audio, PDF, Word, PowerPoint, Excel (max 200MB per file)
                 </p>
               </div>
             )}
