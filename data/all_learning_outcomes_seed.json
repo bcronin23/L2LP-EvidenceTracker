@@ -4020,6 +4020,196 @@
     "sort_order": 8
   },
   {
+    "uid": "mm_a_01scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "a.",
+    "outcome_text": "show an awareness of daily activities by following structure/routine/prompts",
+    "sort_order": 1
+  },
+  {
+    "uid": "mm_b_02scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "b.",
+    "outcome_text": "transition from one location to the next following structure/routine/prompts",
+    "sort_order": 2
+  },
+  {
+    "uid": "mm_c_03scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "c.",
+    "outcome_text": "follow safety routines in familiar environments",
+    "sort_order": 3
+  },
+  {
+    "uid": "mm_d_04scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "d.",
+    "outcome_text": "recognise safe situations/places and the factors that can make a situation/place safe",
+    "sort_order": 4
+  },
+  {
+    "uid": "mm_e_05scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "e.",
+    "outcome_text": "recognise unsafe situations/places and the factors that can make a situation/place unsafe",
+    "sort_order": 5
+  },
+  {
+    "uid": "mm_f_06scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "f.",
+    "outcome_text": "engage in and demonstrate safety skills",
+    "sort_order": 6
+  },
+  {
+    "uid": "mm_g_07scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "g.",
+    "outcome_text": "recognise immediate potential dangers around them",
+    "sort_order": 7
+  },
+  {
+    "uid": "mm_h_08scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "h.",
+    "outcome_text": "recognise the importance of safety around medicines and link them to their use",
+    "sort_order": 8
+  },
+  {
+    "uid": "mm_i_09scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety",
+    "outcome_code": "i.",
+    "outcome_text": "recognise the importance of safety around hazardous substances",
+    "sort_order": 9
+  },
+  {
+    "uid": "mm_j_10scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "j.",
+    "outcome_text": "explore how to seek, give or deny permission respectfully when sharing possessions or personal space",
+    "sort_order": 10
+  },
+  {
+    "uid": "mm_k_11scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "k.",
+    "outcome_text": "communicate effectively when they need help/assistance or feel unsafe",
+    "sort_order": 11
+  },
+  {
+    "uid": "mm_l_12scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "l.",
+    "outcome_text": "show ways of getting help in unsafe situations and emergencies and identify people who can help",
+    "sort_order": 12
+  },
+  {
+    "uid": "mm_m_13scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "m.",
+    "outcome_text": "respond appropriately in emergency situations",
+    "sort_order": 13
+  },
+  {
+    "uid": "mm_n_14scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "n.",
+    "outcome_text": "demonstrate skills for personal safety",
+    "sort_order": 14
+  },
+  {
+    "uid": "mm_o_15scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "o.",
+    "outcome_text": "understand the difference between appropriate and inappropriate behaviour towards self and others",
+    "sort_order": 15
+  },
+  {
+    "uid": "mm_p_16scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "p.",
+    "outcome_text": "identify appropriate responses to inappropriate behaviour",
+    "sort_order": 16
+  },
+  {
+    "uid": "mm_q_17scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "q.",
+    "outcome_text": "show awareness of personal space and communicate discomfort or consent regarding personal space or touch during routines",
+    "sort_order": 17
+  },
+  {
+    "uid": "mm_r_18scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "r.",
+    "outcome_text": "recognise that boundaries apply to all forms of interactions with others",
+    "sort_order": 18
+  },
+  {
+    "uid": "mm_s_19scl1lp",
+    "programme": "SC_L1LP",
+    "plu_or_module_code": "SC_L1LP-MINDING-MYSELF",
+    "plu_or_module_title": "Minding myself",
+    "element_title": "Identifying where personal safety might be at risk and appropriate responses and approaches for staying safe",
+    "outcome_code": "s.",
+    "outcome_text": "demonstrate skills for personal safety by applying refusal skills",
+    "sort_order": 19
+  },
+  {
     "uid": "86425484fc7b",
     "programme": "SC_L1LP",
     "plu_or_module_code": "SC_L1LP-PERSONAL-SAFETY",

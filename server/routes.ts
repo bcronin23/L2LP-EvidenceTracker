@@ -68,6 +68,7 @@ const PLU_TO_AREA_CODE: Record<string, string> = {
   "SC_L1LP-Numeracy-UNDERSTANDING-MONEY": "NUMERACY",
   "SC_L1LP-LOOKING-AFTER-MY-WELLBEING": "PERSONAL_CARE",
   "SC_L1LP-PERSONAL-SAFETY": "PERSONAL_CARE",
+  "SC_L1LP-MINDING-MYSELF": "PERSONAL_CARE",
   "SC_L1LP-RELATIONSHIPS": "COMMUNITY",
   "SC_L1LP-Looking after my Environment-LOOKING-AFTER-MY-ENVIRONMENT": "LOOKING_AFTER_MY_ENV",
   "SC_L1LP-VISUAL-ART": "ARTS_VISUAL",
@@ -152,12 +153,13 @@ async function seedProgrammesIfNeeded() {
 async function seedOutcomesIfNeeded() {
   try {
     const existing = await storage.getOutcomes();
+    const allProgrammes = await storage.getProgrammes();
+    const programmeMap = new Map(allProgrammes.map(p => [p.code, p.id]));
+    
     if (existing.length === 0) {
       console.log("Seeding learning outcomes from official JSON file...");
       try {
         // Try to load new multi-programme outcomes
-        const allProgrammes = await storage.getProgrammes();
-        const programmeMap = new Map(allProgrammes.map(p => [p.code, p.id]));
         const allOutcomes = loadAllProgrammeOutcomes();
         const outcomesToInsert = transformOutcomesForNewSchema(allOutcomes, programmeMap);
         await storage.createOutcomesBatch(outcomesToInsert);
@@ -165,6 +167,24 @@ async function seedOutcomesIfNeeded() {
       } catch (fileError: any) {
         console.error("Seed file error:", fileError.message);
         console.log("No seed file found - outcomes will need to be imported via admin");
+      }
+    } else {
+      // Check for new outcomes in seed file that aren't in database yet
+      try {
+        const allOutcomes = loadAllProgrammeOutcomes();
+        const allOutcomesToCheck = transformOutcomesForNewSchema(allOutcomes, programmeMap);
+        const existingUids = new Set(existing.map(o => o.uid));
+        const newOutcomes = allOutcomesToCheck.filter(o => o.uid && !existingUids.has(o.uid));
+        
+        if (newOutcomes.length > 0) {
+          console.log(`Found ${newOutcomes.length} new outcomes to add...`);
+          for (const outcome of newOutcomes) {
+            await storage.upsertOutcomeByUid(outcome);
+          }
+          console.log(`Added ${newOutcomes.length} new learning outcomes`);
+        }
+      } catch (fileError: any) {
+        // Seed file not found is ok - just means no new outcomes to add
       }
     }
   } catch (error) {
