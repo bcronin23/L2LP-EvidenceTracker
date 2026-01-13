@@ -64,22 +64,59 @@ export default function LearningOutcomes() {
     return Array.from(pluMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredOutcomes]);
 
+  // SC L1LP Personal Care modules that should be grouped under "Personal Care" umbrella
+  const PERSONAL_CARE_MODULES = new Set([
+    "SC_L1LP-PERSONAL-SAFETY",
+    "SC_L1LP-LOOKING-AFTER-MY-WELLBEING",
+    "SC_L1LP-MINDING-MYSELF"
+  ]);
+  
   const groupedOutcomes = useMemo(() => {
-    const groups = new Map<string, { pluCode: string; pluName: string; elements: Map<string, LearningOutcome[]> }>();
+    const groups = new Map<string, { 
+      pluCode: string; 
+      pluName: string; 
+      elements: Map<string, LearningOutcome[]>;
+      isUmbrella?: boolean;
+      subModules?: Map<string, { pluCode: string; pluName: string; elements: Map<string, LearningOutcome[]> }>;
+    }>();
     
     filteredOutcomes.forEach((outcome) => {
       const pluCode = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
       const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluCode;
       const elementName = outcome.elementName || "General";
       
-      if (!groups.has(pluCode)) {
-        groups.set(pluCode, { pluCode, pluName, elements: new Map() });
+      // Check if this is a Personal Care module that needs umbrella grouping
+      if (PERSONAL_CARE_MODULES.has(pluCode)) {
+        const umbrellaKey = "SC_L1LP-PERSONAL-CARE";
+        if (!groups.has(umbrellaKey)) {
+          groups.set(umbrellaKey, { 
+            pluCode: umbrellaKey, 
+            pluName: "Personal Care", 
+            elements: new Map(),
+            isUmbrella: true,
+            subModules: new Map()
+          });
+        }
+        const umbrella = groups.get(umbrellaKey)!;
+        if (!umbrella.subModules!.has(pluCode)) {
+          umbrella.subModules!.set(pluCode, { pluCode, pluName, elements: new Map() });
+        }
+        const subModule = umbrella.subModules!.get(pluCode)!;
+        if (!subModule.elements.has(elementName)) {
+          subModule.elements.set(elementName, []);
+        }
+        subModule.elements.get(elementName)!.push(outcome);
+      } else {
+        // Normal grouping for non-umbrella modules
+        if (!groups.has(pluCode)) {
+          groups.set(pluCode, { pluCode, pluName, elements: new Map() });
+        }
+        const plu = groups.get(pluCode)!;
+        if (!plu.elements.has(elementName)) {
+          plu.elements.set(elementName, []);
+        }
+        plu.elements.get(elementName)!.push(outcome);
       }
-      const plu = groups.get(pluCode)!;
-      if (!plu.elements.has(elementName)) {
-        plu.elements.set(elementName, []);
-      }
-      plu.elements.get(elementName)!.push(outcome);
     });
     
     return groups;
@@ -211,61 +248,132 @@ export default function LearningOutcomes() {
             <div className="space-y-4">
               {Array.from(groupedOutcomes.entries())
                 .sort((a, b) => a[0].localeCompare(b[0]))
-                .map(([pluCode, plu]) => (
-                  <Card key={pluCode}>
-                    <button
-                      type="button"
-                      className="w-full p-4 flex items-center gap-3 text-left hover-elevate rounded-t-md"
-                      onClick={() => togglePLU(pluCode)}
-                      data-testid={`button-toggle-plu-${pluCode}`}
-                    >
-                      {expandedPLUs.has(pluCode) ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                      )}
-                      <Badge variant="default" className="font-mono flex-shrink-0">
-                        {plu.pluCode}
-                      </Badge>
-                      <h2 className="text-lg font-semibold flex-1">{plu.pluName}</h2>
-                      <Badge variant="secondary">
-                        {Array.from(plu.elements.values()).flat().length} outcomes
-                      </Badge>
-                    </button>
+                .map(([pluCode, plu]) => {
+                  // Calculate total outcomes count (including sub-modules for umbrella groups)
+                  const totalOutcomesCount = plu.isUmbrella && plu.subModules
+                    ? Array.from(plu.subModules.values()).reduce((sum, sub) => 
+                        sum + Array.from(sub.elements.values()).flat().length, 0)
+                    : Array.from(plu.elements.values()).flat().length;
 
-                    {expandedPLUs.has(pluCode) && (
-                      <CardContent className="pt-0 pb-4">
-                        <div className="space-y-4 ml-8">
-                          {Array.from(plu.elements.entries()).map(([elementName, elementOutcomes]) => (
-                            <div key={elementName}>
-                              <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                                <BookOpen className="h-4 w-4" />
-                                {elementName}
-                                <Badge variant="outline" className="text-xs">
-                                  {elementOutcomes.length}
-                                </Badge>
-                              </h3>
-                              <div className="space-y-2">
-                                {elementOutcomes.map((outcome) => (
-                                  <div
-                                    key={outcome.id}
-                                    className="flex gap-3 p-3 rounded-md bg-accent/30"
-                                    data-testid={`outcome-${outcome.outcomeCode}`}
-                                  >
-                                    <Badge variant="outline" className="font-mono text-xs flex-shrink-0">
-                                      {outcome.outcomeCode}
-                                    </Badge>
-                                    <p className="text-sm">{outcome.outcomeText}</p>
-                                  </div>
-                                ))}
-                              </div>
+                  return (
+                    <Card key={pluCode}>
+                      <button
+                        type="button"
+                        className="w-full p-4 flex items-center gap-3 text-left hover-elevate rounded-t-md"
+                        onClick={() => togglePLU(pluCode)}
+                        data-testid={`button-toggle-plu-${pluCode}`}
+                      >
+                        {expandedPLUs.has(pluCode) ? (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        )}
+                        <Badge variant="default" className="font-mono flex-shrink-0">
+                          {plu.pluCode}
+                        </Badge>
+                        <h2 className="text-lg font-semibold flex-1">{plu.pluName}</h2>
+                        <Badge variant="secondary">
+                          {totalOutcomesCount} outcomes
+                        </Badge>
+                      </button>
+
+                      {expandedPLUs.has(pluCode) && (
+                        <CardContent className="pt-0 pb-4">
+                          {plu.isUmbrella && plu.subModules ? (
+                            // Render umbrella with sub-modules
+                            <div className="space-y-4 ml-8">
+                              {Array.from(plu.subModules.entries())
+                                .sort((a, b) => a[0].localeCompare(b[0]))
+                                .map(([subCode, subModule]) => {
+                                  const subOutcomesCount = Array.from(subModule.elements.values()).flat().length;
+                                  const subKey = `${pluCode}-${subCode}`;
+                                  return (
+                                    <div key={subCode} className="border rounded-md">
+                                      <button
+                                        type="button"
+                                        className="w-full p-3 flex items-center gap-3 text-left hover-elevate rounded-md"
+                                        onClick={() => togglePLU(subKey)}
+                                        data-testid={`button-toggle-submodule-${subCode}`}
+                                      >
+                                        {expandedPLUs.has(subKey) ? (
+                                          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        ) : (
+                                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        )}
+                                        <h3 className="font-medium flex-1">{subModule.pluName}</h3>
+                                        <Badge variant="outline" className="text-xs">
+                                          {subOutcomesCount} outcomes
+                                        </Badge>
+                                      </button>
+                                      
+                                      {expandedPLUs.has(subKey) && (
+                                        <div className="px-3 pb-3 space-y-4 ml-6">
+                                          {Array.from(subModule.elements.entries()).map(([elementName, elementOutcomes]) => (
+                                            <div key={elementName}>
+                                              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                                                <BookOpen className="h-4 w-4" />
+                                                {elementName}
+                                                <Badge variant="outline" className="text-xs">
+                                                  {elementOutcomes.length}
+                                                </Badge>
+                                              </h4>
+                                              <div className="space-y-2">
+                                                {elementOutcomes.map((outcome) => (
+                                                  <div
+                                                    key={outcome.id}
+                                                    className="flex gap-3 p-3 rounded-md bg-accent/30"
+                                                    data-testid={`outcome-${outcome.outcomeCode}`}
+                                                  >
+                                                    <Badge variant="outline" className="font-mono text-xs flex-shrink-0">
+                                                      {outcome.outcomeCode}
+                                                    </Badge>
+                                                    <p className="text-sm">{outcome.outcomeText}</p>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                             </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    )}
-                  </Card>
-                ))}
+                          ) : (
+                            // Render standard PLU with elements
+                            <div className="space-y-4 ml-8">
+                              {Array.from(plu.elements.entries()).map(([elementName, elementOutcomes]) => (
+                                <div key={elementName}>
+                                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                                    <BookOpen className="h-4 w-4" />
+                                    {elementName}
+                                    <Badge variant="outline" className="text-xs">
+                                      {elementOutcomes.length}
+                                    </Badge>
+                                  </h3>
+                                  <div className="space-y-2">
+                                    {elementOutcomes.map((outcome) => (
+                                      <div
+                                        key={outcome.id}
+                                        className="flex gap-3 p-3 rounded-md bg-accent/30"
+                                        data-testid={`outcome-${outcome.outcomeCode}`}
+                                      >
+                                        <Badge variant="outline" className="font-mono text-xs flex-shrink-0">
+                                          {outcome.outcomeCode}
+                                        </Badge>
+                                        <p className="text-sm">{outcome.outcomeText}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      )}
+                    </Card>
+                  );
+                })}
             </div>
           )}
         </main>
