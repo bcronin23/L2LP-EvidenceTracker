@@ -275,66 +275,49 @@ export default function StudentDashboard() {
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-destructive" />
-                      Missing Outcomes ({missingOutcomes.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {missingOutcomes.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No missing outcomes - great coverage!</p>
-                    ) : (
-                      <ScrollArea className="h-40">
-                        <div className="space-y-2">
-                          {missingOutcomes.slice(0, 10).map((outcome) => (
-                            <div key={outcome.id} className="text-sm p-2 rounded-md bg-muted">
-                              <span className="font-medium">{outcome.outcomeCode}</span>
-                              <span className="text-muted-foreground ml-2 truncate">{outcome.outcomeText}</span>
-                            </div>
-                          ))}
-                          {missingOutcomes.length > 10 && (
-                            <p className="text-sm text-muted-foreground">+{missingOutcomes.length - 10} more</p>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-amber-500" />
-                      Weak Outcomes ({weakOutcomes.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {weakOutcomes.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No weak outcomes - solid evidence base!</p>
-                    ) : (
-                      <ScrollArea className="h-40">
-                        <div className="space-y-2">
-                          {weakOutcomes.slice(0, 10).map(({ outcome, count }) => (
-                            <div key={outcome.id} className="text-sm p-2 rounded-md bg-muted flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    Outcomes Needing Evidence ({missingOutcomes.length + weakOutcomes.length})
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Outcomes with no evidence or only 1 piece of evidence
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {missingOutcomes.length === 0 && weakOutcomes.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">All outcomes have good coverage!</p>
+                  ) : (
+                    <ScrollArea className="h-64">
+                      <div className="space-y-2">
+                        {missingOutcomes.map((outcome) => (
+                          <div key={outcome.id} className="text-sm p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                            <div className="flex items-start gap-2">
+                              <Badge variant="destructive" className="text-xs shrink-0">No evidence</Badge>
+                              <div className="min-w-0">
                                 <span className="font-medium">{outcome.outcomeCode}</span>
-                                <span className="text-muted-foreground ml-2 truncate">{outcome.outcomeText}</span>
+                                <p className="text-muted-foreground text-xs mt-1">{outcome.outcomeText}</p>
                               </div>
-                              <Badge variant="outline" className="flex-shrink-0">{count}</Badge>
                             </div>
-                          ))}
-                          {weakOutcomes.length > 10 && (
-                            <p className="text-sm text-muted-foreground">+{weakOutcomes.length - 10} more</p>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                          </div>
+                        ))}
+                        {weakOutcomes.map(({ outcome, count }) => (
+                          <div key={outcome.id} className="text-sm p-3 rounded-md bg-amber-500/10 border border-amber-500/20">
+                            <div className="flex items-start gap-2">
+                              <Badge variant="outline" className="text-xs shrink-0 border-amber-500 text-amber-600">{count} evidence</Badge>
+                              <div className="min-w-0">
+                                <span className="font-medium">{outcome.outcomeCode}</span>
+                                <p className="text-muted-foreground text-xs mt-1">{outcome.outcomeText}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
 
               <ProgrammeOverridesManager student={student} />
             </TabsContent>
