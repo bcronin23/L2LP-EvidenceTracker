@@ -132,9 +132,16 @@ export default function StudentDashboard() {
   }
 
   const missingOutcomes = pluCoverage?.missingOutcomes || [];
-  const weakOutcomes = pluCoverage?.weakOutcomes || [];
   const plusOnTrack = pluCoverage?.plusCoverage.filter(p => p.isOnTrackForJCPA).length || 0;
   const totalPlus = pluCoverage?.plusCoverage.length || 5;
+  
+  // Only show weak outcomes if student has substantial evidence (5+ pieces with photos/videos)
+  const totalEvidence = evidenceList?.length || 0;
+  const hasMediaEvidence = evidenceList?.some(e => 
+    e.evidenceType === "photo" || e.evidenceType === "video"
+  ) || false;
+  const showWeakOutcomes = totalEvidence >= 5 && hasMediaEvidence;
+  const weakOutcomes = showWeakOutcomes ? (pluCoverage?.weakOutcomes || []) : [];
   const activeSsp = ssps?.find(s => s.status === "active");
   const archivedSsps = ssps?.filter(s => s.status === "archived") || [];
   
