@@ -65,10 +65,8 @@ export default function LearningOutcomes() {
   }, [filteredOutcomes]);
 
   // SC L1LP Personal Care modules that should be grouped under "Personal Care" umbrella
+  // Only includes the 3 official Personal Care sub-modules per curriculumonline.ie
   const PERSONAL_CARE_MODULES = new Set([
-    "SC_L1LP-PERSONAL-SAFETY",
-    "SC_L1LP-LOOKING-AFTER-MY-WELLBEING",
-    "SC_L1LP-MINDING-MYSELF",
     "SC_L1LP-Personal Care-SELF-AWARENESS-AND-SELF-CARE",
     "SC_L1LP-Personal Care-CONNECTING-WITH-MYSELF-AND-OTHERS",
     "SC_L1LP-Personal Care-MINDING-MYSELF"
