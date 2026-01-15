@@ -59,6 +59,81 @@ const evidenceTypeIcons: Record<string, typeof Camera> = {
   other: File,
 };
 
+interface SignedUrlFile {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  signedUrl: string;
+}
+
+function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcomes; onClick: () => void }) {
+  const { data: filesData, isLoading } = useQuery<SignedUrlFile[]>({
+    queryKey: ["/api/evidence", evidence.id, "files-signed-urls"],
+    enabled: (evidence.files?.length ?? 0) > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const files = filesData || [];
+  const firstFile = files[0];
+  const isImage = firstFile?.mimeType?.startsWith("image/");
+  const isVideo = firstFile?.mimeType?.startsWith("video/");
+
+  return (
+    <Card
+      className="aspect-square cursor-pointer hover-elevate overflow-hidden"
+      onClick={onClick}
+      data-testid={`gallery-item-${evidence.id}`}
+    >
+      <CardContent className="p-0 h-full flex flex-col">
+        <div className="flex-1 relative overflow-hidden bg-accent">
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <LoadingSpinner />
+            </div>
+          ) : isImage && firstFile?.signedUrl ? (
+            <img
+              src={firstFile.signedUrl}
+              alt="Evidence"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : isVideo && firstFile?.signedUrl ? (
+            <div className="absolute inset-0">
+              <video
+                src={firstFile.signedUrl}
+                className="w-full h-full object-cover"
+                muted
+                preload="metadata"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <Play className="h-10 w-10 text-white drop-shadow-lg" />
+              </div>
+            </div>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              {evidence.evidenceType === "photo" ? (
+                <Camera className="h-12 w-12 text-accent-foreground/50" />
+              ) : (
+                <Play className="h-12 w-12 text-accent-foreground/50" />
+              )}
+            </div>
+          )}
+        </div>
+        <div className="p-2 bg-card border-t">
+          <p className="text-xs text-muted-foreground truncate">
+            {format(new Date(evidence.dateOfActivity), "dd MMM yyyy")}
+          </p>
+          {evidence.outcomes && evidence.outcomes.length > 0 && (
+            <Badge variant="secondary" className="text-xs mt-1">
+              {evidence.outcomes.length} outcomes
+            </Badge>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function StudentDashboard() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -491,35 +566,11 @@ export default function StudentDashboard() {
                       ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                           {filteredGalleryItems.map((evidence) => (
-                            <Card
+                            <GalleryThumbnail
                               key={evidence.id}
-                              className="aspect-square cursor-pointer hover-elevate overflow-hidden"
+                              evidence={evidence}
                               onClick={() => setSelectedEvidence(evidence)}
-                              data-testid={`gallery-item-${evidence.id}`}
-                            >
-                              <CardContent className="p-0 h-full flex flex-col">
-                                <div className="flex-1 flex items-center justify-center bg-accent">
-                                  {evidence.evidenceType === "photo" ? (
-                                    <Camera className="h-12 w-12 text-accent-foreground/50" />
-                                  ) : (
-                                    <div className="flex flex-col items-center gap-2">
-                                      <Play className="h-12 w-12 text-accent-foreground/50" />
-                                      <span className="text-xs text-muted-foreground">Video</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="p-2 bg-card border-t">
-                                  <p className="text-xs text-muted-foreground truncate">
-                                    {format(new Date(evidence.dateOfActivity), "dd MMM yyyy")}
-                                  </p>
-                                  {evidence.outcomes && evidence.outcomes.length > 0 && (
-                                    <Badge variant="secondary" className="text-xs mt-1">
-                                      {evidence.outcomes.length} outcomes
-                                    </Badge>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
+                            />
                           ))}
                         </div>
                       )}
