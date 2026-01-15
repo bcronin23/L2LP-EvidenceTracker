@@ -193,6 +193,9 @@ export const learningOutcomes = pgTable("learning_outcomes", {
   pluOrModuleCode: varchar("plu_or_module_code", { length: 100 }),
   pluOrModuleTitle: varchar("plu_or_module_title", { length: 150 }),
   elementName: varchar("element_name", { length: 150 }),
+  moduleTitle: varchar("module_title", { length: 150 }),
+  strandTitle: varchar("strand_title", { length: 255 }),
+  outcomeLabel: varchar("outcome_label", { length: 10 }),
   outcomeCode: varchar("outcome_code", { length: 20 }).notNull(),
   outcomeText: text("outcome_text").notNull(),
   sortOrder: integer("sort_order").default(0),
@@ -210,6 +213,7 @@ export const learningOutcomes = pgTable("learning_outcomes", {
   index("idx_learning_outcomes_programme_code").on(table.programmeCode),
   index("idx_learning_outcomes_uid").on(table.uid),
   index("idx_learning_outcomes_area_code").on(table.areaCode),
+  index("idx_learning_outcomes_module").on(table.moduleTitle),
 ]);
 
 export const learningOutcomesRelations = relations(learningOutcomes, ({ one, many }) => ({
