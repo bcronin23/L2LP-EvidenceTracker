@@ -5490,16 +5490,6 @@
     "sort_order": 1
   },
   {
-    "uid": "6d9a9ba5fcb7",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "b.",
-    "outcome_text": "explore ways to support their personal health and wellbeing including physical activity, nutrition, sleep, social connections and hobbies",
-    "sort_order": 2
-  },
-  {
     "uid": "93af09d52ce7",
     "programme": "SC_L2LP",
     "plu_or_module_code": "SC_L2LP-LOOKING-AFTER-MY-WELLBEING",
@@ -5508,16 +5498,6 @@
     "outcome_code": "c.",
     "outcome_text": "describe personal hygiene routines and demonstrate increased responsibility for personal care",
     "sort_order": 3
-  },
-  {
-    "uid": "37f10ed4aa5f",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "d.",
-    "outcome_text": "recognise positive and negative peer influence, both online and in person and demonstrate an appropriate response",
-    "sort_order": 4
   },
   {
     "uid": "400678863635",
@@ -5560,16 +5540,6 @@
     "sort_order": 8
   },
   {
-    "uid": "da57d793f016",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-PERSONAL-SAFETY",
-    "plu_or_module_title": "Personal Safety",
-    "element_title": null,
-    "outcome_code": "i.",
-    "outcome_text": "demonstrate refusal skills appropriately and effectively",
-    "sort_order": 9
-  },
-  {
     "uid": "83098ada02ef",
     "programme": "SC_L2LP",
     "plu_or_module_code": "SC_L2LP-LOOKING-AFTER-MY-WELLBEING",
@@ -5578,26 +5548,6 @@
     "outcome_code": "j.",
     "outcome_text": "demonstrate how to address disagreements respectfully",
     "sort_order": 10
-  },
-  {
-    "uid": "b0bccbcf5d2f",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "k.",
-    "outcome_text": "describe their emotions and recognise the link between thoughts, feelings and behaviours",
-    "sort_order": 11
-  },
-  {
-    "uid": "d821d4ed9d20",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-PERSONAL-SAFETY",
-    "plu_or_module_title": "Personal Safety",
-    "element_title": null,
-    "outcome_code": "l.",
-    "outcome_text": "recognise helpful and unhelpful thinking patterns and behaviours and explore helpful ways of responding to and managing thoughts, feelings and behaviours",
-    "sort_order": 12
   },
   {
     "uid": "fcbf1ac84c0f",
@@ -5630,56 +5580,6 @@
     "sort_order": 15
   },
   {
-    "uid": "762f6ead2ef5",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "p.",
-    "outcome_text": "explore the range of relationships that are important to them and ways to nurture these",
-    "sort_order": 16
-  },
-  {
-    "uid": "06e2509302a0",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "q.",
-    "outcome_text": "demonstrate the skills needed for healthy relationships, both in person and online, including communicating respectfully, managing emotions, respecting boundaries",
-    "sort_order": 17
-  },
-  {
-    "uid": "90de469021e7",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-PERSONAL-SAFETY",
-    "plu_or_module_title": "Personal Safety",
-    "element_title": null,
-    "outcome_code": "r.",
-    "outcome_text": "recognise examples/situations where people are treated unfairly or experience exclusion and identify helpful responses",
-    "sort_order": 18
-  },
-  {
-    "uid": "316db3029834",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "s.",
-    "outcome_text": "recognise what sexual activity is, in the context of an adult healthy, respectful relationship",
-    "sort_order": 19
-  },
-  {
-    "uid": "d2a952756e8c",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "t.",
-    "outcome_text": "appreciate the need to give and receive consent in the context of all interpersonal relationships, including within an adult sexual relationship",
-    "sort_order": 20
-  },
-  {
     "uid": "fd97a68a8046",
     "programme": "SC_L2LP",
     "plu_or_module_code": "SC_L2LP-LOOKING-AFTER-MY-WELLBEING",
@@ -5688,36 +5588,6 @@
     "outcome_code": "u.",
     "outcome_text": "explore ways to support their sexual health",
     "sort_order": 21
-  },
-  {
-    "uid": "a82eb7ead4fd",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-PERSONAL-SAFETY",
-    "plu_or_module_title": "Personal Safety",
-    "element_title": null,
-    "outcome_code": "v.",
-    "outcome_text": "identify places and/or situations where they do and don’t feel safe and demonstrate skills for assessing and avoiding risks",
-    "sort_order": 22
-  },
-  {
-    "uid": "1b421d3d27f3",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "w.",
-    "outcome_text": "discuss ways to manage scenarios where they may feel pressure to engage in unhealthy or harmful behaviours",
-    "sort_order": 23
-  },
-  {
-    "uid": "83e48588216d",
-    "programme": "SC_L2LP",
-    "plu_or_module_code": "SC_L2LP-RELATIONSHIPS",
-    "plu_or_module_title": "Relationships",
-    "element_title": null,
-    "outcome_code": "x.",
-    "outcome_text": "identify ways in which substance use can impact on physical, social and emotional health",
-    "sort_order": 24
   },
   {
     "uid": "cb6c03b8661b",
@@ -8932,5 +8802,213 @@
     "outcome_code": "PC-s",
     "outcome_text": "demonstrate skills for personal safety by applying refusal skills",
     "sort_order": 58
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to take care of themselves",
+    "outcome_code": "a.",
+    "outcome_text": "establish and manage a daily routine, including times of transition"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to take care of themselves",
+    "outcome_code": "b.",
+    "outcome_text": "explore ways to support their personal health and wellbeing including physical activity, nutrition, sleep, social connections and hobbies"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to take care of themselves",
+    "outcome_code": "c.",
+    "outcome_text": "describe personal hygiene routines and demonstrate increased responsibility for personal care"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to take care of themselves",
+    "outcome_code": "d.",
+    "outcome_text": "recognise positive and negative peer influence, both online and in person and demonstrate an appropriate response"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to take care of themselves",
+    "outcome_code": "e.",
+    "outcome_text": "recognise rights, responsibilities and protections before the law as they grow into adulthood"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to communicate more effectively",
+    "outcome_code": "f.",
+    "outcome_text": "communicate in a respectful and effective manner"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to communicate more effectively",
+    "outcome_code": "g.",
+    "outcome_text": "demonstrate sharing and turn taking in different contexts"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to communicate more effectively",
+    "outcome_code": "h.",
+    "outcome_text": "communicate needs and wants assertively and respectfully"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to communicate more effectively",
+    "outcome_code": "i.",
+    "outcome_text": "demonstrate refusal skills appropriately and effectively"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to communicate more effectively",
+    "outcome_code": "j.",
+    "outcome_text": "demonstrate how to address disagreements respectfully"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to recognise and manage emotions",
+    "outcome_code": "k.",
+    "outcome_text": "describe their emotions and recognise the link between thoughts, feelings and behaviours"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to recognise and manage emotions",
+    "outcome_code": "l.",
+    "outcome_text": "recognise helpful and unhelpful thinking patterns and behaviours and explore helpful ways of responding to and managing thoughts, feelings and behaviours"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to recognise and manage emotions",
+    "outcome_code": "m.",
+    "outcome_text": "recognise sensory overload and identify ways of responding"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "How to recognise and manage emotions",
+    "outcome_code": "n.",
+    "outcome_text": "explore ways of managing stress and anxiety"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Skills needed to nurture and maintain healthy relationships",
+    "outcome_code": "o.",
+    "outcome_text": "recognise and appreciate their own unique identities"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Skills needed to nurture and maintain healthy relationships",
+    "outcome_code": "p.",
+    "outcome_text": "explore the range of relationships that are important to them and ways to nurture these"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Skills needed to nurture and maintain healthy relationships",
+    "outcome_code": "q.",
+    "outcome_text": "demonstrate the skills needed for healthy relationships, both in person and online, including communicating respectfully, managing emotions, respecting boundaries"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Skills needed to nurture and maintain healthy relationships",
+    "outcome_code": "r.",
+    "outcome_text": "recognise examples/situations where people are treated unfairly or experience exclusion and identify helpful responses"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Sexuality",
+    "outcome_code": "s.",
+    "outcome_text": "recognise what sexual activity is, in the context of an adult healthy, respectful relationship"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Sexuality",
+    "outcome_code": "t.",
+    "outcome_text": "appreciate the need to give and receive consent in the context of all interpersonal relationships, including within an adult sexual relationship"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Sexuality",
+    "outcome_code": "u.",
+    "outcome_text": "explore ways to support their sexual health"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Recognising and responding to risks or challenges",
+    "outcome_code": "v.",
+    "outcome_text": "identify places and/or situations where they do and don't feel safe and demonstrate skills for assessing and avoiding risks"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Recognising and responding to risks or challenges",
+    "outcome_code": "w.",
+    "outcome_text": "discuss ways to manage scenarios where they may feel pressure to engage in unhealthy or harmful behaviours"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Recognising and responding to risks or challenges",
+    "outcome_code": "x.",
+    "outcome_text": "identify ways in which substance use can impact on physical, social and emotional health"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Recognising and responding to risks or challenges",
+    "outcome_code": "y.",
+    "outcome_text": "understand the consequences, including legal consequences, of accessing or sharing sexually explicit material"
+  },
+  {
+    "programme": "SC_L2LP",
+    "plu_or_module_code": "SC_L2LP-PERSONAL-CARE",
+    "plu_or_module_title": "Personal Care",
+    "strand_title": "Recognising and responding to risks or challenges",
+    "outcome_code": "z.",
+    "outcome_text": "recognise health services and supports available locally and online and demonstrate how to access them"
   }
 ]
