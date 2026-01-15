@@ -22,6 +22,10 @@ import {
   Download,
   Trash2,
   LinkIcon,
+  Grid,
+  List,
+  Play,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +67,8 @@ export default function StudentDashboard() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceWithOutcomes | null>(null);
   const [sspDialogOpen, setSspDialogOpen] = useState(false);
+  const [evidenceViewMode, setEvidenceViewMode] = useState<"timeline" | "gallery">("timeline");
+  const [galleryFilter, setGalleryFilter] = useState<"all" | "photo" | "video">("all");
   const [editingSsp, setEditingSsp] = useState<StudentSupportPlanWithAttachments | null>(null);
   const [showSspHistory, setShowSspHistory] = useState(false);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
@@ -143,6 +149,14 @@ export default function StudentDashboard() {
   const showWeakOutcomes = totalEvidence >= 5 && hasMediaEvidence;
   const weakOutcomes = showWeakOutcomes ? (pluCoverage?.weakOutcomes || []) : [];
   const activeSsp = ssps?.find(s => s.status === "active");
+  
+  // Gallery items - filter to photos/videos with files
+  const mediaItems = (evidenceList || []).filter(e => 
+    (e.evidenceType === "photo" || e.evidenceType === "video") && e.files && e.files.length > 0
+  );
+  const filteredGalleryItems = galleryFilter === "all" 
+    ? mediaItems 
+    : mediaItems.filter(e => e.evidenceType === galleryFilter);
   const archivedSsps = ssps?.filter(s => s.status === "archived") || [];
   
   // Create lookup for module codes to titles for badge display
@@ -347,66 +361,171 @@ export default function StudentDashboard() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-3">
-                  {evidenceList?.map((evidence) => {
-                    const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
-                    return (
-                      <Card
-                        key={evidence.id}
-                        className="hover-elevate cursor-pointer"
-                        onClick={() => setSelectedEvidence(evidence)}
-                        data-testid={`card-evidence-${evidence.id}`}
+                <>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={evidenceViewMode === "timeline" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setEvidenceViewMode("timeline")}
+                        data-testid="button-view-timeline"
                       >
-                        <CardContent className="p-4 flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
-                            <Icon className="h-6 w-6 text-accent-foreground" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <Badge variant="outline" className="capitalize">
-                                {evidence.evidenceType.replace("_", " ")}
-                              </Badge>
-                              <Badge variant="secondary" className="capitalize flex items-center gap-1">
-                                {evidence.setting === "classroom" ? (
-                                  <Building className="h-3 w-3" />
-                                ) : (
-                                  <MapPin className="h-3 w-3" />
+                        <List className="h-4 w-4 mr-1" />
+                        Timeline
+                      </Button>
+                      <Button
+                        variant={evidenceViewMode === "gallery" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setEvidenceViewMode("gallery")}
+                        data-testid="button-view-gallery"
+                      >
+                        <Grid className="h-4 w-4 mr-1" />
+                        Gallery
+                      </Button>
+                    </div>
+                    {evidenceViewMode === "gallery" && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant={galleryFilter === "all" ? "secondary" : "ghost"}
+                          size="sm"
+                          onClick={() => setGalleryFilter("all")}
+                          data-testid="button-filter-all"
+                        >
+                          All ({mediaItems.length})
+                        </Button>
+                        <Button
+                          variant={galleryFilter === "photo" ? "secondary" : "ghost"}
+                          size="sm"
+                          onClick={() => setGalleryFilter("photo")}
+                          data-testid="button-filter-photos"
+                        >
+                          <Camera className="h-4 w-4 mr-1" />
+                          Photos
+                        </Button>
+                        <Button
+                          variant={galleryFilter === "video" ? "secondary" : "ghost"}
+                          size="sm"
+                          onClick={() => setGalleryFilter("video")}
+                          data-testid="button-filter-videos"
+                        >
+                          <Video className="h-4 w-4 mr-1" />
+                          Videos
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {evidenceViewMode === "timeline" ? (
+                    <div className="space-y-3">
+                      {evidenceList?.map((evidence) => {
+                        const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
+                        return (
+                          <Card
+                            key={evidence.id}
+                            className="hover-elevate cursor-pointer"
+                            onClick={() => setSelectedEvidence(evidence)}
+                            data-testid={`card-evidence-${evidence.id}`}
+                          >
+                            <CardContent className="p-4 flex items-start gap-4">
+                              <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
+                                <Icon className="h-6 w-6 text-accent-foreground" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <Badge variant="outline" className="capitalize">
+                                    {evidence.evidenceType.replace("_", " ")}
+                                  </Badge>
+                                  <Badge variant="secondary" className="capitalize flex items-center gap-1">
+                                    {evidence.setting === "classroom" ? (
+                                      <Building className="h-3 w-3" />
+                                    ) : (
+                                      <MapPin className="h-3 w-3" />
+                                    )}
+                                    {evidence.setting}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                  {evidence.assessmentActivity || evidence.observations || "No description"}
+                                </p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {evidence.outcomes?.slice(0, 3).map((outcome) => (
+                                    <Badge key={outcome.id} variant="secondary" className="text-xs">
+                                      {outcome.outcomeCode}
+                                    </Badge>
+                                  ))}
+                                  {(evidence.outcomes?.length || 0) > 3 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      +{evidence.outcomes!.length - 3}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(new Date(evidence.dateOfActivity), "dd MMM")}
+                                </p>
+                                {evidence.staffInitials && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {evidence.staffInitials}
+                                  </p>
                                 )}
-                                {evidence.setting}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                              {evidence.assessmentActivity || evidence.observations || "No description"}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <>
+                      {filteredGalleryItems.length === 0 ? (
+                        <Card>
+                          <CardContent className="p-8 text-center">
+                            <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="font-medium mb-2">No photos or videos</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Upload photos or videos to see them here
                             </p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {evidence.outcomes?.slice(0, 3).map((outcome) => (
-                                <Badge key={outcome.id} variant="secondary" className="text-xs">
-                                  {outcome.outcomeCode}
-                                </Badge>
-                              ))}
-                              {(evidence.outcomes?.length || 0) > 3 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{evidence.outcomes!.length - 3}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(evidence.dateOfActivity), "dd MMM")}
-                            </p>
-                            {evidence.staffInitials && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {evidence.staffInitials}
-                              </p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {filteredGalleryItems.map((evidence) => (
+                            <Card
+                              key={evidence.id}
+                              className="aspect-square cursor-pointer hover-elevate overflow-hidden"
+                              onClick={() => setSelectedEvidence(evidence)}
+                              data-testid={`gallery-item-${evidence.id}`}
+                            >
+                              <CardContent className="p-0 h-full flex flex-col">
+                                <div className="flex-1 flex items-center justify-center bg-accent">
+                                  {evidence.evidenceType === "photo" ? (
+                                    <Camera className="h-12 w-12 text-accent-foreground/50" />
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <Play className="h-12 w-12 text-accent-foreground/50" />
+                                      <span className="text-xs text-muted-foreground">Video</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="p-2 bg-card border-t">
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {format(new Date(evidence.dateOfActivity), "dd MMM yyyy")}
+                                  </p>
+                                  {evidence.outcomes && evidence.outcomes.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs mt-1">
+                                      {evidence.outcomes.length} outcomes
+                                    </Badge>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
               )}
             </TabsContent>
 
