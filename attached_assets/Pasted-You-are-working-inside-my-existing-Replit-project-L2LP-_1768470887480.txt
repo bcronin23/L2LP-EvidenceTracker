@@ -1,0 +1,110 @@
+You are working inside my existing Replit project (“L2LP Tracker”). Do NOT rebuild the app from scratch. Make targeted changes only.
+
+GOAL
+Clean up the “SC_L1LP → Personal Care” learning outcomes display and data so it is structured correctly and looks professional.
+
+CURRENT PROBLEM
+SC L1 Personal Care is messy:
+- outcomes appear under “General”
+- module/strand headings are not shown cleanly
+- module structure should be split into 3 modules (not one giant bucket)
+- the UI should match the official Senior Cycle Level 1 Personal Care curriculum area structure
+
+SOURCE OF TRUTH
+Use the file: /mnt/data/SC-L1-Personal-Care-ENG-INT.pdf
+This spec explicitly defines 3 modules (each recommended 60 hours):
+1) Self-awareness and self-care
+2) Connecting with myself and others
+3) Minding myself
+and each module has strand headings + outcomes labelled a., b., c., etc.
+
+WHAT TO CHANGE
+
+A) DATA NORMALISATION (SEED + DB)
+1) Update the outcomes seed import logic so SC_L1LP Personal Care outcomes include:
+- module_title (one of the 3 modules above)
+- strand_title (e.g. in Module 1: “Self-awareness and body awareness” and “Self-management and self-care”)
+- outcome_label (a, b, c…)
+- outcome_text (the statement)
+
+2) If the database schema is missing these fields, add them to learning_outcomes:
+- module_title text null
+- strand_title text null
+- outcome_label text null
+- sort_order int not null (already exists)
+
+3) Rebuild SC_L1LP Personal Care rows so they are NOT stored as one “Personal Care” mega-section with “General”.
+Instead, each outcome row should carry:
+programme = SC_L1LP
+plu_or_module_code = "SC_L1LP_PERSONAL_CARE"
+plu_or_module_title = "Personal Care"
+module_title = one of the 3 modules
+strand_title = the strand inside that module
+outcome_label = a/b/c...
+outcome_text = outcome sentence
+
+IMPORTANT: Keep the “uid” stable (upsert by uid). Do not create duplicates.
+
+B) OUTCOMES PAGE UI (HIERARCHY + CLEAN LOOK)
+On the Learning Outcomes page, the display for SC_L1LP → Personal Care must render hierarchy like this:
+
+Programme: SC L1LP
+  Personal Care
+    Module: Self-awareness and self-care
+      Strand: Self-awareness and body awareness
+        a. become aware of self
+        b. express preferences, likes and dislikes
+        ...
+      Strand: Self-management and self-care
+        l. participate in setting goals with supports
+        ...
+    Module: Connecting with myself and others
+      Strand: Using communication to make connections with others, and modes of communication
+        a. show awareness of others
+        ...
+      Strand: Expressing and managing emotions
+        l. notice the needs and feelings of others...
+        ...
+    Module: Minding myself
+      Strand: Minding themselves at home, in school and in their communities while developing an awareness of the importance of safety
+        a. show an awareness of daily activities...
+        ...
+      Strand: Identifying where personal safety might be at risk...
+        j. explore how to seek, give or deny permission...
+        ...
+
+UI requirements:
+- No “General” heading for these outcomes.
+- Module headings should be collapsible (accordion).
+- Strand headings should be collapsible under modules.
+- Outcomes show “a.” “b.” etc as a small badge/pill on the left, and outcome text to the right.
+- Outcome counts should appear at each level (module count, strand count).
+
+C) STUDENT-SCOPED VIEW (ONLY THEIR PROGRAMME)
+Ensure that when I view a Student’s profile coverage, it ONLY lists the PLUs/modules belonging to the student’s assigned programme.
+No duplicates like “Numeracy” twice or “Personal care” twice.
+
+Specifically:
+- If a student is SC_L1LP, show only SC_L1LP modules.
+- If a student is SC_L2LP, show only SC_L2LP modules.
+- Personal Care for SC_L1LP should show as a single curriculum area with 3 modules underneath (not duplicated lines).
+
+D) SORT ORDER + GROUPING
+Fix ordering so it is predictable:
+- Module order must be: (1) Self-awareness and self-care, (2) Connecting with myself and others, (3) Minding myself
+- Strand order should follow the PDF
+- Outcomes should appear in outcome_label order (a, b, c…)
+
+E) VALIDATION CHECKS (PRINT LOGS)
+After changes, run checks and log:
+- Total outcomes count for SC_L1LP Personal Care
+- Module totals (3 modules)
+- Strand totals
+- Confirm there is NO “General” strand for SC_L1LP Personal Care
+- Confirm Student profile coverage list includes only that student’s programme modules
+
+DELIVERABLES
+- DB migration (if needed)
+- Updated seed import/upsert logic for SC_L1LP Personal Care
+- Updated outcomes query + UI components to render Programme → Curriculum Area → Module → Strand → Outcomes
+- Screenshots or console logs confirming the hierarchy works and looks clean
