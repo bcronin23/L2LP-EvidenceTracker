@@ -1,16 +1,30 @@
+import { useState } from "react";
 import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin } from "lucide-react";
+import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin, Trash2, Loader2 } from "lucide-react";
+import { useOrganisation } from "@/hooks/use-organisation";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { EvidenceWithOutcomes } from "@shared/schema";
 
 const evidenceTypeIcons: Record<string, typeof Camera> = {
@@ -54,9 +68,28 @@ function getFileIcon(mimeType: string | null | undefined) {
 }
 
 export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialogProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const { isAdmin } = useOrganisation();
+  const { toast } = useToast();
+
   const { data: response } = useQuery<SignedUrlResponse>({
     queryKey: [`/api/evidence/${evidence?.id}/files-signed-urls`],
     enabled: !!evidence?.id && (evidence?.files?.length ?? 0) > 0,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/evidence/${evidence?.id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Evidence deleted", description: "The evidence has been removed." });
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/evidence"] });
+      onClose();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete evidence.", variant: "destructive" });
+    },
   });
 
   if (!evidence) return null;
@@ -249,9 +282,55 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
                 </div>
               </>
             )}
+
+            {isAdmin && (
+              <>
+                <Separator />
+                <div className="pt-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    data-testid="button-delete-evidence"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Evidence
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </ScrollArea>
       </DialogContent>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Evidence?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the evidence from the student's record. This action cannot be easily undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
