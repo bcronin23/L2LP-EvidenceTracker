@@ -64,13 +64,32 @@ export default function LearningOutcomes() {
     return Array.from(pluMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filteredOutcomes]);
 
-  // SC L1LP Personal Care modules that should be grouped under "Personal Care" umbrella
-  // Only includes the 3 official Personal Care sub-modules per curriculumonline.ie
-  const PERSONAL_CARE_MODULES = new Set([
-    "SC_L1LP-Personal Care-SELF-AWARENESS-AND-SELF-CARE",
-    "SC_L1LP-Personal Care-CONNECTING-WITH-MYSELF-AND-OTHERS",
-    "SC_L1LP-Personal Care-MINDING-MYSELF"
-  ]);
+  // Umbrella grouping configuration for SC L1LP and SC L2LP
+  // Maps module codes to their umbrella group key and umbrella display name
+  const UMBRELLA_CONFIG: Record<string, { umbrellaKey: string; umbrellaName: string }> = {
+    // SC L1LP Personal Care
+    "SC_L1LP-Personal Care-SELF-AWARENESS-AND-SELF-CARE": { umbrellaKey: "SC_L1LP-PERSONAL-CARE", umbrellaName: "Personal Care" },
+    "SC_L1LP-Personal Care-CONNECTING-WITH-MYSELF-AND-OTHERS": { umbrellaKey: "SC_L1LP-PERSONAL-CARE", umbrellaName: "Personal Care" },
+    "SC_L1LP-Personal Care-MINDING-MYSELF": { umbrellaKey: "SC_L1LP-PERSONAL-CARE", umbrellaName: "Personal Care" },
+    // SC L1LP Numeracy
+    "SC_L1LP-Numeracy-DEMONSTRATING-AN-AWARENESS-OF-NUMBER": { umbrellaKey: "SC_L1LP-NUMERACY", umbrellaName: "Numeracy" },
+    "SC_L1LP-Numeracy-MEASUREMENT": { umbrellaKey: "SC_L1LP-NUMERACY", umbrellaName: "Numeracy" },
+    "SC_L1LP-Numeracy-READING-AND-MEASURING-TIME": { umbrellaKey: "SC_L1LP-NUMERACY", umbrellaName: "Numeracy" },
+    "SC_L1LP-Numeracy-UNDERSTANDING-MONEY": { umbrellaKey: "SC_L1LP-NUMERACY", umbrellaName: "Numeracy" },
+    // SC L1LP Communication and Literacy
+    "SC_L1LP-Communication and Literacy-COMMUNICATING-WITH-OTHERS": { umbrellaKey: "SC_L1LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+    "SC_L1LP-Communication and Literacy-EXPLORING-COMMUNICATION": { umbrellaKey: "SC_L1LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+    "SC_L1LP-Communication and Literacy-EXPLORING-EXPRESSION": { umbrellaKey: "SC_L1LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+    // SC L2LP Numeracy
+    "SC_L2LP-Numeracy-UNDERSTANDING-NUMBER-AND-MONEY": { umbrellaKey: "SC_L2LP-NUMERACY", umbrellaName: "Numeracy" },
+    "SC_L2LP-Numeracy-UNDERSTANDING-AND-MANAGING-TIME": { umbrellaKey: "SC_L2LP-NUMERACY", umbrellaName: "Numeracy" },
+    "SC_L2LP-Numeracy-UNDERSTANDING-MEASUREMENT-LOCATION-AND-POSITION": { umbrellaKey: "SC_L2LP-NUMERACY", umbrellaName: "Numeracy" },
+    // SC L2LP Communication and Literacy
+    "SC_L2LP-Communication and Literacy-PROMOTING-ENGAGEMENT": { umbrellaKey: "SC_L2LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+    "SC_L2LP-Communication and Literacy-EXPLORING-COMMUNICATION": { umbrellaKey: "SC_L2LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+    "SC_L2LP-Communication and Literacy-EXPLORING-READING": { umbrellaKey: "SC_L2LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+    "SC_L2LP-Communication and Literacy-EXPRESSION-THROUGH-WRITING": { umbrellaKey: "SC_L2LP-COMMUNICATION-AND-LITERACY", umbrellaName: "Communication and Literacy" },
+  };
   
   const groupedOutcomes = useMemo(() => {
     const groups = new Map<string, { 
@@ -84,27 +103,27 @@ export default function LearningOutcomes() {
     filteredOutcomes.forEach((outcome) => {
       const pluCode = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
       const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluCode;
-      // Use moduleTitle for new Personal Care structure, fallback to elementName
       const moduleTitle = (outcome as any).moduleTitle;
       const strandTitle = (outcome as any).strandTitle;
       const elementName = strandTitle || outcome.elementName || "General";
       
-      // Check if this is a Personal Care module that needs umbrella grouping
-      if (PERSONAL_CARE_MODULES.has(pluCode)) {
-        const umbrellaKey = "SC_L1LP-PERSONAL-CARE";
+      // Check if this module belongs to an umbrella group
+      const umbrellaInfo = UMBRELLA_CONFIG[pluCode];
+      if (umbrellaInfo) {
+        const { umbrellaKey, umbrellaName } = umbrellaInfo;
         if (!groups.has(umbrellaKey)) {
           groups.set(umbrellaKey, { 
             pluCode: umbrellaKey, 
-            pluName: "Personal Care", 
+            pluName: umbrellaName, 
             elements: new Map(),
             isUmbrella: true,
             subModules: new Map()
           });
         }
         const umbrella = groups.get(umbrellaKey)!;
-        // Use moduleTitle as the subModule key when available (for new Personal Care structure)
+        // Extract sub-module name from the plu_or_module_title (e.g., "Numeracy: Measurement" -> "Measurement")
+        const subModuleName = pluName.includes(": ") ? pluName.split(": ")[1] : (moduleTitle || pluName);
         const subModuleKey = moduleTitle || pluCode;
-        const subModuleName = moduleTitle || pluName;
         if (!umbrella.subModules!.has(subModuleKey)) {
           umbrella.subModules!.set(subModuleKey, { pluCode: subModuleKey, pluName: subModuleName, elements: new Map() });
         }
