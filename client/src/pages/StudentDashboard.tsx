@@ -67,14 +67,19 @@ interface SignedUrlFile {
   signedUrl: string;
 }
 
+interface SignedUrlResponse {
+  files: SignedUrlFile[];
+  expiresIn: number;
+}
+
 function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcomes; onClick: () => void }) {
-  const { data: filesData, isLoading } = useQuery<SignedUrlFile[]>({
+  const { data: response, isLoading } = useQuery<SignedUrlResponse>({
     queryKey: [`/api/evidence/${evidence.id}/files-signed-urls`],
     enabled: (evidence.files?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 5,
   });
 
-  const files = filesData || [];
+  const files = response?.files || [];
   const firstFile = files[0];
   const isImage = firstFile?.mimeType?.startsWith("image/");
   const isVideo = firstFile?.mimeType?.startsWith("video/");

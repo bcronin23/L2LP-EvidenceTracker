@@ -29,6 +29,11 @@ interface SignedUrlFile {
   signedUrl: string;
 }
 
+interface SignedUrlResponse {
+  files: SignedUrlFile[];
+  expiresIn: number;
+}
+
 interface EvidenceDetailDialogProps {
   evidence: EvidenceWithOutcomes | null;
   onClose: () => void;
@@ -49,7 +54,7 @@ function getFileIcon(mimeType: string | null | undefined) {
 }
 
 export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialogProps) {
-  const { data: signedUrlsData } = useQuery<SignedUrlFile[]>({
+  const { data: response } = useQuery<SignedUrlResponse>({
     queryKey: [`/api/evidence/${evidence?.id}/files-signed-urls`],
     enabled: !!evidence?.id && (evidence?.files?.length ?? 0) > 0,
   });
@@ -57,7 +62,7 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
   if (!evidence) return null;
 
   const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
-  const files = signedUrlsData || [];
+  const files = response?.files || [];
   const hasFiles = files.length > 0;
 
   return (
