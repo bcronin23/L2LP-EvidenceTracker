@@ -68,7 +68,10 @@ export default function LearningOutcomes() {
   const PERSONAL_CARE_MODULES = new Set([
     "SC_L1LP-PERSONAL-SAFETY",
     "SC_L1LP-LOOKING-AFTER-MY-WELLBEING",
-    "SC_L1LP-MINDING-MYSELF"
+    "SC_L1LP-MINDING-MYSELF",
+    "SC_L1LP-Personal Care-SELF-AWARENESS-AND-SELF-CARE",
+    "SC_L1LP-Personal Care-CONNECTING-WITH-MYSELF-AND-OTHERS",
+    "SC_L1LP-Personal Care-MINDING-MYSELF"
   ]);
   
   const groupedOutcomes = useMemo(() => {
@@ -83,7 +86,10 @@ export default function LearningOutcomes() {
     filteredOutcomes.forEach((outcome) => {
       const pluCode = outcome.pluOrModuleCode || String(outcome.pluNumber || 0);
       const pluName = outcome.pluOrModuleTitle || outcome.pluName || pluCode;
-      const elementName = outcome.elementName || "General";
+      // Use moduleTitle for new Personal Care structure, fallback to elementName
+      const moduleTitle = (outcome as any).moduleTitle;
+      const strandTitle = (outcome as any).strandTitle;
+      const elementName = strandTitle || outcome.elementName || "General";
       
       // Check if this is a Personal Care module that needs umbrella grouping
       if (PERSONAL_CARE_MODULES.has(pluCode)) {
@@ -98,10 +104,13 @@ export default function LearningOutcomes() {
           });
         }
         const umbrella = groups.get(umbrellaKey)!;
-        if (!umbrella.subModules!.has(pluCode)) {
-          umbrella.subModules!.set(pluCode, { pluCode, pluName, elements: new Map() });
+        // Use moduleTitle as the subModule key when available (for new Personal Care structure)
+        const subModuleKey = moduleTitle || pluCode;
+        const subModuleName = moduleTitle || pluName;
+        if (!umbrella.subModules!.has(subModuleKey)) {
+          umbrella.subModules!.set(subModuleKey, { pluCode: subModuleKey, pluName: subModuleName, elements: new Map() });
         }
-        const subModule = umbrella.subModules!.get(pluCode)!;
+        const subModule = umbrella.subModules!.get(subModuleKey)!;
         if (!subModule.elements.has(elementName)) {
           subModule.elements.set(elementName, []);
         }
