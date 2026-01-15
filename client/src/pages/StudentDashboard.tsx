@@ -69,7 +69,7 @@ interface SignedUrlFile {
 
 function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcomes; onClick: () => void }) {
   const { data: filesData, isLoading } = useQuery<SignedUrlFile[]>({
-    queryKey: ["/api/evidence", evidence.id, "files-signed-urls"],
+    queryKey: [`/api/evidence/${evidence.id}/files-signed-urls`],
     enabled: (evidence.files?.length ?? 0) > 0,
     staleTime: 1000 * 60 * 5,
   });

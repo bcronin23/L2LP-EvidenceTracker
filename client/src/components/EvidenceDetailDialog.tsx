@@ -50,7 +50,7 @@ function getFileIcon(mimeType: string | null | undefined) {
 
 export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialogProps) {
   const { data: signedUrlsData } = useQuery<SignedUrlFile[]>({
-    queryKey: ["/api/evidence", evidence?.id, "files-signed-urls"],
+    queryKey: [`/api/evidence/${evidence?.id}/files-signed-urls`],
     enabled: !!evidence?.id && (evidence?.files?.length ?? 0) > 0,
   });
 
