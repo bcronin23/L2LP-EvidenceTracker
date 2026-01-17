@@ -1,29 +1,68 @@
-import { GraduationCap, Camera, FileText, BarChart3, CheckCircle } from "lucide-react";
+import { GraduationCap, Camera, FileText, BarChart3, CheckCircle, Clock, Users, Smartphone, Shield, Zap, Upload, Link2, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const features = [
   {
     icon: Camera,
-    title: "Capture Evidence",
-    description: "Upload photos, videos, and documents directly from your phone or Chromebook",
+    title: "Capture in Seconds",
+    description: "Snap a photo, record a video, or upload a document directly from your phone. No more waiting until you're at a computer.",
+    benefit: "Save 10+ minutes per evidence",
   },
   {
     icon: FileText,
-    title: "Link to Outcomes",
-    description: "Tag evidence with L2LP learning outcomes for comprehensive tracking",
+    title: "Smart Outcome Linking",
+    description: "Tag evidence with learning outcomes across all 4 NCCA programmes. Search and filter to find exactly what you need.",
+    benefit: "600+ outcomes supported",
   },
   {
     icon: BarChart3,
-    title: "Track Coverage",
-    description: "See which outcomes have evidence and identify gaps at a glance",
+    title: "Instant Coverage Reports",
+    description: "See at a glance which outcomes have evidence and where the gaps are. No more manual tallying or colour-coding.",
+    benefit: "Inspection-ready in clicks",
   },
   {
-    icon: CheckCircle,
-    title: "Stay Organised",
-    description: "Filter and search your evidence library by student, date, or outcome",
+    icon: Users,
+    title: "Team Collaboration",
+    description: "Share evidence across your SEN team. Staff can upload, admins can manage. Everyone stays aligned.",
+    benefit: "Built for SEN teams",
   },
+];
+
+const programmes = [
+  { code: "JC L1LP", name: "Junior Cycle Level 1", outcomes: "40" },
+  { code: "JC L2LP", name: "Junior Cycle Level 2", outcomes: "166" },
+  { code: "SC L1LP", name: "Senior Cycle Level 1", outcomes: "172" },
+  { code: "SC L2LP", name: "Senior Cycle Level 2", outcomes: "229" },
+];
+
+const steps = [
+  {
+    icon: Upload,
+    step: "1",
+    title: "Upload Evidence",
+    description: "Take a photo or video during class, or upload existing files. Works on any device.",
+  },
+  {
+    icon: Link2,
+    step: "2",
+    title: "Link to Outcomes",
+    description: "Select the student and tag the relevant learning outcomes. Our smart search helps you find them fast.",
+  },
+  {
+    icon: ClipboardCheck,
+    step: "3",
+    title: "Track & Report",
+    description: "View coverage by student or outcome. Generate reports for inspections, reviews, or parent meetings.",
+  },
+];
+
+const stats = [
+  { value: "607", label: "Learning Outcomes", sublabel: "Across all 4 programmes" },
+  { value: "80%", label: "Time Saved", sublabel: "vs. spreadsheet tracking" },
+  { value: "100%", label: "Mobile Ready", sublabel: "Works on any device" },
 ];
 
 export default function Landing() {
@@ -35,7 +74,7 @@ export default function Landing() {
             <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center">
               <GraduationCap className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-lg">L2LP Tracker</span>
+            <span className="font-semibold text-lg">L1LP/L2LP Tracker</span>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -46,42 +85,196 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-12 md:py-20">
-        <section className="text-center mb-16">
+      <main>
+        <section className="max-w-7xl mx-auto px-4 py-12 md:py-20 text-center">
+          <div className="flex flex-wrap justify-center gap-2 mb-6">
+            {programmes.map((prog) => (
+              <Badge key={prog.code} variant="secondary" className="text-xs">
+                {prog.code}
+              </Badge>
+            ))}
+          </div>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            Evidence Tracking for
+            Evidence Tracking Made
             <br />
-            <span className="text-primary">Level 2 Learning Programme</span>
+            <span className="text-primary">Simple for SEN Teachers</span>
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            Replace spreadsheets with a simple, mobile-friendly tool to capture, organise, and track student evidence against L2LP learning outcomes.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
+            Stop wrestling with spreadsheets. Capture evidence on your phone, link it to NCCA outcomes, and see student progress at a glance.
           </p>
-          <Button size="lg" asChild data-testid="button-get-started">
-            <a href="/api/login">Get Started</a>
+          <p className="text-base text-muted-foreground max-w-xl mx-auto mb-8">
+            Supporting <strong>L1LP and L2LP</strong> for both Junior and Senior Cycle programmes.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button size="lg" asChild data-testid="button-get-started">
+              <a href="/api/login">Get Started Free</a>
+            </Button>
+            <Button size="lg" variant="outline" asChild data-testid="button-learn-more">
+              <a href="#how-it-works">See How It Works</a>
+            </Button>
+          </div>
+        </section>
+
+        <section className="bg-accent/30 border-y">
+          <div className="max-w-7xl mx-auto px-4 py-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              {stats.map((stat) => (
+                <div key={stat.label}>
+                  <p className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</p>
+                  <p className="font-medium mt-1">{stat.label}</p>
+                  <p className="text-sm text-muted-foreground">{stat.sublabel}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Built for Every Programme
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Full support for all four NCCA Level 1 and Level 2 Learning Programmes with the complete curriculum structure.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {programmes.map((prog) => (
+              <Card key={prog.code} className="text-center">
+                <CardContent className="p-6">
+                  <Badge className="mb-3">{prog.code}</Badge>
+                  <h3 className="font-semibold mb-1">{prog.name}</h3>
+                  <p className="text-2xl font-bold text-primary">{prog.outcomes}</p>
+                  <p className="text-xs text-muted-foreground">learning outcomes</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section id="how-it-works" className="bg-muted/30 border-y">
+          <div className="max-w-7xl mx-auto px-4 py-16">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                How It Works
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                From capture to report in three simple steps. No training required.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {steps.map((step) => (
+                <div key={step.step} className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 relative">
+                    <step.icon className="h-7 w-7 text-primary" />
+                    <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
+                      {step.step}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Save Hours Every Week
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Purpose-built features that let you focus on teaching, not paperwork.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {features.map((feature) => (
+              <Card key={feature.title} className="border">
+                <CardContent className="p-6 flex gap-4">
+                  <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <feature.icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-semibold">{feature.title}</h3>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
+                        {feature.benefit}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-accent/30 border-y">
+          <div className="max-w-7xl mx-auto px-4 py-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Smartphone className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Works Everywhere</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Phone, tablet, Chromebook, or desktop. Capture evidence wherever learning happens.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Secure & Private</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Student data stays within your school. Role-based access keeps information safe.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">No Training Needed</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Intuitive design means your team can start capturing evidence in minutes.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto px-4 py-16 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-3">
+            Ready to Simplify Evidence Tracking?
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto mb-8">
+            Join Irish SEN teachers who've replaced spreadsheets with a tool that actually works the way they do.
+          </p>
+          <Button size="lg" asChild data-testid="button-cta-bottom">
+            <a href="/api/login">Get Started Free</a>
           </Button>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
-          {features.map((feature) => (
-            <Card key={feature.title} className="border">
-              <CardContent className="p-6 flex gap-4">
-                <div className="w-12 h-12 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="h-6 w-6 text-accent-foreground" />
+        <footer className="border-t bg-muted/30">
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center">
+                  <GraduationCap className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-1">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </section>
-
-        <section className="text-center py-12 border-t">
-          <p className="text-sm text-muted-foreground">
-            Designed for Irish SEN teachers. Works on phone, tablet, and Chromebook.
-          </p>
-        </section>
+                <span className="font-medium">L1LP/L2LP Tracker</span>
+              </div>
+              <p>Designed for Irish SEN teachers. Works on phone, tablet, and Chromebook.</p>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
