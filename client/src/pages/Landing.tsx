@@ -32,10 +32,10 @@ const features = [
 ];
 
 const programmes = [
-  { code: "JC L1LP", name: "Junior Cycle Level 1", outcomes: "40" },
-  { code: "JC L2LP", name: "Junior Cycle Level 2", outcomes: "166" },
-  { code: "SC L1LP", name: "Senior Cycle Level 1", outcomes: "172" },
-  { code: "SC L2LP", name: "Senior Cycle Level 2", outcomes: "229" },
+  { code: "JC L1LP", name: "Junior Cycle Level 1", outcomes: "183" },
+  { code: "JC L2LP", name: "Junior Cycle Level 2", outcomes: "196" },
+  { code: "SC L1LP", name: "Senior Cycle Level 1", outcomes: "215" },
+  { code: "SC L2LP", name: "Senior Cycle Level 2", outcomes: "282" },
 ];
 
 const steps = [
@@ -60,7 +60,7 @@ const steps = [
 ];
 
 const stats = [
-  { value: "607", label: "Learning Outcomes", sublabel: "Across all 4 programmes" },
+  { value: "876", label: "Learning Outcomes", sublabel: "Across all 4 programmes" },
   { value: "80%", label: "Time Saved", sublabel: "vs. spreadsheet tracking" },
   { value: "100%", label: "Mobile Ready", sublabel: "Works on any device" },
 ];

@@ -996,25 +996,37 @@ export async function registerRoutes(
         });
       }
 
-      // Check SC Personal Care should have 3 modules each
-      for (const prog of ["SC_L1LP", "SC_L2LP"]) {
-        const personalCareModules = new Set(
-          outcomes
-            .filter(o => 
-              o.programmeCode === prog && 
-              (o.pluOrModuleTitle?.includes("Wellbeing") ||
-               o.pluOrModuleTitle?.includes("Relationships") ||
-               o.pluOrModuleTitle?.includes("Safety"))
-            )
-            .map(o => o.pluOrModuleCode)
-        );
-        if (personalCareModules.size !== 3) {
-          anomalies.push({
-            type: "module_count",
-            message: `${prog} Personal Care has ${personalCareModules.size} modules (expected 3)`,
-            severity: personalCareModules.size < 3 ? "error" : "warning",
-          });
-        }
+      // Check SC_L1LP Personal Care should have 3 modules (Self-awareness, Connecting, Minding)
+      const scL1PersonalCareModules = new Set(
+        outcomes
+          .filter(o => 
+            o.programmeCode === "SC_L1LP" && 
+            o.pluOrModuleTitle?.includes("Personal Care") &&
+            (o.pluOrModuleTitle?.includes("Self-awareness") ||
+             o.pluOrModuleTitle?.includes("Connecting") ||
+             o.pluOrModuleTitle?.includes("Minding"))
+          )
+          .map(o => o.pluOrModuleCode)
+      );
+      if (scL1PersonalCareModules.size !== 3) {
+        anomalies.push({
+          type: "module_count",
+          message: `SC_L1LP Personal Care has ${scL1PersonalCareModules.size} modules (expected 3)`,
+          severity: scL1PersonalCareModules.size < 3 ? "error" : "warning",
+        });
+      }
+
+      // Check SC_L2LP Personal Care exists (single module structure)
+      const scL2PersonalCare = outcomes.filter(o => 
+        o.programmeCode === "SC_L2LP" && 
+        o.pluOrModuleTitle === "Personal Care"
+      );
+      if (scL2PersonalCare.length === 0) {
+        anomalies.push({
+          type: "module_count",
+          message: `SC_L2LP Personal Care module not found`,
+          severity: "error",
+        });
       }
 
       // Check for programmes with very low outcome counts
