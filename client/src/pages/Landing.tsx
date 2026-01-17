@@ -115,12 +115,12 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="bg-accent/30 border-y">
+        <section className="border-y bg-muted/50">
           <div className="max-w-7xl mx-auto px-4 py-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               {stats.map((stat) => (
                 <div key={stat.label}>
-                  <p className="text-3xl md:text-4xl font-bold text-primary">{stat.value}</p>
+                  <p className="text-3xl md:text-4xl font-bold">{stat.value}</p>
                   <p className="font-medium mt-1">{stat.label}</p>
                   <p className="text-sm text-muted-foreground">{stat.sublabel}</p>
                 </div>
