@@ -1351,6 +1351,55 @@ export async function registerRoutes(
     }
   });
 
+  // Update evidence (edit outcomes and metadata)
+  const updateEvidenceSchema = z.object({
+    dateOfActivity: z.string().optional(),
+    setting: z.enum(["classroom", "community"]).optional(),
+    assessmentActivity: z.string().nullable().optional(),
+    successCriteria: z.string().nullable().optional(),
+    observations: z.string().nullable().optional(),
+    nextSteps: z.string().nullable().optional(),
+    evidenceType: z.string().optional(),
+    staffInitials: z.string().nullable().optional(),
+    independenceLevel: z.string().optional(),
+    outcomeIds: z.array(z.string()).optional(),
+  });
+
+  app.patch("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const { outcomeIds, ...data } = updateEvidenceSchema.parse(req.body);
+      
+      const updated = await storage.updateEvidence(
+        req.params.id,
+        membership.organisation.id,
+        data,
+        outcomeIds
+      );
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Evidence not found" });
+      }
+      
+      // Audit log evidence update
+      await logAudit(req, "evidence_updated", "evidence", updated.id, outcomeIds ? `Updated ${outcomeIds.length} outcomes` : "Metadata updated");
+      
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error updating evidence:", error);
+      res.status(500).json({ message: "Failed to update evidence" });
+    }
+  });
+
   // Admin-only: Soft delete evidence (sets deletedAt timestamp)
   app.delete("/api/evidence/:id", isAuthenticated, async (req: any, res) => {
     try {
