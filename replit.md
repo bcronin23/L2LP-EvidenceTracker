@@ -13,6 +13,7 @@ The application is built as a mobile-first utility tool optimized for teachers w
 - **Jan 2026**: Added school branding (logo upload, display name, accent colors) with private storage using signed URLs
 - **Jan 2026**: Added Student Space with 5 tabs: Overview, Evidence, SSP, Planning, Scheme of Work
 - **Jan 2026**: Security hardening - admin-only evidence deletion (soft delete), application-level access controls
+- **Jan 2026**: Added student archive feature - archive students who have completed their programme, toggle to show/hide archived
 - **Features**: Landing page, authentication via Replit Auth, mobile-first responsive UI with bottom navigation (mobile) and sidebar (desktop), dark/light theme toggle
 - **Data**: 166 L2LP learning outcomes auto-seeded on first startup across 5 PLUs
 
