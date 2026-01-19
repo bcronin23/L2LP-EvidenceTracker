@@ -152,6 +152,7 @@ export const students = pgTable("students", {
   photoFileName: text("photo_file_name"),
   photoMime: varchar("photo_mime", { length: 100 }),
   photoUpdatedAt: timestamp("photo_updated_at"),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_students_user_id").on(table.userId),
