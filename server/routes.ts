@@ -614,6 +614,56 @@ export async function registerRoutes(
     }
   });
 
+  // Archive a student (mark as completed programme)
+  app.post("/api/students/:id/archive", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.updateStudentByOrganisation(
+        req.params.id, 
+        membership.organisation.id, 
+        { archivedAt: new Date() } as any
+      );
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.json(student);
+    } catch (error) {
+      console.error("Error archiving student:", error);
+      res.status(500).json({ message: "Failed to archive student" });
+    }
+  });
+
+  // Unarchive a student (restore from archive)
+  app.post("/api/students/:id/unarchive", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+      
+      const student = await storage.updateStudentByOrganisation(
+        req.params.id, 
+        membership.organisation.id, 
+        { archivedAt: null } as any
+      );
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.json(student);
+    } catch (error) {
+      console.error("Error unarchiving student:", error);
+      res.status(500).json({ message: "Failed to unarchive student" });
+    }
+  });
+
   // ==================== Student Photo Upload ====================
   // Get signed URL for student photo upload (admin/staff only)
   app.get("/api/students/:id/photo-upload-url", isAuthenticated, async (req: any, res) => {
