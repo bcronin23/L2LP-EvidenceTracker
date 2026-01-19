@@ -410,6 +410,7 @@ export default function EvidenceLibrary() {
 
       <EvidenceDetailDialog
         evidence={selectedEvidence}
+        student={selectedEvidence?.student || null}
         onClose={() => setSelectedEvidence(null)}
       />
     </div>

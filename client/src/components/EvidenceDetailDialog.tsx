@@ -21,11 +21,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin, Trash2, Loader2 } from "lucide-react";
+import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin, Trash2, Loader2, Pencil } from "lucide-react";
 import { useOrganisation } from "@/hooks/use-organisation";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { EvidenceWithOutcomes } from "@shared/schema";
+import { EditOutcomesDialog } from "./EditOutcomesDialog";
+import type { EvidenceWithOutcomes, Student } from "@shared/schema";
 
 const evidenceTypeIcons: Record<string, typeof Camera> = {
   photo: Camera,
@@ -50,6 +51,7 @@ interface SignedUrlResponse {
 
 interface EvidenceDetailDialogProps {
   evidence: EvidenceWithOutcomes | null;
+  student?: Student | null;
   onClose: () => void;
 }
 
@@ -67,8 +69,9 @@ function getFileIcon(mimeType: string | null | undefined) {
   return FileText;
 }
 
-export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialogProps) {
+export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDetailDialogProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditOutcomes, setShowEditOutcomes] = useState(false);
   const { isAdmin } = useOrganisation();
   const { toast } = useToast();
 
@@ -258,30 +261,43 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
               </>
             )}
 
-            {evidence.outcomes && evidence.outcomes.length > 0 && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-xs text-muted-foreground mb-2">Learning Outcomes</p>
-                  <div className="space-y-2">
-                    {evidence.outcomes.map((outcome) => (
-                      <div key={outcome.id} className="flex items-start gap-2">
-                        <Badge variant="outline" className="flex-shrink-0 font-mono">
-                          {outcome.outcomeCode}
-                        </Badge>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">{outcome.pluName}</p>
-                          <p className="text-xs text-muted-foreground">{outcome.elementName}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                            {outcome.outcomeText}
-                          </p>
-                        </div>
+            <Separator />
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs text-muted-foreground">Learning Outcomes</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowEditOutcomes(true)}
+                  data-testid="button-edit-outcomes"
+                >
+                  <Pencil className="h-3 w-3 mr-1" />
+                  Edit
+                </Button>
+              </div>
+              {evidence.outcomes && evidence.outcomes.length > 0 ? (
+                <div className="space-y-2">
+                  {evidence.outcomes.map((outcome) => (
+                    <div key={outcome.id} className="flex items-start gap-2">
+                      <Badge variant="outline" className="flex-shrink-0 font-mono">
+                        {outcome.outcomeCode}
+                      </Badge>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{outcome.pluName}</p>
+                        <p className="text-xs text-muted-foreground">{outcome.elementName}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {outcome.outcomeText}
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              </>
-            )}
+              ) : (
+                <div className="text-sm text-muted-foreground py-2">
+                  No learning outcomes linked. Click Edit to add outcomes.
+                </div>
+              )}
+            </div>
 
             {isAdmin && (
               <>
@@ -331,6 +347,15 @@ export function EvidenceDetailDialog({ evidence, onClose }: EvidenceDetailDialog
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {showEditOutcomes && evidence && (
+        <EditOutcomesDialog
+          evidence={evidence}
+          student={student || null}
+          open={showEditOutcomes}
+          onOpenChange={setShowEditOutcomes}
+        />
+      )}
     </Dialog>
   );
 }

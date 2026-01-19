@@ -564,12 +564,18 @@ export class DatabaseStorage implements IStorage {
     
     if (!existing) return undefined;
 
-    // Update the evidence record
-    const [updated] = await db
-      .update(evidence)
-      .set(data)
-      .where(and(eq(evidence.id, id), eq(evidence.organisationId, organisationId)))
-      .returning();
+    let updated = existing;
+
+    // Only update the evidence record if there's actual data to update
+    const hasDataToUpdate = Object.keys(data).length > 0;
+    if (hasDataToUpdate) {
+      const [result] = await db
+        .update(evidence)
+        .set(data)
+        .where(and(eq(evidence.id, id), eq(evidence.organisationId, organisationId)))
+        .returning();
+      updated = result;
+    }
 
     // If outcomeIds is provided, replace all outcome links
     if (outcomeIds !== undefined) {

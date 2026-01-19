@@ -746,6 +746,7 @@ export default function StudentDashboard() {
 
       <EvidenceDetailDialog
         evidence={selectedEvidence}
+        student={student}
         onClose={() => setSelectedEvidence(null)}
       />
 
