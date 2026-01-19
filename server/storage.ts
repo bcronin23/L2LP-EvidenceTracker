@@ -109,6 +109,7 @@ export interface IStorage {
   getStudentEvidenceByOrganisation(studentId: string, organisationId: string): Promise<EvidenceWithOutcomes[]>;
   getEvidenceByOrgAndId(id: string, organisationId: string): Promise<EvidenceWithOutcomes | undefined>;
   createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[]): Promise<Evidence>;
+  updateEvidence(id: string, organisationId: string, data: Partial<InsertEvidence>, outcomeIds?: string[]): Promise<Evidence | undefined>;
   deleteEvidenceByOrganisation(id: string, organisationId: string): Promise<boolean>;
   
   // Evidence Files (multi-file support)
@@ -552,6 +553,41 @@ export class DatabaseStorage implements IStorage {
     }
 
     return evidenceItem;
+  }
+
+  async updateEvidence(id: string, organisationId: string, data: Partial<InsertEvidence>, outcomeIds?: string[]): Promise<Evidence | undefined> {
+    // First verify the evidence belongs to this organisation
+    const [existing] = await db
+      .select()
+      .from(evidence)
+      .where(and(eq(evidence.id, id), eq(evidence.organisationId, organisationId)));
+    
+    if (!existing) return undefined;
+
+    // Update the evidence record
+    const [updated] = await db
+      .update(evidence)
+      .set(data)
+      .where(and(eq(evidence.id, id), eq(evidence.organisationId, organisationId)))
+      .returning();
+
+    // If outcomeIds is provided, replace all outcome links
+    if (outcomeIds !== undefined) {
+      // Delete existing outcome links
+      await db.delete(evidenceOutcomes).where(eq(evidenceOutcomes.evidenceId, id));
+      
+      // Insert new outcome links
+      if (outcomeIds.length > 0) {
+        await db.insert(evidenceOutcomes).values(
+          outcomeIds.map((outcomeId) => ({
+            evidenceId: id,
+            learningOutcomeId: outcomeId,
+          }))
+        );
+      }
+    }
+
+    return updated;
   }
   
   async getEvidenceFiles(evidenceId: string): Promise<EvidenceFile[]> {
