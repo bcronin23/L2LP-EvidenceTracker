@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -44,12 +44,12 @@ function AuthenticatedRoutes() {
 }
 
 function Router() {
+  const [location] = useLocation();
   const { user, isLoading: authLoading } = useAuth();
   const { hasOrganisation, isLoading: orgLoading } = useOrganisation();
 
   // Public routes accessible to everyone
-  const pathname = window.location.pathname;
-  if (pathname === "/privacy" || pathname === "/terms") {
+  if (location === "/privacy" || location === "/terms") {
     return <PublicRoutes />;
   }
 
