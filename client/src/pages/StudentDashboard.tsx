@@ -218,7 +218,7 @@ export default function StudentDashboard() {
   }
 
   const missingOutcomes = pluCoverage?.missingOutcomes || [];
-  const plusOnTrack = pluCoverage?.plusCoverage.filter(p => p.isOnTrackForJCPA).length || 0;
+  const plusOnTrack = pluCoverage?.plusCoverage.filter(p => p.percentage >= 50).length || 0;
   const totalPlus = pluCoverage?.plusCoverage.length || 5;
   
   // Only show weak outcomes if student has substantial evidence (5+ pieces with photos/videos)
@@ -337,7 +337,7 @@ export default function StudentDashboard() {
                   <div className="space-y-3">
                     {pluCoverage?.plusCoverage.map((plu) => {
                       const isComplete = plu.percentage === 100;
-                      const hasReached50 = plu.isOnTrackForJCPA;
+                      const hasReached50 = plu.percentage >= 50;
                       
                       return (
                         <div key={plu.pluCode} className="space-y-2">
