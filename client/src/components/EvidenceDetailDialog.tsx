@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin, Trash2, Loader2, Pencil } from "lucide-react";
 import { useOrganisation } from "@/hooks/use-organisation";
@@ -103,15 +102,15 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
 
   return (
     <Dialog open={!!evidence} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Icon className="h-5 w-5" />
             <span className="capitalize">{evidence.evidenceType.replace("_", " ")}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <div className="flex-1 overflow-y-auto pr-4 -mr-4">
           <div className="space-y-4">
             {hasFiles && (
               <div className="space-y-3">
@@ -317,7 +316,7 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
