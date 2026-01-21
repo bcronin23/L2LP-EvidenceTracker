@@ -15,7 +15,18 @@ import LearningOutcomes from "@/pages/LearningOutcomes";
 import UploadEvidence from "@/pages/UploadEvidence";
 import EvidenceLibrary from "@/pages/EvidenceLibrary";
 import OrganisationAdmin from "@/pages/OrganisationAdmin";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 import NotFound from "@/pages/not-found";
+
+function PublicRoutes() {
+  return (
+    <Switch>
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
+    </Switch>
+  );
+}
 
 function AuthenticatedRoutes() {
   return (
@@ -35,6 +46,12 @@ function AuthenticatedRoutes() {
 function Router() {
   const { user, isLoading: authLoading } = useAuth();
   const { hasOrganisation, isLoading: orgLoading } = useOrganisation();
+
+  // Public routes accessible to everyone
+  const pathname = window.location.pathname;
+  if (pathname === "/privacy" || pathname === "/terms") {
+    return <PublicRoutes />;
+  }
 
   if (authLoading) {
     return <LoadingPage />;
