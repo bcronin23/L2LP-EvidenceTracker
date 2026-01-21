@@ -97,7 +97,7 @@ export default function Landing() {
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
             Evidence Tracking Made
             <br />
-            <span className="text-primary">Simple for SEN Teachers</span>
+            <span className="text-primary">Simple for Teachers</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
             Stop wrestling with spreadsheets. Capture evidence on your phone, link it to NCCA outcomes, and see student progress at a glance.
