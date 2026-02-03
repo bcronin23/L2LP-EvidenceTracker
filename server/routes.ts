@@ -1291,6 +1291,11 @@ export async function registerRoutes(
     mimeType: z.string().nullable().optional(),
     fileSize: z.number().nullable().optional(),
   });
+
+  const evidenceLinkSchema = z.object({
+    url: z.string().url(),
+    label: z.string().nullable().optional(),
+  });
   
   const createEvidenceSchema = z.object({
     studentId: z.string(),
@@ -1309,6 +1314,7 @@ export async function registerRoutes(
     fileSize: z.number().nullable().optional(),
     outcomeIds: z.array(z.string()),
     files: z.array(evidenceFileSchema).optional(),
+    links: z.array(evidenceLinkSchema).optional(),
   });
 
   app.post("/api/evidence", isAuthenticated, async (req: any, res) => {
@@ -1320,7 +1326,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
       }
       
-      const { outcomeIds, files, ...data } = createEvidenceSchema.parse(req.body);
+      const { outcomeIds, files, links, ...data } = createEvidenceSchema.parse(req.body);
 
       // Convert files to InsertEvidenceFile format (evidenceId will be added by storage)
       const evidenceFiles = files?.map((f, index) => ({
@@ -1332,10 +1338,18 @@ export async function registerRoutes(
         sortOrder: index,
       }));
 
+      // Convert links to InsertEvidenceLink format (evidenceId will be added by storage)
+      const evidenceLinks = links?.map((l) => ({
+        evidenceId: "", // Placeholder, will be set by storage
+        url: l.url,
+        label: l.label || null,
+      }));
+
       const evidence = await storage.createEvidence(
         { ...data, userId, organisationId: membership.organisation.id },
         outcomeIds,
-        evidenceFiles
+        evidenceFiles,
+        evidenceLinks
       );
       
       // Audit log evidence creation

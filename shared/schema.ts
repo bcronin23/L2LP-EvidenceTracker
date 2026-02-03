@@ -152,6 +152,7 @@ export const students = pgTable("students", {
   photoFileName: text("photo_file_name"),
   photoMime: varchar("photo_mime", { length: 100 }),
   photoUpdatedAt: timestamp("photo_updated_at"),
+  driveFolderUrl: text("drive_folder_url"),
   archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -322,6 +323,7 @@ export const evidenceRelations = relations(evidence, ({ one, many }) => ({
   }),
   evidenceOutcomes: many(evidenceOutcomes),
   files: many(evidenceFiles),
+  links: many(evidenceLinks),
 }));
 
 export const insertEvidenceSchema = createInsertSchema(evidence).omit({
@@ -394,6 +396,40 @@ export const insertEvidenceFileSchema = createInsertSchema(evidenceFiles).omit({
 
 export type InsertEvidenceFile = z.infer<typeof insertEvidenceFileSchema>;
 export type EvidenceFile = typeof evidenceFiles.$inferSelect;
+
+// ============================================
+// EVIDENCE LINKS TABLE (Google Drive links)
+// ============================================
+export const evidenceLinks = pgTable("evidence_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  organisationId: varchar("organisation_id").references(() => organisations.id, { onDelete: "cascade" }),
+  evidenceId: varchar("evidence_id").notNull().references(() => evidence.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  label: varchar("label", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_evidence_links_evidence").on(table.evidenceId),
+  index("idx_evidence_links_org").on(table.organisationId),
+]);
+
+export const evidenceLinksRelations = relations(evidenceLinks, ({ one }) => ({
+  evidence: one(evidence, {
+    fields: [evidenceLinks.evidenceId],
+    references: [evidence.id],
+  }),
+  organisation: one(organisations, {
+    fields: [evidenceLinks.organisationId],
+    references: [organisations.id],
+  }),
+}));
+
+export const insertEvidenceLinkSchema = createInsertSchema(evidenceLinks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertEvidenceLink = z.infer<typeof insertEvidenceLinkSchema>;
+export type EvidenceLink = typeof evidenceLinks.$inferSelect;
 
 // ============================================
 // STUDENT SUPPORT PLANS TABLE
@@ -628,6 +664,7 @@ export type EvidenceWithOutcomes = Evidence & {
   outcomes: LearningOutcome[];
   student?: Student;
   files?: EvidenceFile[];
+  links?: EvidenceLink[];
   uploaderName?: string;
 };
 

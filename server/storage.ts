@@ -4,6 +4,7 @@ import {
   evidence,
   evidenceOutcomes,
   evidenceFiles,
+  evidenceLinks,
   organisations,
   organisationMembers,
   staffProfiles,
@@ -56,6 +57,8 @@ import {
   type SchemeOfWorkWithStudents,
   type EvidenceFile,
   type InsertEvidenceFile,
+  type EvidenceLink,
+  type InsertEvidenceLink,
   type AuditLog,
   type InsertAuditLog,
 } from "@shared/schema";
@@ -108,7 +111,7 @@ export interface IStorage {
   getEvidenceByOrganisation(organisationId: string): Promise<EvidenceWithOutcomes[]>;
   getStudentEvidenceByOrganisation(studentId: string, organisationId: string): Promise<EvidenceWithOutcomes[]>;
   getEvidenceByOrgAndId(id: string, organisationId: string): Promise<EvidenceWithOutcomes | undefined>;
-  createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[]): Promise<Evidence>;
+  createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[], links?: InsertEvidenceLink[]): Promise<Evidence>;
   updateEvidence(id: string, organisationId: string, data: Partial<InsertEvidence>, outcomeIds?: string[]): Promise<Evidence | undefined>;
   deleteEvidenceByOrganisation(id: string, organisationId: string): Promise<boolean>;
   
@@ -526,7 +529,7 @@ export class DatabaseStorage implements IStorage {
     return enriched[0];
   }
 
-  async createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[]): Promise<Evidence> {
+  async createEvidence(data: InsertEvidence, outcomeIds: string[], files?: InsertEvidenceFile[], links?: InsertEvidenceLink[]): Promise<Evidence> {
     if (!data.organisationId) {
       throw new Error("Organisation ID is required to create evidence");
     }
@@ -548,6 +551,17 @@ export class DatabaseStorage implements IStorage {
           ...file,
           evidenceId: evidenceItem.id,
           sortOrder: file.sortOrder ?? index,
+        }))
+      );
+    }
+
+    // Insert Google Drive links if provided
+    if (links && links.length > 0) {
+      await db.insert(evidenceLinks).values(
+        links.map((link) => ({
+          ...link,
+          evidenceId: evidenceItem.id,
+          organisationId: data.organisationId,
         }))
       );
     }
@@ -658,6 +672,13 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(evidenceFiles.evidenceId, evidenceIds))
       .orderBy(evidenceFiles.sortOrder);
 
+    // Get all related Google Drive links
+    const linkList = await db
+      .select()
+      .from(evidenceLinks)
+      .where(inArray(evidenceLinks.evidenceId, evidenceIds))
+      .orderBy(evidenceLinks.createdAt);
+
     // Get uploader names
     const uploaderList = userIds.length > 0
       ? await db
@@ -683,11 +704,19 @@ export class DatabaseStorage implements IStorage {
       filesByEvidence.set(file.evidenceId, existing);
     });
 
+    const linksByEvidence = new Map<string, typeof linkList>();
+    linkList.forEach((link) => {
+      const existing = linksByEvidence.get(link.evidenceId) || [];
+      existing.push(link);
+      linksByEvidence.set(link.evidenceId, existing);
+    });
+
     return evidenceList.map((e) => ({
       ...e,
       outcomes: outcomesByEvidence.get(e.id) || [],
       student: studentsById.get(e.studentId),
       files: filesByEvidence.get(e.id) || [],
+      links: linksByEvidence.get(e.id) || [],
       uploaderName: uploadersById.get(e.userId) || undefined,
     }));
   }
