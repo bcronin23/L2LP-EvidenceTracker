@@ -52,6 +52,10 @@ export const organisations = pgTable("organisations", {
   accentColor: varchar("accent_color", { length: 7 }),
   allowedDomains: text("allowed_domains").array(),
   inviteCode: varchar("invite_code", { length: 20 }).unique(),
+  // Google Shared Drive settings
+  sharedDriveRootFolderId: text("shared_drive_root_folder_id"),
+  sharedDriveName: varchar("shared_drive_name", { length: 200 }),
+  driveConnectedAt: timestamp("drive_connected_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_organisations_invite_code").on(table.inviteCode),
@@ -153,6 +157,7 @@ export const students = pgTable("students", {
   photoMime: varchar("photo_mime", { length: 100 }),
   photoUpdatedAt: timestamp("photo_updated_at"),
   driveFolderUrl: text("drive_folder_url"),
+  driveFolderId: text("drive_folder_id"),
   archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -372,14 +377,18 @@ export type EvidenceOutcome = typeof evidenceOutcomes.$inferSelect;
 export const evidenceFiles = pgTable("evidence_files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   evidenceId: varchar("evidence_id").notNull().references(() => evidence.id, { onDelete: "cascade" }),
-  storagePath: text("storage_path").notNull(),
+  storagePath: text("storage_path"),
   fileName: varchar("file_name", { length: 255 }).notNull(),
   mimeType: varchar("mime_type", { length: 100 }),
   fileSize: integer("file_size"),
   sortOrder: integer("sort_order").default(0),
+  // Google Drive file metadata
+  driveFileId: text("drive_file_id"),
+  driveWebViewLink: text("drive_web_view_link"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_evidence_files_evidence").on(table.evidenceId),
+  index("idx_evidence_files_drive").on(table.driveFileId),
 ]);
 
 export const evidenceFilesRelations = relations(evidenceFiles, ({ one }) => ({

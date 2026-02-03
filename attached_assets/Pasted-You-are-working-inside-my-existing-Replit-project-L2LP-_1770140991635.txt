@@ -1,0 +1,124 @@
+You are working inside my existing Replit project (“L2LP Tracker”). DO NOT rebuild from scratch. Extend what exists.
+
+GOAL
+Implement “Upload evidence into Google Shared Drive directly from the app” so staff can upload photos/videos/docs in the app, but the files are stored in the school’s Google Shared Drive (not in the app’s storage). Keep the current multi-step upload wizard UI style.
+
+HIGH-LEVEL BEHAVIOUR
+- Staff sign in as normal (school accounts).
+- When uploading evidence, the user selects multiple files (photo + video + document etc.).
+- The app uploads these files directly to the school’s Shared Drive under the correct student folder.
+- The app stores only metadata: drive_file_id, drive_folder_id, webViewLink, and outcome tags + teacher notes.
+- Evidence Library and student Evidence tab must show the evidence entry with all attached Drive files and “Open” buttons.
+
+A) GOOGLE AUTH + DRIVE API
+Implement Google OAuth for staff (Google Sign-In) with Drive scopes.
+- Use OAuth client credentials via env vars.
+- Use a secure server-side token store (encrypted at rest) per user + per school.
+- Required scopes (minimum):
+  - drive.file (preferred) OR drive (if needed for Shared Drive folder management)
+- Use Google Drive API v3.
+- All Drive calls must include supportsAllDrives=true and includeItemsFromAllDrives=true where relevant.
+
+IMPORTANT: This must work with Shared Drives. Most schools block public links. We should NOT set “anyone with link”. Files should inherit Shared Drive permissions by default.
+
+B) SCHOOL-LEVEL DRIVE CONFIG (ADMIN ONLY)
+Add school settings fields:
+- google_shared_drive_root_folder_id (text)  // root folder in Shared Drive for this school, e.g. the “A17” folder or “SEN Evidence – School”
+- optional: drive_domain (text) for display only
+
+Admin UI:
+- “Connect Google Drive”
+- “Set Shared Drive folder”
+  - simple input: paste folder URL OR folder ID
+  - parse and store folder ID
+- Test button: “Test access” (lists folder name and confirms supportsAllDrives)
+
+C) STUDENT FOLDERS (AUTO)
+On student creation (or first evidence upload), ensure the student has a Drive folder:
+- Create folder inside school root:
+  - Example path: [root]/[class_group]/01 Students/[student_code]
+- Store drive_folder_id on student record.
+If class_group is used, create the intermediate folders if missing.
+Use stable naming:
+- student folder name default: "{class_group}-{student_number}" (or student code)
+Avoid student names if possible.
+
+Add to Student profile:
+- Button “Open Evidence Folder” (Drive link)
+- Show folder status (Connected / Not connected)
+
+D) EVIDENCE DATA MODEL (MULTI-FILE)
+Evidence entry supports multiple files.
+
+DB:
+1) evidence_entries
+- id uuid pk
+- school_id uuid
+- student_id uuid
+- created_by uuid
+- notes text null
+- created_at timestamptz
+
+2) evidence_files
+- id uuid pk
+- school_id uuid
+- evidence_id uuid fk
+- drive_file_id text not null
+- drive_web_view_link text not null
+- file_name text not null
+- file_mime text null
+- file_size int null
+- created_at timestamptz
+
+3) evidence_outcomes (existing many-to-many)
+- evidence_id
+- learning_outcome_id
+
+E) EVIDENCE UPLOAD FLOW (KEEP UI STYLE)
+Keep the existing evidence upload wizard, but update Step 2 so it supports MULTIPLE files:
+- Choose Files: multiple selection enabled (images/videos/docs)
+- Show selected list with remove buttons
+- Allow adding more files (append)
+
+On final submit:
+1) Create evidence_entry once
+2) Upload each selected file to the student’s drive_folder_id using Drive API (files.create with parents=[folder_id], supportsAllDrives=true)
+3) Store returned drive_file_id and webViewLink in evidence_files
+4) Link evidence_entry to selected outcomes
+
+F) EVIDENCE LIBRARY + STUDENT EVIDENCE TAB MUST WORK
+Fix current issue where evidence is not showing/saving.
+Requirements:
+- After upload, evidence must appear immediately in:
+  - Student profile → Evidence tab
+  - Evidence Library
+- Evidence cards show:
+  - date, notes, outcomes count
+  - file count badge (e.g., “3 files”)
+  - list of attached files with “Open” button using drive_web_view_link
+
+G) SCHEMES OF WORK (ALSO DRIVE UPLOAD)
+Schemes of Work should be uploaded as files and stored in Google Drive too (same approach):
+- store scheme file(s) in Drive under [root]/Schemes of Work/
+- store metadata + drive links in app
+- assign scheme to student or class group
+No scheme editor inside the app.
+
+H) SECURITY
+- Multi-tenant enforced: school_id scoped on all queries
+- Role-based access enforced
+- Tokens stored securely
+- Drive links should remain domain-protected via Shared Drive permissions (do not set public permissions)
+- Audit logs:
+  - evidence_uploaded (how many files)
+  - drive_upload_success/failure
+  - scheme_uploaded
+  - file_opened (within app)
+
+I) QA CHECKS
+Provide console logs proving:
+- a student folder is created in Shared Drive
+- multiple files upload successfully to that folder
+- evidence appears in Evidence Library and Student Evidence tab
+- “Open” opens Drive links and respects domain access
+- no public permissions created
