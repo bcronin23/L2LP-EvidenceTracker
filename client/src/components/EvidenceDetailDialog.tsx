@@ -99,7 +99,7 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
   const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
   const files = response?.files || [];
   const hasFiles = files.length > 0;
-  const links = (evidence as any).links || [];
+  const links = evidence.links || [];
   const hasLinks = links.length > 0;
 
   return (

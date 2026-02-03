@@ -34,6 +34,15 @@ import { useEffect, useState, useRef } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Trash2, Loader2, ExternalLink, FolderOpen } from "lucide-react";
 
+const isGoogleDriveUrl = (url: string) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.includes("google.com") || parsed.hostname.includes("drive.google");
+  } catch {
+    return false;
+  }
+};
+
 const studentFormSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
   lastName: z.string().min(1, "Last name is required").max(100),
@@ -41,7 +50,12 @@ const studentFormSchema = z.object({
   yearGroup: z.string().max(20).optional(),
   programmeId: z.string().min(1, "Programme is required"),
   notes: z.string().optional(),
-  driveFolderUrl: z.string().url("Please enter a valid Google Drive URL").optional().or(z.literal("")),
+  driveFolderUrl: z.string()
+    .refine((val) => !val || isGoogleDriveUrl(val), {
+      message: "Please enter a valid Google Drive URL",
+    })
+    .optional()
+    .or(z.literal("")),
 });
 
 type StudentFormValues = z.infer<typeof studentFormSchema>;
