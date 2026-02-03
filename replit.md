@@ -8,6 +8,7 @@ The application is built as a mobile-first utility tool optimized for teachers w
 
 ## Recent Changes
 
+- **Feb 2026**: Implemented Google Drive link-based evidence workflow - files stay in school's Google Drive, app stores links + outcome tags + notes only
 - **Jan 2026**: Initial production release with full CRUD for students, evidence upload wizard, coverage tracking, and learning outcomes catalog
 - **Jan 2026**: Added multi-tenant organisation model with admin/staff roles, invite code system for staff onboarding
 - **Jan 2026**: Added school branding (logo upload, display name, accent colors) with private storage using signed URLs
@@ -18,6 +19,14 @@ The application is built as a mobile-first utility tool optimized for teachers w
 - **Jan 2026**: Added branding elements - professional footer with copyright, Privacy Policy and Terms pages, trust sections on landing page
 - **Features**: Landing page, authentication via Replit Auth, mobile-first responsive UI with bottom navigation (mobile) and sidebar (desktop), dark/light theme toggle
 - **Data**: 166 L2LP learning outcomes auto-seeded on first startup across 5 PLUs
+
+## Evidence Storage Model
+
+The app uses a **Google Drive link-only** model:
+- **No file uploads** to app storage - all files remain in school Google Shared Drives
+- **Students** can have a linked Drive folder URL for their evidence
+- **Evidence entries** store one or more Google Drive links (with optional labels), outcome tags, metadata, and teacher notes
+- Database tables: `evidence_links` (id, organisation_id, evidence_id, url, label, created_at)
 
 ## Branding
 
@@ -35,7 +44,7 @@ The application is built as a mobile-first utility tool optimized for teachers w
 - **Terms (`/terms`)**: Terms of Service page (public)
 - **Students (`/students`)**: List of students with search, add student dialog, and stats (evidence count, outcomes covered)
 - **Student Dashboard (`/students/:id`)**: Student Space with 5 tabs - Overview (PLU coverage, weak/missing outcomes), Evidence, SSP, Planning, Scheme of Work
-- **Upload Evidence (`/upload`)**: 5-step wizard - Select Student, Upload File (optional), Select Outcomes, Add Details, Review & Submit
+- **Upload Evidence (`/upload`)**: 5-step wizard - Select Student, Add Drive Links (optional), Select Outcomes, Add Details, Review & Submit
 - **Evidence Library (`/library`)**: Browse all evidence with filters by student, type, context, and outcome
 - **Learning Outcomes (`/outcomes`)**: Browse all L2LP outcomes organized by PLU with search and filter
 - **School Admin (`/admin`)**: Organisation settings, branding (logo, colors), staff management, invite codes (admin only)
