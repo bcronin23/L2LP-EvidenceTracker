@@ -1496,10 +1496,13 @@ export async function registerRoutes(
   });
 
   const evidenceFileSchema = z.object({
-    storagePath: z.string(),
+    storagePath: z.string().nullable().optional(),
     fileName: z.string(),
     mimeType: z.string().nullable().optional(),
     fileSize: z.number().nullable().optional(),
+    driveFileId: z.string().nullable().optional(),
+    driveWebViewLink: z.string().nullable().optional(),
+    sortOrder: z.number().optional(),
   });
 
   const evidenceLinkSchema = z.object({
@@ -1541,11 +1544,13 @@ export async function registerRoutes(
       // Convert files to InsertEvidenceFile format (evidenceId will be added by storage)
       const evidenceFiles = files?.map((f, index) => ({
         evidenceId: "", // Placeholder, will be set by storage
-        storagePath: f.storagePath,
+        storagePath: f.storagePath || null,
         fileName: f.fileName,
         mimeType: f.mimeType || null,
         fileSize: f.fileSize || null,
-        sortOrder: index,
+        sortOrder: f.sortOrder ?? index,
+        driveFileId: f.driveFileId || null,
+        driveWebViewLink: f.driveWebViewLink || null,
       }));
 
       // Convert links to InsertEvidenceLink format (evidenceId will be added by storage)

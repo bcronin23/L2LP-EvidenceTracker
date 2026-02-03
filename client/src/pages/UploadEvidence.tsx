@@ -19,6 +19,10 @@ import {
   Plus,
   ExternalLink,
   Trash2,
+  Upload,
+  File,
+  Loader2,
+  FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,9 +84,19 @@ interface DriveLink {
   label: string;
 }
 
+interface UploadedFile {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  driveFileId: string;
+  driveWebViewLink: string;
+}
+
 interface FormData {
   studentIds: string[];
   links: DriveLink[];
+  uploadedFiles: UploadedFile[];
   outcomeIds: string[];
   dateOfActivity: string;
   evidenceType: string;
@@ -109,6 +123,7 @@ export default function UploadEvidence() {
   const [formData, setFormData] = useState<FormData>({
     studentIds: preSelectedStudent ? [preSelectedStudent] : [],
     links: [],
+    uploadedFiles: [],
     outcomeIds: preSelectedOutcome ? [preSelectedOutcome] : [],
     dateOfActivity: format(new Date(), "yyyy-MM-dd"),
     evidenceType: "photo",
@@ -122,6 +137,17 @@ export default function UploadEvidence() {
 
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkLabel, setNewLinkLabel] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  interface DriveStatus {
+    connected: boolean;
+    configured: boolean;
+    sharedDriveRootFolderId: string | null;
+  }
+  const { data: driveStatus } = useQuery<DriveStatus>({
+    queryKey: ["/api/organisation/drive/status"],
+  });
 
   const { data: students, isLoading: studentsLoading } = useQuery<Student[]>({
     queryKey: ["/api/students"],
@@ -145,6 +171,17 @@ export default function UploadEvidence() {
         label: link.label || null,
       }));
 
+      // Build files array from uploaded Drive files
+      const driveFiles = formData.uploadedFiles.map((f, index) => ({
+        storagePath: null,
+        fileName: f.fileName,
+        mimeType: f.mimeType,
+        fileSize: f.fileSize,
+        driveFileId: f.driveFileId,
+        driveWebViewLink: f.driveWebViewLink,
+        sortOrder: index,
+      }));
+
       // Create evidence for each selected student
       const results = [];
       for (const studentId of formData.studentIds) {
@@ -159,6 +196,7 @@ export default function UploadEvidence() {
           staffInitials: formData.staffInitials || null,
           independenceLevel: formData.independenceLevel,
           outcomeIds: formData.outcomeIds,
+          files: driveFiles.length > 0 ? driveFiles : undefined,
           links: driveLinks.length > 0 ? driveLinks : undefined,
         });
         results.push(await res.json());
@@ -183,6 +221,68 @@ export default function UploadEvidence() {
       toast({ title: "Failed to save evidence", variant: "destructive" });
     },
   });
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const studentId = formData.studentIds[0];
+    if (!studentId) {
+      toast({ title: "Please select a student first", variant: "destructive" });
+      return;
+    }
+
+    if (!driveStatus?.configured) {
+      toast({ title: "Google Drive is not configured", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formDataObj = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formDataObj.append("files", files[i]);
+      }
+
+      const response = await fetch(`/api/drive/upload/${studentId}`, {
+        method: "POST",
+        body: formDataObj,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Upload failed");
+      }
+
+      const result = await response.json();
+      
+      if (result.uploadedFiles && result.uploadedFiles.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          uploadedFiles: [...prev.uploadedFiles, ...result.uploadedFiles],
+        }));
+        toast({ 
+          title: `${result.uploadedFiles.length} file${result.uploadedFiles.length > 1 ? "s" : ""} uploaded to Drive` 
+        });
+      }
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({ title: error.message || "Failed to upload files", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeUploadedFile = (fileId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      uploadedFiles: prev.uploadedFiles.filter((f) => f.id !== fileId),
+    }));
+  };
 
   const isValidDriveUrl = (url: string) => {
     try {
@@ -492,10 +592,114 @@ export default function UploadEvidence() {
 
             {currentStep === "links" && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Google Drive Links (Optional)</h2>
+                <h2 className="text-lg font-semibold">Evidence Files (Optional)</h2>
                 <p className="text-sm text-muted-foreground">
-                  Add links to photos, videos, or documents stored in Google Drive. Files stay in Drive - only links are stored here.
+                  Upload photos, videos, or documents directly to Google Drive, or add links to existing Drive files.
                 </p>
+
+                {driveStatus?.configured ? (
+                  <Card className="border-accent/20 bg-accent/5">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="h-5 w-5 text-accent-foreground" />
+                        <span className="font-medium">Upload to Google Drive</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Files will be uploaded to the student's folder in your school's Shared Drive
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                        data-testid="input-file-upload"
+                      />
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading || formData.studentIds.length === 0}
+                        data-testid="button-select-files"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4 mr-2" />
+                        )}
+                        {isUploading ? "Uploading..." : "Select Files to Upload"}
+                      </Button>
+                      {formData.studentIds.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center">
+                          Select a student first to enable uploads
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="border-muted bg-muted/30">
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <AlertTriangle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">Google Drive Not Configured</p>
+                        <p className="text-xs text-muted-foreground">
+                          Ask an admin to connect Google Drive in School Admin to enable direct uploads
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {formData.uploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">
+                        {formData.uploadedFiles.length} file{formData.uploadedFiles.length !== 1 ? "s" : ""} uploaded
+                      </p>
+                    </div>
+                    <Card>
+                      <CardContent className="p-2 space-y-1">
+                        {formData.uploadedFiles.map((file) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center gap-3 p-2 rounded-md hover-elevate"
+                          >
+                            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <File className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{file.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(file.fileSize / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => window.open(file.driveWebViewLink, "_blank")}
+                              data-testid={`button-open-file-${file.id}`}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeUploadedFile(file.id)}
+                              data-testid={`button-remove-file-${file.id}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                <div className="border-t pt-4">
+                  <h3 className="text-sm font-medium mb-2">Or add existing Drive links</h3>
+                </div>
 
                 <Card>
                   <CardContent className="p-4 space-y-3">
@@ -856,6 +1060,30 @@ export default function UploadEvidence() {
                         </div>
                       </div>
                     </div>
+
+                    {formData.uploadedFiles.length > 0 && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Uploaded Files ({formData.uploadedFiles.length})
+                        </p>
+                        <div className="space-y-1">
+                          {formData.uploadedFiles.map((file) => (
+                            <div key={file.id} className="flex items-center gap-2">
+                              <File className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="text-sm truncate">{file.fileName}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2"
+                                onClick={() => window.open(file.driveWebViewLink, "_blank")}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {formData.links.length > 0 && (
                       <div>
