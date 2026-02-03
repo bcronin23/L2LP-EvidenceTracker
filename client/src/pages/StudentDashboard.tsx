@@ -26,6 +26,8 @@ import {
   List,
   Play,
   Image as ImageIcon,
+  FolderOpen,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -279,6 +281,17 @@ export default function StudentDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {student.driveFolderUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(student.driveFolderUrl!, "_blank")}
+                data-testid="button-open-evidence-folder"
+              >
+                <FolderOpen className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Evidence Folder</span>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"

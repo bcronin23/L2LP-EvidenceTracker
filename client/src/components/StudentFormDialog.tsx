@@ -32,7 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Student, Programme } from "@shared/schema";
 import { useEffect, useState, useRef } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Camera, Trash2, Loader2 } from "lucide-react";
+import { Camera, Trash2, Loader2, ExternalLink, FolderOpen } from "lucide-react";
 
 const studentFormSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
@@ -41,6 +41,7 @@ const studentFormSchema = z.object({
   yearGroup: z.string().max(20).optional(),
   programmeId: z.string().min(1, "Programme is required"),
   notes: z.string().optional(),
+  driveFolderUrl: z.string().url("Please enter a valid Google Drive URL").optional().or(z.literal("")),
 });
 
 type StudentFormValues = z.infer<typeof studentFormSchema>;
@@ -160,6 +161,7 @@ export function StudentFormDialog({
       yearGroup: "",
       programmeId: "",
       notes: "",
+      driveFolderUrl: "",
     },
   });
 
@@ -172,6 +174,7 @@ export function StudentFormDialog({
         yearGroup: student.yearGroup || "",
         programmeId: student.programmeId || "",
         notes: student.notes || "",
+        driveFolderUrl: student.driveFolderUrl || "",
       });
     } else {
       form.reset({
@@ -181,6 +184,7 @@ export function StudentFormDialog({
         yearGroup: "",
         programmeId: "",
         notes: "",
+        driveFolderUrl: "",
       });
     }
   }, [student, form, open]);
@@ -415,6 +419,43 @@ export function StudentFormDialog({
                       data-testid="textarea-notes"
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="driveFolderUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    Google Drive Evidence Folder
+                  </FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        {...field}
+                        data-testid="input-drive-folder-url"
+                      />
+                    </FormControl>
+                    {field.value && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => window.open(field.value, "_blank")}
+                        data-testid="button-open-drive-folder"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <FormDescription>
+                    Paste the link to this student's evidence folder in Google Drive
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

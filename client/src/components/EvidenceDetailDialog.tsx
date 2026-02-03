@@ -20,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin, Trash2, Loader2, Pencil } from "lucide-react";
+import { Download, Camera, Video, FileText, Mic, File, ExternalLink, Building, MapPin, Trash2, Loader2, Pencil, Link2 } from "lucide-react";
 import { useOrganisation } from "@/hooks/use-organisation";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -99,6 +99,8 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
   const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
   const files = response?.files || [];
   const hasFiles = files.length > 0;
+  const links = (evidence as any).links || [];
+  const hasLinks = links.length > 0;
 
   return (
     <Dialog open={!!evidence} onOpenChange={(open) => !open && onClose()}>
@@ -174,6 +176,31 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {hasLinks && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Google Drive Links</p>
+                <div className="space-y-2">
+                  {links.map((link: { id: string; url: string; label: string | null }, index: number) => (
+                    <div key={link.id || index} className="flex items-center gap-3 p-3 rounded-md bg-muted">
+                      <div className="w-8 h-8 rounded-md bg-accent flex items-center justify-center flex-shrink-0">
+                        <Link2 className="h-4 w-4 text-accent-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{link.label || "Google Drive Link"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{link.url}</p>
+                      </div>
+                      <Button variant="outline" size="sm" asChild data-testid={`button-open-drive-link-${index}`}>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Open
+                        </a>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
