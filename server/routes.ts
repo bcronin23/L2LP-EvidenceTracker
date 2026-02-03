@@ -582,8 +582,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Google Drive is not configured for this organisation" });
       }
 
-      const student = await storage.getStudentById(req.params.studentId);
-      if (!student || student.organisationId !== org.id) {
+      const student = await storage.getStudentByOrganisation(req.params.studentId, org.id);
+      if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
 
@@ -605,7 +605,7 @@ export async function registerRoutes(
         studentFolderId = studentFolder.id;
         
         // Save the folder ID to the student record
-        await storage.updateStudent(student.id, { driveFolderId: studentFolderId });
+        await storage.updateStudentByOrganisation(student.id, org.id, { driveFolderId: studentFolderId });
       }
 
       // Upload each file to Drive
