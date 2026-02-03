@@ -1,0 +1,37 @@
+Hi [Name],
+
+Thanks for the email — happy to address each point.
+
+1) ICT consultation (network suitability)
+ICT have not yet been formally consulted specifically on the use of this web-tool on the school network.
+I can engage with ICT immediately and provide the relevant technical details (domain, hosting, security controls, and intended usage) so they can advise on access/whitelisting and any network restrictions required.
+
+2) More information on the web-tool (brief/presentation)
+Of course. I can provide a detailed brief/presentation covering:
+	•	Purpose: The tool is designed to [briefly state purpose – e.g., “support evidence tracking and organisation for L1/L2 learning programme outcomes”].
+	•	Users: Intended users are [staff only / staff + named users], and it is not designed for public/student use without staff control.
+	•	Data: It is intended to use minimal personal data. Specifically:
+	•	What may be entered: [e.g., student initials / first name only / student ID / outcome codes / evidence notes].
+	•	What is not required: [e.g., no PPSN, no medical data, no sensitive category data, no addresses].
+	•	Access & security: [e.g., “Access is restricted to approved users via login” / “No login yet – currently a demo/prototype only”].
+	•	Storage/hosting: [where it’s hosted and whether any third parties process data].
+	•	Retention & deletion: [how records can be deleted/exported and how long data is kept].
+	•	Audit/logs: [if applicable].
+
+I completely understand the DPO’s point that the current link doesn’t provide enough context — I’ll make sure the brief gives a clear background and a simple data-flow explanation.
+
+3) Access blocked
+Noted that the link is currently blocked on the school network. If ICT can confirm whether it’s being blocked due to categorisation/filtering or firewall rules, I can support review in any of the following ways:
+	•	provide a static demo (non-data version) for inspection,
+	•	provide screenshots / video walkthrough,
+	•	or support whitelisting temporarily for ICT/DPO review only.
+
+4) DPIA completion / conflict of interest
+I agree with the recommendation. As I’m technically the developer/supplier, it’s more appropriate that the Principal completes and signs off on the DPIA.
+I’m happy to provide all factual technical details required for the DPIA (data types, processing purpose, hosting, security measures, third-party involvement, retention/deletion), and liaise as needed, but I understand the final sign-off should be the Principal.
+
+Next steps
+If you’re happy, I will:
+	1.	send the detailed brief/presentation, and
+	2.	contact ICT with the technical details so they can advise on network use/access, and
+	3.	provide supporting info to assist the Principal in completing the DPIA for DPO review.
