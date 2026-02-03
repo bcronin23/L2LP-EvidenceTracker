@@ -605,6 +605,8 @@ export const schemesOfWork = pgTable("schemes_of_work", {
   storagePath: text("storage_path"),
   mimeType: varchar("mime_type", { length: 100 }),
   fileSize: integer("file_size"),
+  driveFileId: text("drive_file_id"),
+  driveWebViewLink: text("drive_web_view_link"),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -613,6 +615,7 @@ export const schemesOfWork = pgTable("schemes_of_work", {
   index("idx_sow_programme_id").on(table.programmeId),
   index("idx_sow_class_group").on(table.classGroup),
   index("idx_sow_term").on(table.term),
+  index("idx_sow_drive_file").on(table.driveFileId),
 ]);
 
 export const schemesOfWorkRelations = relations(schemesOfWork, ({ one, many }) => ({

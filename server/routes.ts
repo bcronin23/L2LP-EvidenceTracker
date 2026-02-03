@@ -6,7 +6,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
-import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected, testDriveConnection, getFolderInfo, ensureStudentFolderPath, uploadFileToDrive } from "./googleDrive";
+import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected, testDriveConnection, getFolderInfo, ensureStudentFolderPath, ensureSchemesFolderPath, uploadFileToDrive } from "./googleDrive";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -646,6 +646,55 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error uploading to Drive:", error);
       res.status(500).json({ message: error.message || "Failed to upload files" });
+    }
+  });
+
+  // Upload file to Google Drive for Scheme of Work
+  app.post("/api/drive/upload-scheme", isAuthenticated, upload.single("file"), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+
+      const org = membership.organisation;
+      if (!org.sharedDriveRootFolderId) {
+        return res.status(400).json({ message: "Google Drive is not configured for this organisation" });
+      }
+
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      // Get or create "Schemes of Work" folder in the root Drive folder
+      const schemesFolderId = await ensureSchemesFolderPath(org.sharedDriveRootFolderId);
+
+      // Upload file to the Schemes folder
+      const result = await uploadFileToDrive(
+        schemesFolderId,
+        file.originalname,
+        file.mimetype,
+        file.buffer
+      );
+
+      await logAudit(req, "scheme_file_uploaded", "scheme_file", result.id, `${file.originalname} uploaded to Schemes of Work folder`);
+
+      res.json({
+        success: true,
+        file: {
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          driveFileId: result.id,
+          driveWebViewLink: result.webViewLink,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error uploading scheme to Drive:", error);
+      res.status(500).json({ message: error.message || "Failed to upload scheme file" });
     }
   });
 
@@ -2105,6 +2154,10 @@ export async function registerRoutes(
     classGroup: z.string().optional(),
     description: z.string().optional(),
     storagePath: z.string().optional(),
+    mimeType: z.string().optional(),
+    fileSize: z.number().optional(),
+    driveFileId: z.string().optional(),
+    driveWebViewLink: z.string().optional(),
   });
   
   app.post("/api/schemes", isAuthenticated, async (req: any, res) => {

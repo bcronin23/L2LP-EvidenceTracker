@@ -74,9 +74,11 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
   const { isAdmin } = useOrganisation();
   const { toast } = useToast();
 
+  // Only fetch signed URLs for files stored in object storage (not Drive files)
+  const objectStorageFileCount = evidence?.files?.filter(f => f.storagePath && !f.driveWebViewLink).length ?? 0;
   const { data: response } = useQuery<SignedUrlResponse>({
     queryKey: [`/api/evidence/${evidence?.id}/files-signed-urls`],
-    enabled: !!evidence?.id && (evidence?.files?.length ?? 0) > 0,
+    enabled: !!evidence?.id && objectStorageFileCount > 0,
   });
 
   const deleteMutation = useMutation({
@@ -97,8 +99,17 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
   if (!evidence) return null;
 
   const Icon = evidenceTypeIcons[evidence.evidenceType] || File;
-  const files = response?.files || [];
-  const hasFiles = files.length > 0;
+  
+  // Separate Drive files from object storage files
+  const allFiles = evidence.files || [];
+  const driveFiles = allFiles.filter(f => f.driveWebViewLink && f.driveWebViewLink.startsWith('http'));
+  const objectStorageFiles = allFiles.filter(f => f.storagePath && !f.driveWebViewLink);
+  
+  // Signed URLs are only for object storage files
+  const signedFiles = response?.files || [];
+  const hasSignedFiles = signedFiles.length > 0;
+  const hasDriveFiles = driveFiles.length > 0;
+  
   const links = evidence.links || [];
   const hasLinks = links.length > 0;
 
@@ -114,9 +125,41 @@ export function EvidenceDetailDialog({ evidence, student, onClose }: EvidenceDet
 
         <div className="flex-1 overflow-y-auto pr-4 -mr-4">
           <div className="space-y-4">
-            {hasFiles && (
+            {/* Drive-uploaded files */}
+            {hasDriveFiles && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Uploaded Files</p>
+                <div className="space-y-2">
+                  {driveFiles.map((file, index) => {
+                    const FileIcon = getFileIcon(file.mimeType);
+                    return (
+                      <div key={file.id || index} className="flex items-center gap-3 p-3 rounded-md bg-muted">
+                        <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <FileIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{file.fileName}</p>
+                          {file.fileSize && (
+                            <p className="text-xs text-muted-foreground">{formatFileSize(file.fileSize)}</p>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm" asChild data-testid={`button-open-drive-file-${index}`}>
+                          <a href={file.driveWebViewLink!} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4 mr-1" />
+                            Open
+                          </a>
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Object storage files (with signed URLs) */}
+            {hasSignedFiles && (
               <div className="space-y-3">
-                {files.map((file, index) => {
+                {signedFiles.map((file, index) => {
                   const isImage = file.mimeType?.startsWith("image/");
                   const isVideo = file.mimeType?.startsWith("video/");
                   const FileIcon = getFileIcon(file.mimeType);

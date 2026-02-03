@@ -264,6 +264,14 @@ export async function ensureStudentFolderPath(
   return studentFolder;
 }
 
+export async function ensureSchemesFolderPath(
+  rootFolderId: string
+): Promise<string> {
+  const schemesFolder = await findOrCreateFolder(rootFolderId, '02 Schemes of Work');
+  console.log(`Ensured Schemes of Work folder, ID: ${schemesFolder.id}`);
+  return schemesFolder.id;
+}
+
 export async function uploadFileToDrive(
   folderId: string,
   fileName: string,

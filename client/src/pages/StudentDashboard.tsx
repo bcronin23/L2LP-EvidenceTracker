@@ -28,6 +28,8 @@ import {
   Image as ImageIcon,
   FolderOpen,
   ExternalLink,
+  Upload,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,9 +77,16 @@ interface SignedUrlResponse {
 }
 
 function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcomes; onClick: () => void }) {
+  // Check if we have Drive files vs object storage files
+  const allFiles = evidence.files || [];
+  const driveFiles = allFiles.filter(f => f.driveWebViewLink && f.driveWebViewLink.startsWith('http'));
+  const objectStorageFiles = allFiles.filter(f => f.storagePath && !f.driveWebViewLink);
+  const hasDriveFiles = driveFiles.length > 0;
+  
+  // Only fetch signed URLs for object storage files
   const { data: response, isLoading } = useQuery<SignedUrlResponse>({
     queryKey: [`/api/evidence/${evidence.id}/files-signed-urls`],
-    enabled: (evidence.files?.length ?? 0) > 0,
+    enabled: objectStorageFiles.length > 0,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -85,6 +94,11 @@ function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcome
   const firstFile = files[0];
   const isImage = firstFile?.mimeType?.startsWith("image/");
   const isVideo = firstFile?.mimeType?.startsWith("video/");
+  
+  // For Drive files, check the first Drive file's MIME type
+  const firstDriveFile = driveFiles[0];
+  const isDriveImage = firstDriveFile?.mimeType?.startsWith("image/");
+  const isDriveVideo = firstDriveFile?.mimeType?.startsWith("video/");
 
   return (
     <Card
@@ -94,7 +108,7 @@ function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcome
     >
       <CardContent className="p-0 h-full flex flex-col">
         <div className="flex-1 relative overflow-hidden bg-accent">
-          {isLoading ? (
+          {isLoading && objectStorageFiles.length > 0 ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <LoadingSpinner />
             </div>
@@ -115,6 +129,17 @@ function GalleryThumbnail({ evidence, onClick }: { evidence: EvidenceWithOutcome
               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                 <Play className="h-10 w-10 text-white drop-shadow-lg" />
               </div>
+            </div>
+          ) : hasDriveFiles ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-primary/5">
+              {isDriveImage ? (
+                <Camera className="h-10 w-10 text-primary" />
+              ) : isDriveVideo ? (
+                <Play className="h-10 w-10 text-primary" />
+              ) : (
+                <File className="h-10 w-10 text-primary" />
+              )}
+              <span className="text-xs text-primary font-medium">In Google Drive</span>
             </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -1055,8 +1080,6 @@ function PlanFormDialog({ open, onOpenChange, studentId, existingPlan, outcomes,
 }
 
 function SchemeCard({ scheme, studentId }: { scheme: SchemeOfWorkWithStudents; studentId: string }) {
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-
   const handleDownload = async () => {
     if (!scheme.storagePath) return;
     try {
@@ -1069,6 +1092,9 @@ function SchemeCard({ scheme, studentId }: { scheme: SchemeOfWorkWithStudents; s
       console.error("Download failed:", error);
     }
   };
+
+  const hasDriveFile = !!scheme.driveWebViewLink && scheme.driveWebViewLink.startsWith('http');
+  const hasObjectStorageFile = !!scheme.storagePath;
 
   return (
     <Card>
@@ -1084,11 +1110,21 @@ function SchemeCard({ scheme, studentId }: { scheme: SchemeOfWorkWithStudents; s
               <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{scheme.description}</p>
             )}
           </div>
-          {scheme.storagePath && (
-            <Button variant="outline" size="sm" onClick={handleDownload} data-testid={`button-download-scheme-${scheme.id}`}>
-              <Download className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex gap-1">
+            {hasDriveFile && (
+              <Button variant="outline" size="sm" asChild data-testid={`button-open-scheme-drive-${scheme.id}`}>
+                <a href={scheme.driveWebViewLink!} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Open
+                </a>
+              </Button>
+            )}
+            {hasObjectStorageFile && (
+              <Button variant="outline" size="sm" onClick={handleDownload} data-testid={`button-download-scheme-${scheme.id}`}>
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -1101,11 +1137,20 @@ function SchemeAssignDialog({ open, onOpenChange, studentId }: { open: boolean; 
   const [mode, setMode] = useState<"assign" | "create">("assign");
   const [selectedSchemeId, setSelectedSchemeId] = useState("");
   const [newScheme, setNewScheme] = useState({ title: "", term: "", classGroup: "", description: "" });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data: allSchemes } = useQuery<SchemeOfWorkWithStudents[]>({
     queryKey: ["/api/schemes"],
     enabled: open,
   });
+  
+  const { data: org } = useQuery<{ sharedDriveRootFolderId: string | null }>({
+    queryKey: ["/api/organisation"],
+    enabled: open,
+  });
+  
+  const isDriveConfigured = !!org?.sharedDriveRootFolderId;
 
   const assignMutation = useMutation({
     mutationFn: async (schemeId: string) => {
@@ -1122,7 +1167,7 @@ function SchemeAssignDialog({ open, onOpenChange, studentId }: { open: boolean; 
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: typeof newScheme) => {
+    mutationFn: async (data: { title: string; term: string; classGroup: string; description: string; mimeType?: string; fileSize?: number; driveFileId?: string; driveWebViewLink?: string }) => {
       const scheme = await apiRequest("POST", "/api/schemes", data);
       const schemeData = await scheme.json();
       await apiRequest("POST", `/api/schemes/${schemeData.id}/students/${studentId}`);
@@ -1132,6 +1177,7 @@ function SchemeAssignDialog({ open, onOpenChange, studentId }: { open: boolean; 
       toast({ title: "Scheme created and assigned" });
       qc.invalidateQueries({ queryKey: ["/api/students", studentId, "schemes"] });
       qc.invalidateQueries({ queryKey: ["/api/schemes"] });
+      setSelectedFile(null);
       onOpenChange(false);
     },
     onError: () => {
@@ -1139,12 +1185,54 @@ function SchemeAssignDialog({ open, onOpenChange, studentId }: { open: boolean; 
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === "assign" && selectedSchemeId) {
       assignMutation.mutate(selectedSchemeId);
     } else if (mode === "create" && newScheme.title) {
-      createMutation.mutate(newScheme);
+      let schemeData = { ...newScheme } as { title: string; term: string; classGroup: string; description: string; mimeType?: string; fileSize?: number; driveFileId?: string; driveWebViewLink?: string };
+      
+      if (selectedFile && isDriveConfigured) {
+        setIsUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+          
+          const response = await fetch("/api/drive/upload-scheme", {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || "Failed to upload file");
+          }
+          
+          const result = await response.json();
+          schemeData = {
+            ...schemeData,
+            mimeType: result.file.mimeType,
+            fileSize: result.file.fileSize,
+            driveFileId: result.file.driveFileId,
+            driveWebViewLink: result.file.driveWebViewLink,
+          };
+        } catch (error: any) {
+          toast({ title: error.message || "Failed to upload file to Drive", variant: "destructive" });
+          return;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+      
+      createMutation.mutate(schemeData);
+    }
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
     }
   };
 
@@ -1197,13 +1285,63 @@ function SchemeAssignDialog({ open, onOpenChange, studentId }: { open: boolean; 
                 <Label htmlFor="schemeDesc">Description</Label>
                 <Textarea id="schemeDesc" value={newScheme.description} onChange={(e) => setNewScheme({ ...newScheme, description: e.target.value })} placeholder="Brief description" data-testid="input-scheme-desc" />
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="schemeFile">Attach File (Optional)</Label>
+                {isDriveConfigured ? (
+                  <div className="border-2 border-dashed rounded-md p-4 text-center">
+                    {selectedFile ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="text-sm truncate">{selectedFile.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({Math.round(selectedFile.size / 1024)} KB)
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedFile(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          id="schemeFile"
+                          className="hidden"
+                          onChange={handleFileChange}
+                          data-testid="input-scheme-file"
+                        />
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Click to upload file to Google Drive</span>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed rounded-md p-4 text-center bg-muted/30">
+                    <p className="text-sm text-muted-foreground">
+                      File upload is available when Google Drive is connected.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ask your admin to configure Drive in School Settings.
+                    </p>
+                  </div>
+                )}
+              </div>
             </>
           )}
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={assignMutation.isPending || createMutation.isPending} data-testid="button-confirm-scheme">
-              {(assignMutation.isPending || createMutation.isPending) ? "Saving..." : mode === "assign" ? "Assign" : "Create & Assign"}
+            <Button type="submit" disabled={assignMutation.isPending || createMutation.isPending || isUploading} data-testid="button-confirm-scheme">
+              {isUploading ? "Uploading..." : (assignMutation.isPending || createMutation.isPending) ? "Saving..." : mode === "assign" ? "Assign" : "Create & Assign"}
             </Button>
           </div>
         </form>
