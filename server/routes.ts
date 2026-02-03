@@ -2,12 +2,22 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { readFileSync } from "fs";
 import { join } from "path";
+import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
 import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected, testDriveConnection, getFolderInfo, ensureStudentFolderPath, uploadFileToDrive } from "./googleDrive";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB max
+    files: 10, // Max 10 files
+  },
+});
 
 // Audit logging helper for security-sensitive actions
 async function logAudit(
@@ -554,6 +564,88 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error disconnecting Drive:", error);
       res.status(500).json({ message: "Failed to disconnect Drive" });
+    }
+  });
+
+  // Upload file(s) to Google Drive for a student
+  app.post("/api/drive/upload/:studentId", isAuthenticated, upload.array("files", 10), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+      
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+
+      const org = membership.organisation;
+      if (!org.sharedDriveRootFolderId) {
+        return res.status(400).json({ message: "Google Drive is not configured for this organisation" });
+      }
+
+      const student = await storage.getStudentById(req.params.studentId);
+      if (!student || student.organisationId !== org.id) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: "No files provided" });
+      }
+
+      // Get or create student folder path
+      const studentCode = `${student.lastName}_${student.firstName}`.replace(/\s+/g, '_');
+      let studentFolderId = student.driveFolderId;
+
+      if (!studentFolderId) {
+        const studentFolder = await ensureStudentFolderPath(
+          org.sharedDriveRootFolderId,
+          student.classGroup,
+          studentCode
+        );
+        studentFolderId = studentFolder.id;
+        
+        // Save the folder ID to the student record
+        await storage.updateStudent(student.id, { driveFolderId: studentFolderId });
+      }
+
+      // Upload each file to Drive
+      const uploadedFiles = [];
+      for (const file of files) {
+        try {
+          const result = await uploadFileToDrive(
+            studentFolderId,
+            file.originalname,
+            file.mimetype,
+            file.buffer
+          );
+          
+          uploadedFiles.push({
+            id: result.id,
+            fileName: file.originalname,
+            mimeType: file.mimetype,
+            fileSize: file.size,
+            driveFileId: result.id,
+            driveWebViewLink: result.webViewLink,
+          });
+          
+          await logAudit(req, "drive_file_uploaded", "file", result.id, `${file.originalname} uploaded to student ${studentCode}`);
+        } catch (uploadError: any) {
+          console.error(`Failed to upload file ${file.originalname}:`, uploadError);
+        }
+      }
+
+      if (uploadedFiles.length === 0) {
+        return res.status(500).json({ message: "Failed to upload files to Google Drive" });
+      }
+
+      res.json({
+        success: true,
+        uploadedFiles,
+        studentFolderId,
+      });
+    } catch (error: any) {
+      console.error("Error uploading to Drive:", error);
+      res.status(500).json({ message: error.message || "Failed to upload files" });
     }
   });
 
