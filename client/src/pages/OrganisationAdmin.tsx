@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen, Palette, Upload, Image, AlertTriangle, CheckCircle } from "lucide-react";
+import { Building2, Users, Copy, RefreshCw, Shield, UserMinus, Check, Database, BookOpen, Palette, Upload, Image, AlertTriangle, CheckCircle, FolderOpen, Link2, ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,8 @@ export default function OrganisationAdmin() {
   const [accentColor, setAccentColor] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [driveFolderInput, setDriveFolderInput] = useState("");
+  const [isTestingDrive, setIsTestingDrive] = useState(false);
 
   const { data: members, isLoading: membersLoading } = useQuery<OrganisationMember[]>({
     queryKey: ["/api/organisation/members"],
@@ -65,6 +67,85 @@ export default function OrganisationAdmin() {
     queryKey: ["/api/organisation/logo-url"],
     enabled: !!membership?.organisation.logoStoragePath,
   });
+
+  interface DriveStatus {
+    connected: boolean;
+    configured: boolean;
+    sharedDriveRootFolderId: string | null;
+    sharedDriveName: string | null;
+    driveConnectedAt: string | null;
+  }
+
+  const { data: driveStatus, isLoading: driveStatusLoading } = useQuery<DriveStatus>({
+    queryKey: ["/api/organisation/drive/status"],
+    enabled: isAdmin,
+  });
+
+  const configureDriveMutation = useMutation({
+    mutationFn: async (folderId: string) => {
+      return apiRequest("PATCH", "/api/organisation/drive/config", { sharedDriveRootFolderId: folderId });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/organisation/drive/status"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/organisation"] });
+      toast({ title: "Google Drive connected successfully" });
+      setDriveFolderInput("");
+    },
+    onError: (error: any) => {
+      toast({ title: error.message || "Failed to connect Google Drive", variant: "destructive" });
+    },
+  });
+
+  const disconnectDriveMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", "/api/organisation/drive/config");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/organisation/drive/status"] });
+      qc.invalidateQueries({ queryKey: ["/api/me/organisation"] });
+      toast({ title: "Google Drive disconnected" });
+    },
+    onError: () => {
+      toast({ title: "Failed to disconnect Google Drive", variant: "destructive" });
+    },
+  });
+
+  const extractFolderId = (input: string): string => {
+    const trimmed = input.trim();
+    const folderMatch = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/);
+    if (folderMatch) return folderMatch[1];
+    const idMatch = trimmed.match(/id=([a-zA-Z0-9_-]+)/);
+    if (idMatch) return idMatch[1];
+    if (/^[a-zA-Z0-9_-]+$/.test(trimmed)) return trimmed;
+    return trimmed;
+  };
+
+  const handleConnectDrive = async () => {
+    if (!driveFolderInput.trim()) {
+      toast({ title: "Please enter a folder URL or ID", variant: "destructive" });
+      return;
+    }
+    const folderId = extractFolderId(driveFolderInput);
+    setIsTestingDrive(true);
+    try {
+      const testRes = await fetch("/api/organisation/drive/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId }),
+        credentials: "include",
+      });
+      const testData = await testRes.json();
+      if (!testData.success) {
+        toast({ title: testData.error || "Cannot access folder", variant: "destructive" });
+        return;
+      }
+      configureDriveMutation.mutate(folderId);
+    } catch (error) {
+      toast({ title: "Failed to test folder access", variant: "destructive" });
+    } finally {
+      setIsTestingDrive(false);
+    }
+  };
 
   const updateBrandingMutation = useMutation({
     mutationFn: async (data: { displayName?: string | null; accentColor?: string | null; logoStoragePath?: string | null }) => {
@@ -381,6 +462,119 @@ export default function OrganisationAdmin() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderOpen className="h-5 w-5" />
+                Google Shared Drive
+              </CardTitle>
+              <CardDescription>
+                Connect your school's Google Shared Drive to store evidence files directly
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {driveStatusLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Checking Drive connection...
+                </div>
+              ) : driveStatus?.configured ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 rounded-md bg-accent/10 border border-accent/20">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div className="flex-1">
+                      <p className="font-medium">Connected to Shared Drive</p>
+                      <p className="text-sm text-muted-foreground">
+                        {driveStatus.sharedDriveName || "Folder connected"}
+                      </p>
+                      {driveStatus.driveConnectedAt && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Connected on {new Date(driveStatus.driveConnectedAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      data-testid="button-open-drive-folder"
+                    >
+                      <a 
+                        href={`https://drive.google.com/drive/folders/${driveStatus.sharedDriveRootFolderId}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Open
+                      </a>
+                    </Button>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" data-testid="button-disconnect-drive">
+                        Disconnect Drive
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Disconnect Google Drive?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will remove the Drive connection. Existing evidence files will remain in Google Drive, but new uploads won't be possible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => disconnectDriveMutation.mutate()}
+                          disabled={disconnectDriveMutation.isPending}
+                        >
+                          Disconnect
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 rounded-md bg-muted">
+                    <Link2 className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Not connected</p>
+                      <p className="text-sm text-muted-foreground">
+                        Link your school's Google Shared Drive folder to enable direct file uploads
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="driveFolderInput">Shared Drive Folder URL or ID</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="driveFolderInput"
+                        placeholder="Paste folder URL or ID from Google Drive..."
+                        value={driveFolderInput}
+                        onChange={(e) => setDriveFolderInput(e.target.value)}
+                        data-testid="input-drive-folder"
+                      />
+                      <Button 
+                        onClick={handleConnectDrive}
+                        disabled={!driveFolderInput.trim() || isTestingDrive || configureDriveMutation.isPending}
+                        data-testid="button-connect-drive"
+                      >
+                        {(isTestingDrive || configureDriveMutation.isPending) ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : null}
+                        Connect
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Open your Shared Drive folder in Google Drive and copy the URL from your browser, then paste it here
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

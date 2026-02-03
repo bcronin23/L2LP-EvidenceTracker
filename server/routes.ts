@@ -5,7 +5,7 @@ import { join } from "path";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
-import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected } from "./googleDrive";
+import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected, testDriveConnection, getFolderInfo, ensureStudentFolderPath, uploadFileToDrive } from "./googleDrive";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -436,6 +436,124 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting logo URL:", error);
       res.status(500).json({ message: "Failed to get logo URL" });
+    }
+  });
+
+  // ============================================
+  // GOOGLE DRIVE INTEGRATION ROUTES
+  // ============================================
+
+  // Check if Google Drive is connected
+  app.get("/api/organisation/drive/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership) {
+        return res.status(403).json({ message: "Organisation membership required" });
+      }
+
+      const org = membership.organisation;
+      const connected = isGoogleDriveConnected();
+      
+      res.json({
+        connected,
+        configured: !!org.sharedDriveRootFolderId,
+        sharedDriveRootFolderId: org.sharedDriveRootFolderId,
+        sharedDriveName: org.sharedDriveName,
+        driveConnectedAt: org.driveConnectedAt,
+      });
+    } catch (error) {
+      console.error("Error checking Drive status:", error);
+      res.status(500).json({ message: "Failed to check Drive status" });
+    }
+  });
+
+  // Test Drive folder connection (admin only)
+  app.post("/api/organisation/drive/test", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { folderId } = req.body;
+      if (!folderId) {
+        return res.status(400).json({ message: "Folder ID is required" });
+      }
+
+      const result = await testDriveConnection(folderId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error testing Drive connection:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to test connection" });
+    }
+  });
+
+  // Configure Shared Drive root folder (admin only)
+  app.patch("/api/organisation/drive/config", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { sharedDriveRootFolderId } = req.body;
+      if (!sharedDriveRootFolderId) {
+        return res.status(400).json({ message: "Folder ID is required" });
+      }
+
+      const testResult = await testDriveConnection(sharedDriveRootFolderId);
+      if (!testResult.success) {
+        return res.status(400).json({ message: testResult.error || "Cannot access folder" });
+      }
+
+      const updated = await storage.updateOrganisation(membership.organisation.id, {
+        sharedDriveRootFolderId,
+        sharedDriveName: testResult.folderName,
+        driveConnectedAt: new Date(),
+      });
+
+      await logAudit(req, "drive_configured", "organisation", membership.organisation.id, `Configured Shared Drive folder: ${testResult.folderName}`);
+
+      res.json({
+        success: true,
+        sharedDriveRootFolderId,
+        sharedDriveName: testResult.folderName,
+        driveConnectedAt: updated?.driveConnectedAt,
+      });
+    } catch (error: any) {
+      console.error("Error configuring Drive:", error);
+      res.status(500).json({ message: error.message || "Failed to configure Drive" });
+    }
+  });
+
+  // Disconnect Shared Drive (admin only)
+  app.delete("/api/organisation/drive/config", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const membership = await storage.getUserMembership(userId);
+
+      if (!membership || membership.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      await storage.updateOrganisation(membership.organisation.id, {
+        sharedDriveRootFolderId: null,
+        sharedDriveName: null,
+        driveConnectedAt: null,
+      });
+
+      await logAudit(req, "drive_disconnected", "organisation", membership.organisation.id);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error disconnecting Drive:", error);
+      res.status(500).json({ message: "Failed to disconnect Drive" });
     }
   });
 

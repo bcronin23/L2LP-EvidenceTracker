@@ -140,3 +140,176 @@ export async function getDriveFileContent(fileId: string): Promise<{ buffer: Buf
 export function isGoogleDriveConnected(): boolean {
   return !!(process.env.REPLIT_CONNECTORS_HOSTNAME);
 }
+
+// ============================================
+// DRIVE UPLOAD & FOLDER MANAGEMENT
+// ============================================
+
+export interface DriveFolderInfo {
+  id: string;
+  name: string;
+  webViewLink: string;
+}
+
+export interface DriveUploadedFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  webViewLink: string;
+}
+
+export async function testDriveConnection(folderId: string): Promise<{ success: boolean; folderName?: string; error?: string }> {
+  try {
+    const drive = await getGoogleDriveClient();
+    const response = await drive.files.get({
+      fileId: folderId,
+      supportsAllDrives: true,
+      fields: 'id, name, mimeType'
+    });
+
+    if (response.data.mimeType !== 'application/vnd.google-apps.folder') {
+      return { success: false, error: 'The provided ID is not a folder' };
+    }
+
+    return { success: true, folderName: response.data.name || 'Unknown' };
+  } catch (error: any) {
+    console.error('Drive connection test failed:', error.message);
+    return { success: false, error: error.message || 'Failed to access folder' };
+  }
+}
+
+export async function getFolderInfo(folderId: string): Promise<DriveFolderInfo | null> {
+  try {
+    const drive = await getGoogleDriveClient();
+    const response = await drive.files.get({
+      fileId: folderId,
+      supportsAllDrives: true,
+      fields: 'id, name, webViewLink'
+    });
+
+    return {
+      id: response.data.id || folderId,
+      name: response.data.name || 'Unknown',
+      webViewLink: response.data.webViewLink || `https://drive.google.com/drive/folders/${folderId}`
+    };
+  } catch (error) {
+    console.error('Failed to get folder info:', error);
+    return null;
+  }
+}
+
+export async function findOrCreateFolder(
+  parentFolderId: string,
+  folderName: string
+): Promise<DriveFolderInfo> {
+  const drive = await getGoogleDriveClient();
+
+  const query = `name = '${folderName.replace(/'/g, "\\'")}' and '${parentFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  
+  const searchResponse = await drive.files.list({
+    q: query,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    fields: 'files(id, name, webViewLink)'
+  });
+
+  if (searchResponse.data.files && searchResponse.data.files.length > 0) {
+    const existing = searchResponse.data.files[0];
+    return {
+      id: existing.id!,
+      name: existing.name || folderName,
+      webViewLink: existing.webViewLink || `https://drive.google.com/drive/folders/${existing.id}`
+    };
+  }
+
+  const createResponse = await drive.files.create({
+    supportsAllDrives: true,
+    requestBody: {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentFolderId]
+    },
+    fields: 'id, name, webViewLink'
+  });
+
+  console.log(`Created Drive folder: ${folderName} in parent ${parentFolderId}`);
+
+  return {
+    id: createResponse.data.id!,
+    name: createResponse.data.name || folderName,
+    webViewLink: createResponse.data.webViewLink || `https://drive.google.com/drive/folders/${createResponse.data.id}`
+  };
+}
+
+export async function ensureStudentFolderPath(
+  rootFolderId: string,
+  classGroup: string | null,
+  studentCode: string
+): Promise<DriveFolderInfo> {
+  let currentParentId = rootFolderId;
+
+  if (classGroup && classGroup.trim()) {
+    const classFolder = await findOrCreateFolder(currentParentId, classGroup.trim());
+    currentParentId = classFolder.id;
+  }
+
+  const studentsFolder = await findOrCreateFolder(currentParentId, '01 Students');
+  currentParentId = studentsFolder.id;
+
+  const studentFolder = await findOrCreateFolder(currentParentId, studentCode);
+  
+  console.log(`Ensured student folder path: ${classGroup || ''}/${studentCode}, folder ID: ${studentFolder.id}`);
+  
+  return studentFolder;
+}
+
+export async function uploadFileToDrive(
+  folderId: string,
+  fileName: string,
+  mimeType: string,
+  fileBuffer: Buffer
+): Promise<DriveUploadedFile> {
+  const drive = await getGoogleDriveClient();
+
+  const { Readable } = await import('stream');
+  const stream = Readable.from(fileBuffer);
+
+  const response = await drive.files.create({
+    supportsAllDrives: true,
+    requestBody: {
+      name: fileName,
+      parents: [folderId]
+    },
+    media: {
+      mimeType: mimeType,
+      body: stream
+    },
+    fields: 'id, name, mimeType, size, webViewLink'
+  });
+
+  console.log(`Uploaded file to Drive: ${fileName}, file ID: ${response.data.id}`);
+
+  return {
+    id: response.data.id!,
+    name: response.data.name || fileName,
+    mimeType: response.data.mimeType || mimeType,
+    size: parseInt(response.data.size || '0', 10),
+    webViewLink: response.data.webViewLink || `https://drive.google.com/file/d/${response.data.id}/view`
+  };
+}
+
+export async function deleteFileFromDrive(fileId: string): Promise<boolean> {
+  try {
+    const drive = await getGoogleDriveClient();
+    await drive.files.delete({
+      fileId: fileId,
+      supportsAllDrives: true
+    });
+    console.log(`Deleted file from Drive: ${fileId}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to delete file from Drive:', error);
+    return false;
+  }
+}
