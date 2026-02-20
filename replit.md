@@ -8,6 +8,7 @@ The application is built as a mobile-first utility tool optimized for teachers w
 
 ## Recent Changes
 
+- **Feb 2026**: Data protection enhancements - student identifiers as initials only (2-4 uppercase letters), evidence notes safeguards with confirmation checkbox, server-side screening for identifying information, Drive folder organization by LO code, data protection guidance in admin settings
 - **Feb 2026**: Implemented Google Drive link-based evidence workflow - files stay in school's Google Drive, app stores links + outcome tags + notes only
 - **Jan 2026**: Initial production release with full CRUD for students, evidence upload wizard, coverage tracking, and learning outcomes catalog
 - **Jan 2026**: Added multi-tenant organisation model with admin/staff roles, invite code system for staff onboarding

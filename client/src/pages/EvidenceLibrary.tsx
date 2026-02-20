@@ -149,7 +149,7 @@ export default function EvidenceLibrary() {
             <SelectItem value="all">All Students</SelectItem>
             {students?.map((student) => (
               <SelectItem key={student.id} value={student.id}>
-                {student.firstName} {student.lastName}
+                {student.firstName}
               </SelectItem>
             ))}
           </SelectContent>
@@ -353,7 +353,7 @@ export default function EvidenceLibrary() {
                               <div className="flex items-start justify-between gap-2">
                                 <div>
                                   <p className="font-medium text-sm leading-tight">
-                                    {item.student?.firstName} {item.student?.lastName}
+                                    {item.student?.firstName}
                                   </p>
                                   <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                                     {item.assessmentActivity || item.observations || "No description"}

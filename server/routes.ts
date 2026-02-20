@@ -6,7 +6,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes, objectStorageService } from "./replit_integrations/object_storage";
-import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected, testDriveConnection, getFolderInfo, ensureStudentFolderPath, ensureSchemesFolderPath, uploadFileToDrive } from "./googleDrive";
+import { listDriveFiles, getDriveFileContent, isGoogleDriveConnected, testDriveConnection, getFolderInfo, ensureStudentFolderPath, ensureSchemesFolderPath, uploadFileToDrive, createDriveShortcut, moveFileInDrive, findOrCreateFolder } from "./googleDrive";
 import { insertStudentSchema, insertEvidenceSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -593,7 +593,7 @@ export async function registerRoutes(
       }
 
       // Get or create student folder path
-      const studentCode = `${student.lastName}_${student.firstName}`.replace(/\s+/g, '_');
+      const studentCode = student.firstName;
       let studentFolderId = student.driveFolderId;
 
       if (!studentFolderId) {
@@ -818,6 +818,12 @@ export async function registerRoutes(
         userId,
         organisationId: membership.organisation.id
       });
+      
+      const STUDENT_INITIALS_REGEX = /^[A-Z]{2,4}$/;
+      if (!STUDENT_INITIALS_REGEX.test(data.firstName)) {
+        return res.status(400).json({ message: "Student identifier must be 2-4 uppercase letters (initials only)" });
+      }
+      
       const student = await storage.createStudent(data);
       res.status(201).json(student);
     } catch (error) {
@@ -836,6 +842,10 @@ export async function registerRoutes(
       
       if (!membership) {
         return res.status(403).json({ message: "Organisation membership required", needsSetup: true });
+      }
+
+      if (req.body.firstName && !/^[A-Z]{2,4}$/.test(req.body.firstName)) {
+        return res.status(400).json({ message: "Student identifier must be 2–4 uppercase letters only (e.g., JD). No names, numbers, or punctuation." });
       }
       
       const student = await storage.updateStudentByOrganisation(req.params.id, membership.organisation.id, req.body);
@@ -1043,7 +1053,7 @@ export async function registerRoutes(
       const signedUrl = await objectStorageService.getSignedReadUrl(student.photoStoragePath, 900);
       
       // Audit log student photo access
-      await logAudit(req, "photo_accessed", "student", req.params.id, student.firstName + " " + student.lastName);
+      await logAudit(req, "photo_accessed", "student", req.params.id, student.firstName);
       
       res.json({ signedUrl, expiresIn: 900 });
     } catch (error) {
@@ -1579,6 +1589,16 @@ export async function registerRoutes(
     links: z.array(evidenceLinkSchema).optional(),
   });
 
+  function screenForIdentifiers(text: string | null | undefined): boolean {
+    if (!text) return false;
+    const emailPattern = /[^\s@]+@[^\s@]+/;
+    const phonePattern = /\d{7,}/;
+    if (emailPattern.test(text)) return true;
+    if (phonePattern.test(text)) return true;
+    if (text.includes('@')) return true;
+    return false;
+  }
+
   app.post("/api/evidence", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -1589,6 +1609,13 @@ export async function registerRoutes(
       }
       
       const { outcomeIds, files, links, ...data } = createEvidenceSchema.parse(req.body);
+
+      const textFields = [data.assessmentActivity, data.observations, data.nextSteps, data.successCriteria];
+      for (const field of textFields) {
+        if (screenForIdentifiers(field)) {
+          return res.status(400).json({ message: "Remove identifying information (emails/phone numbers/names) and try again." });
+        }
+      }
 
       // Convert files to InsertEvidenceFile format (evidenceId will be added by storage)
       const evidenceFiles = files?.map((f, index) => ({
@@ -1618,6 +1645,51 @@ export async function registerRoutes(
       
       // Audit log evidence creation
       await logAudit(req, "evidence_created", "evidence", evidence.id, `For student ${data.studentId}`);
+
+      // Organize Drive files by LO code in background (non-blocking)
+      if (evidenceFiles && evidenceFiles.length > 0 && outcomeIds && outcomeIds.length > 0) {
+        const org = membership.organisation as any;
+        const rootFolderId = org.sharedDriveRootFolderId;
+        if (rootFolderId) {
+          (async () => {
+            try {
+              const student = await storage.getStudent(data.studentId, membership.organisation.id);
+              if (!student) return;
+              const studentInitials = student.firstName;
+              const studentsBaseFolder = await findOrCreateFolder(rootFolderId, 'Students');
+              const studentFolder = await findOrCreateFolder(studentsBaseFolder.id, studentInitials);
+              
+              const outcomes = await storage.getLearningOutcomes();
+              const outcomeMap = new Map(outcomes.map(o => [o.id, o]));
+              const loCodes = outcomeIds.map(id => outcomeMap.get(id)?.code).filter(Boolean) as string[];
+
+              const driveFiles = evidenceFiles.filter(f => f.driveFileId);
+              if (driveFiles.length === 0 || loCodes.length === 0) return;
+
+              if (loCodes.length === 1) {
+                const loFolder = await findOrCreateFolder(studentFolder.id, loCodes[0]);
+                for (const f of driveFiles) {
+                  await moveFileInDrive(f.driveFileId!, loFolder.id, studentFolder.id);
+                }
+              } else {
+                const uploadsFolder = await findOrCreateFolder(studentFolder.id, 'Uploads');
+                for (const f of driveFiles) {
+                  await moveFileInDrive(f.driveFileId!, uploadsFolder.id, studentFolder.id);
+                }
+                for (const loCode of loCodes) {
+                  const loFolder = await findOrCreateFolder(studentFolder.id, loCode);
+                  for (const f of driveFiles) {
+                    await createDriveShortcut(f.driveFileId!, loFolder.id, f.fileName);
+                  }
+                }
+              }
+              console.log(`Organized ${driveFiles.length} files into LO folders for ${studentInitials}`);
+            } catch (err) {
+              console.error('Failed to organize Drive files by LO code:', err);
+            }
+          })();
+        }
+      }
       
       res.status(201).json(evidence);
     } catch (error) {
@@ -1653,6 +1725,13 @@ export async function registerRoutes(
       }
       
       const { outcomeIds, ...data } = updateEvidenceSchema.parse(req.body);
+
+      const textFields = [data.assessmentActivity, data.observations, data.nextSteps, data.successCriteria];
+      for (const field of textFields) {
+        if (screenForIdentifiers(field)) {
+          return res.status(400).json({ message: "Remove identifying information (emails/phone numbers/names) and try again." });
+        }
+      }
       
       const updated = await storage.updateEvidence(
         req.params.id,

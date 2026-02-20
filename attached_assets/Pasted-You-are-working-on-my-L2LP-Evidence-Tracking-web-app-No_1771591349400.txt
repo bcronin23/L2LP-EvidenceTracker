@@ -1,0 +1,57 @@
+You are working on my L2LP Evidence Tracking web app (Node/Express + React + Postgres/Drizzle). I want to KEEP the existing evidence note + observation structure exactly as it is, but add data-protection controls so teachers do not enter or upload identifiable data.
+
+Implement the following changes:
+
+A) Student initials only (hard enforcement)
+1) Wherever a student is created/edited, change the Student Identifier field so it only allows initials.
+2) Rules: 2–4 letters only, uppercase A–Z, no spaces, no numbers, no punctuation.
+   Regex: ^[A-Z]{2,4}$
+3) Front-end:
+   - Auto-uppercase as the user types
+   - Block invalid characters
+   - Show helper text under the field: “Initials only (e.g., JD). No names. (GDPR)”
+   - Show a clear validation error if invalid
+4) Back-end:
+   - Validate on the API as well; reject invalid input with a 400 + message.
+5) Database:
+   - Add a constraint (or Drizzle-level validation) so invalid identifiers cannot be saved.
+
+B) Evidence notes / observations (keep structure, add safeguards)
+1) Keep the existing evidence note and observation fields unchanged.
+2) Add a visible reminder banner/notice directly above the evidence note/observation inputs:
+   Text: “Data protection: Use non-identifiable information only. Do not include names, addresses, or any personal details.”
+3) Add a required checkbox before saving evidence:
+   Label: “I confirm this note contains no identifying information.”
+   - Disable the Save/Submit button until checked.
+4) Add lightweight server-side screening for obvious identifiers in evidence notes/observations:
+   - Reject if the text contains an email pattern (something@something)
+   - Reject if it contains a phone-number-like pattern (7+ digits)
+   - Reject if it contains the ‘@’ character
+   - Return 400 with message: “Remove identifying information (emails/phone numbers/names) and try again.”
+   NOTE: This is not perfect name detection; keep it minimal and safe.
+
+C) Google Drive folder structure by LO code (no change to overall upload flow)
+When an evidence file is uploaded to Google Drive, ensure the folder structure is:
+L2LP Evidence / Students / <INITIALS> / <LO_CODE> / <file>
+
+1) If folders do not exist, create them.
+2) LO codes come from the evidence record (e.g., “2.3”, “1.2”, “5.25”). If multiple LO codes are selected for the same evidence item:
+   - Upload the file once into: Students/<INITIALS>/Uploads/
+   - Create Google Drive SHORTCUTS inside each LO folder that point to the single uploaded file.
+   - If shortcuts are not available in the current Drive API usage, then duplicate the file as a fallback (but prefer shortcuts).
+3) File naming:
+   Use: YYYY-MM-DD_<INITIALS>_<LOCODE>_<type>_<shortid>.<ext>
+   If multiple LO codes, name the uploaded file with “MULTI” and rely on shortcuts per LO folder.
+
+D) Add a short “Data Protection” help item in Settings
+Add a Settings/help section that lists:
+- Initials only for students
+- No names/personal details in notes
+- Uploads should avoid identifying information
+
+Deliverables:
+1) Show the exact files you changed and what you added.
+2) Provide any Drizzle migration/DB updates.
+3) Ensure the app still runs locally and builds.
+
+Do NOT refactor unrelated areas. Keep changes minimal and focused.

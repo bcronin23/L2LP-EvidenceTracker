@@ -43,9 +43,13 @@ const isGoogleDriveUrl = (url: string) => {
   }
 };
 
+const INITIALS_REGEX = /^[A-Z]{2,4}$/;
+
 const studentFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(100),
-  lastName: z.string().min(1, "Last name is required").max(100),
+  firstName: z.string()
+    .min(2, "Initials must be 2–4 uppercase letters")
+    .max(4, "Initials must be 2–4 uppercase letters")
+    .regex(INITIALS_REGEX, "Initials only: 2–4 uppercase letters (A–Z)"),
   classGroup: z.string().max(50).optional(),
   yearGroup: z.string().max(20).optional(),
   programmeId: z.string().min(1, "Programme is required"),
@@ -170,7 +174,6 @@ export function StudentFormDialog({
     resolver: zodResolver(studentFormSchema),
     defaultValues: {
       firstName: "",
-      lastName: "",
       classGroup: "",
       yearGroup: "",
       programmeId: "",
@@ -183,7 +186,6 @@ export function StudentFormDialog({
     if (student) {
       form.reset({
         firstName: student.firstName || "",
-        lastName: student.lastName || "",
         classGroup: student.classGroup || "",
         yearGroup: student.yearGroup || "",
         programmeId: student.programmeId || "",
@@ -193,7 +195,6 @@ export function StudentFormDialog({
     } else {
       form.reset({
         firstName: "",
-        lastName: "",
         classGroup: "",
         yearGroup: "",
         programmeId: "",
@@ -205,7 +206,7 @@ export function StudentFormDialog({
 
   const createMutation = useMutation({
     mutationFn: async (data: StudentFormValues) => {
-      const res = await apiRequest("POST", "/api/students", data);
+      const res = await apiRequest("POST", "/api/students", { ...data, lastName: "-" });
       return res.json();
     },
     onSuccess: () => {
@@ -224,7 +225,7 @@ export function StudentFormDialog({
 
   const updateMutation = useMutation({
     mutationFn: async (data: StudentFormValues) => {
-      const res = await apiRequest("PATCH", `/api/students/${student?.id}`, data);
+      const res = await apiRequest("PATCH", `/api/students/${student?.id}`, { ...data, lastName: "-" });
       return res.json();
     },
     onSuccess: () => {
@@ -272,10 +273,10 @@ export function StudentFormDialog({
                 <div className="relative">
                   <Avatar className="h-16 w-16">
                     {photoUrl ? (
-                      <AvatarImage src={photoUrl} alt={`${student?.firstName} ${student?.lastName}`} />
+                      <AvatarImage src={photoUrl} alt={student?.firstName || ""} />
                     ) : null}
                     <AvatarFallback className="text-lg">
-                      {student?.firstName?.[0]}{student?.lastName?.[0]}
+                      {student?.firstName}
                     </AvatarFallback>
                   </Avatar>
                   {isUploadingPhoto && (
@@ -321,34 +322,31 @@ export function StudentFormDialog({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} data-testid="input-first-name" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} data-testid="input-last-name" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="firstName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Student Identifier (Initials)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="JD"
+                      maxLength={4}
+                      {...field}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
+                        field.onChange(val);
+                      }}
+                      data-testid="input-student-initials"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Initials only (e.g., JD). No names. (GDPR)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

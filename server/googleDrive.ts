@@ -307,6 +307,56 @@ export async function uploadFileToDrive(
   };
 }
 
+export async function createDriveShortcut(
+  fileId: string,
+  targetFolderId: string,
+  shortcutName: string
+): Promise<string | null> {
+  try {
+    const drive = await getGoogleDriveClient();
+    const response = await drive.files.create({
+      supportsAllDrives: true,
+      requestBody: {
+        name: shortcutName,
+        mimeType: 'application/vnd.google-apps.shortcut',
+        shortcutDetails: {
+          targetId: fileId,
+        },
+        parents: [targetFolderId],
+      },
+      fields: 'id',
+    });
+    console.log(`Created Drive shortcut for ${fileId} in folder ${targetFolderId}`);
+    return response.data.id || null;
+  } catch (error) {
+    console.error('Failed to create Drive shortcut:', error);
+    return null;
+  }
+}
+
+export async function moveFileInDrive(
+  fileId: string,
+  newParentId: string,
+  currentParentId?: string
+): Promise<boolean> {
+  try {
+    const drive = await getGoogleDriveClient();
+    const removeParents = currentParentId || undefined;
+    await drive.files.update({
+      fileId,
+      supportsAllDrives: true,
+      addParents: newParentId,
+      removeParents,
+      requestBody: {},
+    });
+    console.log(`Moved file ${fileId} to folder ${newParentId}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to move file in Drive:', error);
+    return false;
+  }
+}
+
 export async function deleteFileFromDrive(fileId: string): Promise<boolean> {
   try {
     const drive = await getGoogleDriveClient();

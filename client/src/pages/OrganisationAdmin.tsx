@@ -781,6 +781,52 @@ export default function OrganisationAdmin() {
               )}
             </CardContent>
           </Card>
+
+          <Card data-testid="card-data-protection">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Data Protection Guidance
+              </CardTitle>
+              <CardDescription>
+                Key practices for GDPR-compliant evidence collection
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3 text-sm">
+                <div className="p-3 border rounded-md space-y-1">
+                  <p className="font-medium">Student Identifiers</p>
+                  <p className="text-muted-foreground">
+                    Students are identified by initials only (2-4 uppercase letters). Never use full names, PPS numbers, or other personal identifiers in this system.
+                  </p>
+                </div>
+                <div className="p-3 border rounded-md space-y-1">
+                  <p className="font-medium">Evidence Notes</p>
+                  <p className="text-muted-foreground">
+                    Observations and notes should describe learning behaviours, not identify students. Avoid writing full names, addresses, medical details, or family information in any text field.
+                  </p>
+                </div>
+                <div className="p-3 border rounded-md space-y-1">
+                  <p className="font-medium">Photos and Videos</p>
+                  <p className="text-muted-foreground">
+                    Ensure your school's media consent policy covers any photos or videos stored in Google Drive. Files remain in your school's Shared Drive and are not stored by this application.
+                  </p>
+                </div>
+                <div className="p-3 border rounded-md space-y-1">
+                  <p className="font-medium">Google Drive Organisation</p>
+                  <p className="text-muted-foreground">
+                    Uploaded files are automatically organised into folders by student initials and learning outcome codes. This keeps evidence tidy and easy to locate during moderation.
+                  </p>
+                </div>
+                <div className="p-3 border rounded-md space-y-1">
+                  <p className="font-medium">Data Retention</p>
+                  <p className="text-muted-foreground">
+                    Archive students who have completed their programme. Archived students can be restored if needed. Consult your school's data retention policy for guidance on when to permanently delete records.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </main>
 
         <MobileNav />

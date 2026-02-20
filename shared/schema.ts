@@ -175,6 +175,8 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
   evidence: many(evidence),
 }));
 
+export const STUDENT_INITIALS_REGEX = /^[A-Z]{2,4}$/;
+
 export const insertStudentSchema = createInsertSchema(students).omit({
   id: true,
   createdAt: true,
@@ -184,6 +186,11 @@ export const insertStudentSchema = createInsertSchema(students).omit({
   photoUpdatedAt: true,
 }).extend({
   organisationId: z.string().min(1, "Organisation ID is required"),
+  firstName: z.string()
+    .min(2, "Initials must be 2–4 uppercase letters")
+    .max(4, "Initials must be 2–4 uppercase letters")
+    .regex(STUDENT_INITIALS_REGEX, "Initials only: 2–4 uppercase letters (A–Z), no spaces, numbers, or punctuation"),
+  lastName: z.string().default("-"),
 });
 
 export type InsertStudent = z.infer<typeof insertStudentSchema>;

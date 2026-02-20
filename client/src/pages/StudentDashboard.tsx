@@ -282,7 +282,7 @@ export default function StudentDashboard() {
       <DesktopSidebar />
 
       <div className="flex-1 flex flex-col pb-20 md:pb-0">
-        <MobileHeader title={`${student.firstName} ${student.lastName}`} />
+        <MobileHeader title={student.firstName} />
 
         <div className="hidden md:flex items-center justify-between gap-4 p-6 border-b">
           <div className="flex items-center gap-4">
@@ -293,7 +293,7 @@ export default function StudentDashboard() {
             </Link>
             <div>
               <h1 className="text-2xl font-semibold">
-                {student.firstName} {student.lastName}
+                {student.firstName}
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 {student.classGroup && (

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   AlertTriangle,
+  ShieldAlert,
   Link2,
   Plus,
   ExternalLink,
@@ -138,6 +139,7 @@ export default function UploadEvidence() {
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [dataProtectionConfirmed, setDataProtectionConfirmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   interface DriveStatus {
@@ -217,8 +219,9 @@ export default function UploadEvidence() {
       });
       navigate(studentCount === 1 ? `/students/${formData.studentIds[0]}` : "/students");
     },
-    onError: () => {
-      toast({ title: "Failed to save evidence", variant: "destructive" });
+    onError: (error: any) => {
+      const message = error?.message || "Failed to save evidence";
+      toast({ title: message, variant: "destructive" });
     },
   });
 
@@ -545,11 +548,11 @@ export default function UploadEvidence() {
                           <CardContent className="p-4 flex items-center gap-4">
                             <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
                               <span className="font-medium text-accent-foreground">
-                                {student.firstName[0]}{student.lastName[0]}
+                                {student.firstName}
                               </span>
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium">{student.firstName} {student.lastName}</p>
+                              <p className="font-medium">{student.firstName}</p>
                               {student.classGroup && (
                                 <Badge variant="secondary" className="text-xs mt-1">
                                   {student.classGroup}
@@ -995,6 +998,15 @@ export default function UploadEvidence() {
                   </Select>
                 </div>
 
+                <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950" data-testid="banner-data-protection">
+                  <CardContent className="p-3 flex items-start gap-3">
+                    <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Data protection: Use non-identifiable information only. Do not include names, addresses, or any personal details.
+                    </p>
+                  </CardContent>
+                </Card>
+
                 <div className="space-y-2">
                   <Label>Assessment Activity</Label>
                   <Input
@@ -1054,7 +1066,7 @@ export default function UploadEvidence() {
                         <div className="flex flex-wrap gap-2 mt-1">
                           {selectedStudents.map((s) => (
                             <Badge key={s.id} variant="secondary">
-                              {s.firstName} {s.lastName}
+                              {s.firstName}
                             </Badge>
                           ))}
                         </div>
@@ -1165,6 +1177,18 @@ export default function UploadEvidence() {
                     )}
                   </CardContent>
                 </Card>
+
+                <div className="flex items-start gap-3 p-3 border rounded-md bg-muted/50" data-testid="data-protection-confirm">
+                  <Checkbox
+                    id="data-protection-confirm"
+                    checked={dataProtectionConfirmed}
+                    onCheckedChange={(checked) => setDataProtectionConfirmed(!!checked)}
+                    data-testid="checkbox-data-protection"
+                  />
+                  <label htmlFor="data-protection-confirm" className="text-sm cursor-pointer leading-tight">
+                    I confirm this note contains no identifying information.
+                  </label>
+                </div>
               </div>
             )}
           </div>
@@ -1185,7 +1209,7 @@ export default function UploadEvidence() {
             {currentStep === "review" ? (
               <Button
                 onClick={handleSubmit}
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || !dataProtectionConfirmed}
                 data-testid="button-submit-evidence"
               >
                 {createMutation.isPending ? "Saving..." : "Save Evidence"}

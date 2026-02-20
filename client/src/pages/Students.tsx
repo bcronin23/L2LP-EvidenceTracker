@@ -77,7 +77,6 @@ export default function Students() {
     const searchLower = search.toLowerCase();
     const matchesSearch =
       student.firstName.toLowerCase().includes(searchLower) ||
-      student.lastName.toLowerCase().includes(searchLower) ||
       student.classGroup?.toLowerCase().includes(searchLower);
     
     const isArchived = !!(student as any).archivedAt;
@@ -183,13 +182,13 @@ export default function Students() {
                       <CardContent className="p-4 flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${isArchived ? "bg-muted" : "bg-accent"}`}>
                           <span className={`text-lg font-semibold ${isArchived ? "text-muted-foreground" : "text-accent-foreground"}`}>
-                            {student.firstName[0]}{student.lastName[0]}
+                            {student.firstName}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className="font-medium truncate">
-                              {student.firstName} {student.lastName}
+                              {student.firstName}
                             </h3>
                             {isArchived && (
                               <Badge variant="outline" className="text-xs flex-shrink-0">
